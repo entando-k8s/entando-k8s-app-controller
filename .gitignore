@@ -1,0 +1,9 @@
+.idea/*
+!.idea/runConfigurations
+target/
+*.iml
+.classpath
+.project
+.settings/
+classes/
+/src/test/resources/crd/examples/
