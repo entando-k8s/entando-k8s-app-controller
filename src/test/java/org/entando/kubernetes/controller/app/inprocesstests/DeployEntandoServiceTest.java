@@ -282,6 +282,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         //That exposes a port named 'appbuilder-port' on 8081
         assertThat(thePortNamed(APPBUILDER_PORT).on(theAppBuilderContainer).getContainerPort(), is(8081));
         assertThat(thePortNamed(APPBUILDER_PORT).on(theAppBuilderContainer).getProtocol(), is(TCP));
+        assertThat(theVariableNamed("REACT_APP_DOMAIN").on(theAppBuilderContainer), is("/entando-de-app"));
         //That points to the correct Docker image
         assertThat(theAppBuilderContainer.getImage(), is("docker.io/entando/entando-app-builder-de:6.0.0"));
     }

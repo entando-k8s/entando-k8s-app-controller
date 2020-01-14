@@ -31,7 +31,7 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
         this.databaseServiceResult = databaseServiceResult;
         this.containers = Arrays.asList(new EntandoAppDeployableContainer(entandoApp, keycloakConnectionConfig),
                 new ComponentManagerDeployableContainer(entandoApp, keycloakConnectionConfig, infrastructureConfig),
-                new AppBuilderDeployableContainer()
+                new AppBuilderDeployableContainer(entandoApp)
         );
         this.keycloakConnectionConfig = keycloakConnectionConfig;
     }
