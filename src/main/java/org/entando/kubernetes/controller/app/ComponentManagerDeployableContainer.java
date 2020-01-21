@@ -62,7 +62,7 @@ public class ComponentManagerDeployableContainer implements KeycloakAware, Ingre
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPort()), null));
-        infrastructureConfig.ifPresent((c) -> vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", c.getK8SExternalServiceUrl(), null)));
+        infrastructureConfig.ifPresent(c -> vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", c.getK8SExternalServiceUrl(), null)));
         DatabaseSchemaCreationResult databaseSchemaCreationResult = dbSchemas.get(DEDB);
         vars.add(new EnvVar("DB_VENDOR", databaseSchemaCreationResult.getVendor().getName(),
                 null));
