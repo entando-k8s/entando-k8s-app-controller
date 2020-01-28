@@ -177,7 +177,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
     @Test
     public void testDeployment() {
         //Given I use the 6.0.0 image version by default
-        System.setProperty(EntandoOperatorConfigProperty.ENTANDO_DOCKER_IMAGE_VERSION_DEFAULT.getJvmSystemProperty(), "6.0.0");
+        System.setProperty(EntandoOperatorConfigProperty.ENTANDO_DOCKER_IMAGE_VERSION_FALLBACK.getJvmSystemProperty(), "6.0.0");
 
         //Given I have a fully deployed KeycloakServer
         client.secrets().overwriteControllerSecret(newKeycloakAdminSecret());

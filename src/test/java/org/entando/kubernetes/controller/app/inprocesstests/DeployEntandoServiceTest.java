@@ -195,7 +195,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     @Test
     public void testDeployment() {
         //Given I use the 6.0.0 image version by default
-        System.setProperty(EntandoOperatorConfigProperty.ENTANDO_DOCKER_IMAGE_VERSION_DEFAULT.getJvmSystemProperty(), "6.0.0");
+        System.setProperty(EntandoOperatorConfigProperty.ENTANDO_DOCKER_IMAGE_VERSION_FALLBACK.getJvmSystemProperty(), "6.0.0");
         //Given I have an Entando App with a Wildfly server
         EntandoApp newEntandoApp = entandoApp;
         //And K8S is receiving Deployment requests
