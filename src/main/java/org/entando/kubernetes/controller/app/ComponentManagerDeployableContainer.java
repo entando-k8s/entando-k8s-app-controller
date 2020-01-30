@@ -70,7 +70,8 @@ public class ComponentManagerDeployableContainer implements KeycloakAware, Ingre
                 null));
         vars.add(new EnvVar("SPRING_DATASOURCE_USERNAME", null,
                 KubeUtils.secretKeyRef(databaseSchemaCreationResult.getSchemaSecretName(), KubeUtils.USERNAME_KEY)));
-        vars.add(new EnvVar("SPRING_DATASOURCE_PASSWORD", null,
+        vars.add(new EnvVar("SPRING_JPA_DATABASE_PLATFORM",
+                databaseSchemaCreationResult.getVendor().getHibernateDialect(), null));        vars.add(new EnvVar("SPRING_DATASOURCE_PASSWORD", null,
                 KubeUtils.secretKeyRef(databaseSchemaCreationResult.getSchemaSecretName(), KubeUtils.PASSSWORD_KEY)));
         databaseSchemaCreationResult.addAdditionalConfigFromDatabaseSecret(vars);
     }
