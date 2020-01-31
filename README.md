@@ -7,6 +7,7 @@
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=entando-k8s_entando-k8s-app-controller&metric=sqale_index)](https://sonarcloud.io/dashboard?id=entando-k8s_entando-k8s-app-controller)
 
 
+
 # Entando Kubernetes App Controller
 
 This project produces the Entando App Controller image. It is a run-to-completion style image
