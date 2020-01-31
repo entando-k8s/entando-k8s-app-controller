@@ -38,10 +38,10 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
     }
 
     @Override
-    protected void processAddition(EntandoApp newEntandoApp) {
-        EntandoAppServerDeployable deployable = buildEntandoAppServerDeployable(newEntandoApp);
+    protected void synchronizeDeploymentState(EntandoApp entandoApp) {
+        EntandoAppServerDeployable deployable = buildEntandoAppServerDeployable(entandoApp);
         performDeployCommand(deployable);
-        grantOperatorSuperuserRoleOnEntando(newEntandoApp);
+        grantOperatorSuperuserRoleOnEntando(entandoApp);
     }
 
     private DeployCommand<ServiceDeploymentResult> performDeployCommand(EntandoAppServerDeployable deployable) {
@@ -51,19 +51,19 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
         return deployCommand;
     }
 
-    private EntandoAppServerDeployable buildEntandoAppServerDeployable(EntandoApp newEntandoApp) {
-        KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources().findKeycloak(newEntandoApp);
-        InfrastructureConfig infrastructureConfig = findInfrastructureConfig(newEntandoApp);
-        DatabaseServiceResult databaseServiceResult = prepareDatabaseService(newEntandoApp, newEntandoApp.getSpec().getDbms(), "db");
+    private EntandoAppServerDeployable buildEntandoAppServerDeployable(EntandoApp entandoApp) {
+        KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources().findKeycloak(entandoApp);
+        InfrastructureConfig infrastructureConfig = findInfrastructureConfig(entandoApp);
+        DatabaseServiceResult databaseServiceResult = prepareDatabaseService(entandoApp, entandoApp.getSpec().getDbms(), "db");
         return new EntandoAppServerDeployable(
-                newEntandoApp,
+                entandoApp,
                 keycloakConnectionConfig,
                 infrastructureConfig,
                 databaseServiceResult);
     }
 
-    private InfrastructureConfig findInfrastructureConfig(EntandoApp newEntandoApp) {
-        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(newEntandoApp);
+    private InfrastructureConfig findInfrastructureConfig(EntandoApp entandoApp) {
+        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp);
         if (infrastructureConfig.getInfrastructureSecret() == null) {
             return null;
         }

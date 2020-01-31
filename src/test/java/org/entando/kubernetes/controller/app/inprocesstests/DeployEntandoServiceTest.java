@@ -29,21 +29,18 @@ import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
-import org.entando.kubernetes.controller.creators.KeycloakClientCreator;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.KeycloakClientConfigArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
-import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.infrastructure.EntandoClusterInfrastructure;
 import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -87,7 +84,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
         client.secrets().overwriteControllerSecret(buildKeycloakSecret());
         entandoAppController = new EntandoAppController(client, keycloakClient);
-        client.entandoResources().putEntandoCustomResource(entandoApp);
+        client.entandoResources().createOrPatchEntandoResource(entandoApp);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAMESPACE, entandoApp.getMetadata().getNamespace());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAME, entandoApp.getMetadata().getName());
@@ -108,7 +105,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
 
         //Then K8S was instructed to create a PersistentVolumeClaim for the JEE Server
         NamedArgumentCaptor<PersistentVolumeClaim> pvcCaptor = forResourceNamed(PersistentVolumeClaim.class, MY_APP_SERVER_PVC);
-        verify(client.persistentVolumeClaims()).createPersistentVolumeClaim(eq(newEntandoApp), pvcCaptor.capture());
+        verify(client.persistentVolumeClaims()).createPersistentVolumeClaimIfAbsent(eq(newEntandoApp), pvcCaptor.capture());
         //With a name that reflects the EntandoApp and the fact that this is a JEE Server claim
         PersistentVolumeClaim resultingPersistentVolumeClaim = pvcCaptor.getValue();
         assertThat(resultingPersistentVolumeClaim.getSpec().getAccessModes().get(0), is("ReadWriteOnce"));
@@ -139,7 +136,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         entandoAppController.onStartup(new StartupEvent());
         //Then a K8S Service was created with a name that reflects the EntandoApp and the fact that it is a JEE service
         NamedArgumentCaptor<Service> serviceCaptor = forResourceNamed(Service.class, MY_APP_SERVER_SERVICE);
-        verify(client.services()).createService(eq(newEntandoApp), serviceCaptor.capture());
+        verify(client.services()).createOrReplaceService(eq(newEntandoApp), serviceCaptor.capture());
         Service resultingService = serviceCaptor.getValue();
         //And a selector that matches the EntandoApp and the EntandoAppJeeServer pods
         Map<String, String> selector = resultingService.getSpec().getSelector();
@@ -215,7 +212,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         // Then a K8S deployment is created with a name that reflects the EntandoApp name and
         // the fact that it is a Server Deployment
         NamedArgumentCaptor<Deployment> deploymentCaptor = forResourceNamed(Deployment.class, MY_APP_SERVER_DEPLOYMENT);
-        verify(client.deployments()).createDeployment(eq(newEntandoApp), deploymentCaptor.capture());
+        verify(client.deployments()).createOrPatchDeployment(eq(newEntandoApp), deploymentCaptor.capture());
         Deployment theServerDeployment = deploymentCaptor.getValue();
 
         //With a Pod Template that has labels linking it to the previously created K8S Service
@@ -276,28 +273,8 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         assertThat(keycloakClientConfig.getPermissions().get(0).getRole(), is("superuser"));
         assertThat(keycloakClientConfig.getRedirectUris().get(0), is("https://myapp.192.168.0.100.nip.io/digital-exchange/*"));
         verifySpringSecuritySettings(theComponentManagerContainer, MY_APP + "-de-secret");
+        verifyKeycloakSettings(theComponentManagerContainer, MY_APP + "-de-secret");
 
-    }
-
-    void verifySpringSecuritySettings(Container container, String keycloakClientSecret) {
-        assertThat(theVariableNamed(
-                SpringBootDeployableContainer.SpringProperty.SPRING_SECURITY_OAUTH_2_CLIENT_PROVIDER_OIDC_ISSUER_URI.name())
-                .on(container), Matchers.is(MY_KEYCLOAK_BASE_URL + "/realms/entando"));
-        assertThat(theVariableReferenceNamed(
-                SpringBootDeployableContainer.SpringProperty.SPRING_SECURITY_OAUTH_2_CLIENT_REGISTRATION_OIDC_CLIENT_ID.name())
-                        .on(container).getSecretKeyRef().getName(),
-                Matchers.is(keycloakClientSecret));
-        assertThat(theVariableReferenceNamed(
-                SpringBootDeployableContainer.SpringProperty.SPRING_SECURITY_OAUTH_2_CLIENT_REGISTRATION_OIDC_CLIENT_ID.name())
-                .on(container).getSecretKeyRef().getKey(), Matchers.is(KeycloakClientCreator.CLIENT_ID_KEY));
-        assertThat(theVariableReferenceNamed(
-                SpringBootDeployableContainer.SpringProperty.SPRING_SECURITY_OAUTH_2_CLIENT_REGISTRATION_OIDC_CLIENT_SECRET.name())
-                        .on(container).getSecretKeyRef().getName(),
-                Matchers.is(keycloakClientSecret));
-        assertThat(theVariableReferenceNamed(
-                SpringBootDeployableContainer.SpringProperty.SPRING_SECURITY_OAUTH_2_CLIENT_REGISTRATION_OIDC_CLIENT_SECRET.name())
-                        .on(container).getSecretKeyRef().getKey(),
-                Matchers.is(KeycloakClientCreator.CLIENT_SECRET_KEY));
     }
 
     private void verifyTheAppBuilderContainer(Deployment theServerDeployment) {

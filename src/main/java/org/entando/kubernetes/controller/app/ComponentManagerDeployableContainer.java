@@ -1,24 +1,5 @@
 package org.entando.kubernetes.controller.app;
 
-import static java.lang.String.format;
-
-import io.fabric8.kubernetes.api.model.EnvVar;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import org.entando.kubernetes.controller.KeycloakClientConfig;
-import org.entando.kubernetes.controller.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.common.InfrastructureConfig;
-import org.entando.kubernetes.controller.database.DatabaseSchemaCreationResult;
-import org.entando.kubernetes.controller.spi.DatabasePopulator;
-import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
-import org.entando.kubernetes.model.app.EntandoApp;
-import org.entando.kubernetes.model.plugin.Permission;
-
 public class ComponentManagerDeployableContainer implements SpringBootDeployableContainer {
 
     public static final String COMPONENT_MANAGER_QUALIFIER = "de";

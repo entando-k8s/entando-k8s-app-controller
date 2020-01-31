@@ -72,7 +72,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
         client.secrets().overwriteControllerSecret(buildKeycloakSecret());
         entandoAppController = new EntandoAppController(client, keycloakClient);
-        client.entandoResources().putEntandoCustomResource(entandoApp);
+        client.entandoResources().createOrPatchEntandoResource(entandoApp);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAMESPACE, entandoApp.getMetadata().getNamespace());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAME, entandoApp.getMetadata().getName());
@@ -124,7 +124,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
 
         //Then K8S was instructed to create a PersistentVolumeClaim
         NamedArgumentCaptor<PersistentVolumeClaim> pvcCaptor = forResourceNamed(PersistentVolumeClaim.class, MY_APP_DB_PVC);
-        verify(client.persistentVolumeClaims()).createPersistentVolumeClaim(eq(newEntandoApp), pvcCaptor.capture());
+        verify(client.persistentVolumeClaims()).createPersistentVolumeClaimIfAbsent(eq(newEntandoApp), pvcCaptor.capture());
         //With a name that reflects the EntandoApp and the fact that this is a DB claim
         PersistentVolumeClaim resultingPersistentVolumeClaim = pvcCaptor.getValue();
         assertThat(resultingPersistentVolumeClaim.getSpec().getAccessModes().get(0), is("ReadWriteOnce"));
@@ -157,7 +157,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
         entandoAppController.onStartup(new StartupEvent());
         //Then a K8S Service was created with a name that reflects the EntandoApp and the fact that it is a DB service
         NamedArgumentCaptor<Service> serviceCaptor = forResourceNamed(Service.class, MY_APP_DB_SERVICE);
-        verify(client.services()).createService(eq(newEntandoApp), serviceCaptor.capture());
+        verify(client.services()).createOrReplaceService(eq(newEntandoApp), serviceCaptor.capture());
         Service resultingService = serviceCaptor.getValue();
         //And a selector that matches the EntandoApp and the EntandoAppDB pods
         Map<String, String> selector = resultingService.getSpec().getSelector();
@@ -193,7 +193,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
         // Then a K8S deployment is created with a name that reflects the EntandoApp name and
         // the fact that it is a DB Deployment
         NamedArgumentCaptor<Deployment> deploymentCaptor = forResourceNamed(Deployment.class, MY_APP_DB_DEPLOYMENT);
-        verify(client.deployments()).createDeployment(eq(newEntandoApp), deploymentCaptor.capture());
+        verify(client.deployments()).createOrPatchDeployment(eq(newEntandoApp), deploymentCaptor.capture());
         Deployment resultingDeployment = deploymentCaptor.getValue();
         //With a Pod Template that has labels linking it to the previously created K8S Service
         Map<String, String> selector = resultingDeployment.getSpec().getTemplate().getMetadata().getLabels();

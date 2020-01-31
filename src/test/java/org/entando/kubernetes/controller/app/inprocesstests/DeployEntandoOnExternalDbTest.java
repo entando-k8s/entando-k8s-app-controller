@@ -61,11 +61,11 @@ public class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentT
 
     @BeforeEach
     public void createCustomResources() {
-        client.entandoResources().putEntandoCustomResource(externalDatabase);
+        client.entandoResources().createOrPatchEntandoResource(externalDatabase);
         client.secrets().overwriteControllerSecret(buildKeycloakSecret());
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
         entandoAppController = new EntandoAppController(client, keycloakClient);
-        client.entandoResources().putEntandoCustomResource(entandoApp);
+        client.entandoResources().createOrPatchEntandoResource(entandoApp);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAMESPACE, entandoApp.getMetadata().getNamespace());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAME, entandoApp.getMetadata().getName());
@@ -106,7 +106,7 @@ public class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentT
         //Then a K8S deployment is created
         NamedArgumentCaptor<Deployment> entandoDeploymentCaptor = forResourceNamed(Deployment.class,
                 MY_APP + "-server-deployment");
-        verify(client.deployments()).createDeployment(eq(newEntandoApp), entandoDeploymentCaptor.capture());
+        verify(client.deployments()).createOrPatchDeployment(eq(newEntandoApp), entandoDeploymentCaptor.capture());
         Deployment entandoDeployment = entandoDeploymentCaptor.getValue();
         // And Entando is configured to point to the external DB Service using a username
         // that reflects the serv and port schemas
