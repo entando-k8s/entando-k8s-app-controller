@@ -15,14 +15,11 @@ import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
 import org.entando.kubernetes.controller.database.DatabaseSchemaCreationResult;
 import org.entando.kubernetes.controller.spi.DatabasePopulator;
-import org.entando.kubernetes.controller.spi.DbAware;
-import org.entando.kubernetes.controller.spi.IngressingContainer;
-import org.entando.kubernetes.controller.spi.KeycloakAware;
-import org.entando.kubernetes.controller.spi.TlsAware;
+import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.Permission;
 
-public class ComponentManagerDeployableContainer implements KeycloakAware, IngressingContainer, DbAware, TlsAware {
+public class ComponentManagerDeployableContainer implements SpringBootDeployableContainer {
 
     public static final String COMPONENT_MANAGER_QUALIFIER = "de";
     public static final String COMPONENT_MANAGER_IMAGE_NAME = "entando/entando-component-manager";
@@ -63,23 +60,16 @@ public class ComponentManagerDeployableContainer implements KeycloakAware, Ingre
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPort()), null));
         infrastructureConfig.ifPresent(c -> vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", c.getK8SExternalServiceUrl(), null)));
-        DatabaseSchemaCreationResult databaseSchemaCreationResult = dbSchemas.get(DEDB);
-        vars.add(new EnvVar("DB_VENDOR", databaseSchemaCreationResult.getVendor().getName(),
-                null));
-        vars.add(new EnvVar("SPRING_DATASOURCE_URL", databaseSchemaCreationResult.getJdbcUrl(),
-                null));
-        vars.add(new EnvVar("SPRING_DATASOURCE_USERNAME", null,
-                KubeUtils.secretKeyRef(databaseSchemaCreationResult.getSchemaSecretName(), KubeUtils.USERNAME_KEY)));
-        vars.add(new EnvVar("SPRING_JPA_DATABASE_PLATFORM",
-                databaseSchemaCreationResult.getVendor().getHibernateDialect(), null));
-        vars.add(new EnvVar("SPRING_DATASOURCE_PASSWORD", null,
-                KubeUtils.secretKeyRef(databaseSchemaCreationResult.getSchemaSecretName(), KubeUtils.PASSSWORD_KEY)));
-        databaseSchemaCreationResult.addAdditionalConfigFromDatabaseSecret(vars);
     }
 
     @Override
     public int getMemoryLimitMebibytes() {
         return 768;
+    }
+
+    @Override
+    public DatabaseSchemaCreationResult getDatabaseSchema() {
+        return dbSchemas.get(DEDB);
     }
 
     @Override

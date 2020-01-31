@@ -29,18 +29,21 @@ import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
+import org.entando.kubernetes.controller.creators.KeycloakClientCreator;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.KeycloakClientConfigArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
+import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.infrastructure.EntandoClusterInfrastructure;
 import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -272,8 +275,29 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         assertThat(keycloakClientConfig.getPermissions().get(0).getClientId(), is(MY_APP_SERVER));
         assertThat(keycloakClientConfig.getPermissions().get(0).getRole(), is("superuser"));
         assertThat(keycloakClientConfig.getRedirectUris().get(0), is("https://myapp.192.168.0.100.nip.io/digital-exchange/*"));
-        verifyKeycloakSettings(theComponentManagerContainer, MY_APP + "-de-secret");
+        verifySpringSecuritySettings(theComponentManagerContainer, MY_APP + "-de-secret");
 
+    }
+
+    void verifySpringSecuritySettings(Container container, String keycloakClientSecret) {
+        assertThat(theVariableNamed(
+                SpringBootDeployableContainer.SpringProperty.SPRING_SECURITY_OAUTH_2_CLIENT_PROVIDER_OIDC_ISSUER_URI.name())
+                .on(container), Matchers.is(MY_KEYCLOAK_BASE_URL + "/realms/entando"));
+        assertThat(theVariableReferenceNamed(
+                SpringBootDeployableContainer.SpringProperty.SPRING_SECURITY_OAUTH_2_CLIENT_REGISTRATION_OIDC_CLIENT_ID.name())
+                        .on(container).getSecretKeyRef().getName(),
+                Matchers.is(keycloakClientSecret));
+        assertThat(theVariableReferenceNamed(
+                SpringBootDeployableContainer.SpringProperty.SPRING_SECURITY_OAUTH_2_CLIENT_REGISTRATION_OIDC_CLIENT_ID.name())
+                .on(container).getSecretKeyRef().getKey(), Matchers.is(KeycloakClientCreator.CLIENT_ID_KEY));
+        assertThat(theVariableReferenceNamed(
+                SpringBootDeployableContainer.SpringProperty.SPRING_SECURITY_OAUTH_2_CLIENT_REGISTRATION_OIDC_CLIENT_SECRET.name())
+                        .on(container).getSecretKeyRef().getName(),
+                Matchers.is(keycloakClientSecret));
+        assertThat(theVariableReferenceNamed(
+                SpringBootDeployableContainer.SpringProperty.SPRING_SECURITY_OAUTH_2_CLIENT_REGISTRATION_OIDC_CLIENT_SECRET.name())
+                        .on(container).getSecretKeyRef().getKey(),
+                Matchers.is(KeycloakClientCreator.CLIENT_SECRET_KEY));
     }
 
     private void verifyTheAppBuilderContainer(Deployment theServerDeployment) {

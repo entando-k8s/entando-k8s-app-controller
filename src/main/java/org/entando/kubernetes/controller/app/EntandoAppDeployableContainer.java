@@ -1,5 +1,7 @@
 package org.entando.kubernetes.controller.app;
 
+import io.fabric8.kubernetes.api.model.EnvVar;
+import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
@@ -91,4 +93,8 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
         return new EntandoAppDatabasePopulator(this);
     }
 
+    @Override
+    public void addDatabaseConnectionVariables(List<EnvVar> list) {
+        //Done in superclass. One day we will implement this method in the superclass
+    }
 }
