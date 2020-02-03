@@ -6,13 +6,16 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.app.ComponentManagerDeployableContainer;
 import org.entando.kubernetes.controller.app.EntandoAppController;
@@ -44,7 +47,18 @@ public abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
                 deleteAll(EntandoDatabaseService.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                         .deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                         .deleteAll(EntandoKeycloakServer.class).fromNamespace(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE));
+        await().atMost(2, TimeUnit.MINUTES).ignoreExceptions().pollInterval(10, TimeUnit.SECONDS).until(this::killPgPod);
         registerListeners();
+    }
+
+    private boolean killPgPod() {
+        PodResource<Pod, DoneablePod> resource = client.pods()
+                .inNamespace(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE).withName("pg-test");
+        if (resource.fromServer().get() == null) {
+            return true;
+        }
+        resource.delete();
+        return false;
     }
 
     private void registerListeners() {
