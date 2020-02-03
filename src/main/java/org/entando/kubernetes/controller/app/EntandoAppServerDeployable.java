@@ -37,6 +37,11 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
     }
 
     @Override
+    public int getReplicas() {
+        return entandoApp.getSpec().getReplicas().orElse(1);
+    }
+
+    @Override
     public List<DeployableContainer> getContainers() {
         return containers;
     }
