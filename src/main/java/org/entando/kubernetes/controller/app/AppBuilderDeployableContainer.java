@@ -10,7 +10,7 @@ import org.entando.kubernetes.model.app.EntandoApp;
 
 public class AppBuilderDeployableContainer implements DeployableContainer, IngressingContainer, TlsAware {
 
-    private static final String ENTANDO_APP_BUILDER_IMAGE_NAME = "entando/entando-app-builder-de";
+    private static final String ENTANDO_APP_BUILDER_IMAGE_NAME = "entando/app-builder";
     private final EntandoApp entandoApp;
 
     public AppBuilderDeployableContainer(EntandoApp entandoApp) {
