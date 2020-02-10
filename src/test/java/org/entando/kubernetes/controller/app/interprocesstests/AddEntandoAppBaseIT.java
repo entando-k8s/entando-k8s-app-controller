@@ -109,7 +109,7 @@ public abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
         assertThat(thePortNamed("de-port").on(theComponentManagerContainer).getContainerPort(), is(8083));
         Container theAppBuilderContainer = theContainerNamed("appbuilder-container")
                 .on(deployment);
-        assertThat(theAppBuilderContainer.getImage(), containsString("entando-app-builder-de"));
+        assertThat(theAppBuilderContainer.getImage(), containsString("app-builder"));
         assertThat(thePortNamed("appbuilder-port").on(theAppBuilderContainer).getContainerPort(), is(8081));
         Service service = client.services().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                 .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-service").get();
