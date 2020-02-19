@@ -14,6 +14,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
+import java.util.Collections;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
@@ -26,8 +27,9 @@ import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoRe
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
-import org.entando.kubernetes.model.DbmsImageVendor;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseServiceSpec;
 import org.entando.kubernetes.model.infrastructure.EntandoClusterInfrastructure;
@@ -48,7 +50,8 @@ public class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentT
 
     private static final String MY_APP_SERVDB_SECRET = MY_APP + "-servdb-secret";
     private static final String MY_APP_PORTDB_SECRET = MY_APP + "-portdb-secret";
-    private final EntandoApp entandoApp = newTestEntandoApp();
+    private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withDbms(DbmsVendor.ORACLE).endSpec()
+            .build();
     private final EntandoDatabaseService externalDatabase = buildExternalDatabase();
     private final EntandoKeycloakServer keycloakServer = newEntandoKeycloakServer();
     private final EntandoClusterInfrastructure entandoClusterInfrastructure = newEntandoClusterInfrastructure();
@@ -126,13 +129,6 @@ public class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentT
                 is(KubeUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed("SERVDB_URL").on(thePrimaryContainerOn(entandoDeployment)),
                 is("jdbc:oracle:thin:@//mydb-service." + MY_APP_NAMESPACE + ".svc.cluster.local:1521/my_db"));
-        assertThat(theVariableReferenceNamed("ORACLE_MAVEN_REPO").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getKey(),
-                is("oracleMavenRepo"));
-        assertThat(theVariableReferenceNamed("ORACLE_REPO_USER").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getKey(),
-                is("oracleRepoUser"));
-        assertThat(
-                theVariableReferenceNamed("ORACLE_REPO_PASSWORD").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getKey(),
-                is("oracleRepoPassword"));
         //But the db check on startup is disabled
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(thePrimaryContainerOn(entandoDeployment)), is("false"));
 
@@ -142,14 +138,15 @@ public class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentT
         verify(client.pods()).runToCompletion(portSchemaJobCaptor.capture());
         Pod entandoPortJob = portSchemaJobCaptor.getValue();
         verifyStandardSchemaCreationVariables("my-secret", MY_APP_SERVDB_SECRET,
-                theInitContainerNamed(MY_APP + "-servdb-schema-creation-job").on(entandoPortJob), DbmsImageVendor.ORACLE);
+                theInitContainerNamed(MY_APP + "-servdb-schema-creation-job").on(entandoPortJob), DbmsVendor.ORACLE);
         verifyStandardSchemaCreationVariables("my-secret", MY_APP_PORTDB_SECRET,
-                theInitContainerNamed(MY_APP + "-portdb-schema-creation-job").on(entandoPortJob), DbmsImageVendor.ORACLE);
+                theInitContainerNamed(MY_APP + "-portdb-schema-creation-job").on(entandoPortJob), DbmsVendor.ORACLE);
     }
 
     private EntandoDatabaseService buildExternalDatabase() {
         EntandoDatabaseService edb = new EntandoDatabaseService(
-                new EntandoDatabaseServiceSpec(DbmsImageVendor.ORACLE, "myoracle.com", 1521, "my_db", "my-secret"));
+                new EntandoDatabaseServiceSpec(DbmsVendor.ORACLE, "myoracle.com", 1521, "my_db", null, "my-secret",
+                        Collections.emptyMap()));
         edb.getMetadata().setName("mydb");
         edb.getMetadata().setNamespace(MY_APP_NAMESPACE);
         return edb;

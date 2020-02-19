@@ -16,6 +16,7 @@ import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
 import org.entando.kubernetes.controller.database.DatabaseServiceResult;
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class EntandoAppController extends AbstractDbAwareController<EntandoApp> {
@@ -54,7 +55,8 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
     private EntandoAppServerDeployable buildEntandoAppServerDeployable(EntandoApp entandoApp) {
         KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources().findKeycloak(entandoApp);
         InfrastructureConfig infrastructureConfig = findInfrastructureConfig(entandoApp);
-        DatabaseServiceResult databaseServiceResult = prepareDatabaseService(entandoApp, entandoApp.getSpec().getDbms(), "db");
+        DatabaseServiceResult databaseServiceResult = prepareDatabaseService(entandoApp, entandoApp.getSpec().getDbms().orElse(
+                DbmsVendor.POSTGRESQL), "db");
         return new EntandoAppServerDeployable(
                 entandoApp,
                 keycloakConnectionConfig,

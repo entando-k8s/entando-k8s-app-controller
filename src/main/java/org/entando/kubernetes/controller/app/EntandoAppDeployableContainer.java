@@ -11,14 +11,16 @@ import org.entando.kubernetes.controller.spi.DatabasePopulator;
 import org.entando.kubernetes.controller.spi.DbAware;
 import org.entando.kubernetes.controller.spi.IngressingContainer;
 import org.entando.kubernetes.controller.spi.KeycloakAware;
+import org.entando.kubernetes.controller.spi.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
 import org.entando.kubernetes.controller.spi.TlsAware;
+import org.entando.kubernetes.model.EntandoDeploymentSpec;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppSpec;
 
 public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingContainer implements IngressingContainer, PersistentVolumeAware,
-        KeycloakAware, DbAware, TlsAware {
+        KeycloakAware, DbAware, TlsAware, ParameterizableContainer {
 
     public static final String INGRESS_WEB_CONTEXT = "/entando-de-app";
     public static final int PORT = 8080;
@@ -96,5 +98,10 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
     @Override
     public void addDatabaseConnectionVariables(List<EnvVar> list) {
         //Done in superclass. One day we will implement this method in the superclass
+    }
+
+    @Override
+    public EntandoDeploymentSpec getCustomResourceSpec() {
+        return this.entandoApp.getSpec();
     }
 }

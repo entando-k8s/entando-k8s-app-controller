@@ -36,7 +36,7 @@ import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoRe
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
-import org.entando.kubernetes.model.DbmsImageVendor;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -260,7 +260,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
         assertThat(theVariableNamed(DATABASE_NAME).on(resultingContainer), is("my_app_db"));
         assertThat(theVariableNamed(DATABASE_SERVER_HOST).on(resultingContainer),
                 is(MY_APP + "-db-service." + MY_APP_NAMESPACE + ".svc.cluster.local"));
-        verifyStandardSchemaCreationVariables(MY_APP_DB_ADMIN_SECRET, secretToMatch, resultingContainer, DbmsImageVendor.MYSQL);
+        verifyStandardSchemaCreationVariables(MY_APP_DB_ADMIN_SECRET, secretToMatch, resultingContainer, DbmsVendor.MYSQL);
     }
 
 }

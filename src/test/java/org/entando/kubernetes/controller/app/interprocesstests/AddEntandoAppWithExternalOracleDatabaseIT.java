@@ -1,31 +1,33 @@
 package org.entando.kubernetes.controller.app.interprocesstests;
 
+import static org.entando.kubernetes.controller.KubeUtils.snakeCaseOf;
+
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.SampleWriter;
-import org.entando.kubernetes.model.DbmsImageVendor;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag("oracle-end-to-end")
+@Tag("still-waiting-for-fix-on-entando-core")
 public class AddEntandoAppWithExternalOracleDatabaseIT extends AddEntandoAppBaseIT {
 
     @Test
     public void create() {
         //Given I have an external Oracle database
         helper.externalDatabases()
-                .prepareExternalOracleDatabase(EntandoAppIntegrationTestHelper.TEST_NAMESPACE, "TEST_ENTANDO_CONFIGDB",
-                        "TEST_ENTANDO_PORTDB",
-                        "TEST_ENTANDO_SERVDB");
+                .prepareExternalOracleDatabase(EntandoAppIntegrationTestHelper.TEST_NAMESPACE,
+                        snakeCaseOf(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "_dedb"),
+                        snakeCaseOf(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "_portdb"),
+                        snakeCaseOf(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "_servdb"));
         EntandoApp entandoApp = new EntandoAppBuilder().withNewSpec()
                 .withStandardServerImage(JeeServer.WILDFLY)
-                .withDbms(DbmsImageVendor.ORACLE)
+                .withDbms(DbmsVendor.ORACLE)
                 .withIngressHostName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
                 .withReplicas(1)
-                .withEntandoImageVersion("6.0.0")
                 .withTlsSecretName(null)
                 .endSpec()
                 .build();

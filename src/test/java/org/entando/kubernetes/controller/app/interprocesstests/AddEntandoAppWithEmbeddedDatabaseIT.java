@@ -9,7 +9,7 @@ import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.SampleWriter;
-import org.entando.kubernetes.model.DbmsImageVendor;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
@@ -28,7 +28,7 @@ public class AddEntandoAppWithEmbeddedDatabaseIT extends AddEntandoAppBaseIT {
         EntandoApp entandoApp = new EntandoAppBuilder()
                 .withNewSpec()
                 .withStandardServerImage(JeeServer.WILDFLY)
-                .withDbms(DbmsImageVendor.POSTGRESQL)
+                .withDbms(DbmsVendor.POSTGRESQL)
                 .withIngressHostName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
                 .withReplicas(1)
                 .withEntandoImageVersion("6.0.0")
