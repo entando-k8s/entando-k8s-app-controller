@@ -31,7 +31,6 @@ public class AddEntandoAppWithEmbeddedDatabaseIT extends AddEntandoAppBaseIT {
                 .withDbms(DbmsVendor.POSTGRESQL)
                 .withIngressHostName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
                 .withReplicas(1)
-                .withEntandoImageVersion("6.0.0")
                 .endSpec()
                 .build();
         entandoApp.setMetadata(new ObjectMeta());

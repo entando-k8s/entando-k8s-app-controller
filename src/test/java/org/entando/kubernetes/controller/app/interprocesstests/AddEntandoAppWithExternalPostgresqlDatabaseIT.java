@@ -22,7 +22,6 @@ public class AddEntandoAppWithExternalPostgresqlDatabaseIT extends AddEntandoApp
                 .withDbms(DbmsVendor.POSTGRESQL)
                 .withIngressHostName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
                 .withReplicas(1)
-                .withEntandoImageVersion("6.0.0")
                 .withTlsSecretName(null)
                 .endSpec()
                 .build();
