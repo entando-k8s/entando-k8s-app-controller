@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.entando.kubernetes</groupId>
         <artifactId>entando-k8s-infrastructure-parent</artifactId>
-        <version>6.0.18</version>
+        <version>6.0.19</version>
     </parent>
     <version>6.0.0-SNAPSHOT</version>
     <artifactId>entando-k8s-app-controller</artifactId>
@@ -47,7 +47,7 @@
     <properties>
         <github.organization>entando-k8s</github.organization>
         <sonar.projectKey>${github.organization}_${project.artifactId}</sonar.projectKey>
-        <entando.k8s.operator.common.version>6.0.106</entando.k8s.operator.common.version>
+        <entando.k8s.operator.common.version>6.0.107</entando.k8s.operator.common.version>
         <entando.k8s.custom.model.version>6.0.64</entando.k8s.custom.model.version>
     </properties>
     <issueManagement>
