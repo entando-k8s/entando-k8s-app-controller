@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
@@ -44,7 +45,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     private final EntandoApp entandoApp;
     private final KeycloakConnectionConfig keycloakConnectionConfig;
     private final Optional<InfrastructureConfig> infrastructureConfig;
-    private Map<String, DatabaseSchemaCreationResult> dbSchemas;
+    private Map<String, DatabaseSchemaCreationResult> dbSchemas = new ConcurrentHashMap<>();
 
     public ComponentManagerDeployableContainer(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig,
             InfrastructureConfig infrastructureConfig) {
@@ -126,7 +127,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
 
     @Override
     public Optional<DatabasePopulator> useDatabaseSchemas(Map<String, DatabaseSchemaCreationResult> dbSchemas) {
-        this.dbSchemas = dbSchemas;
+        this.dbSchemas = Optional.ofNullable(dbSchemas).orElse(new ConcurrentHashMap<>());
         return Optional.empty();
     }
 

@@ -16,31 +16,22 @@
 
 package org.entando.kubernetes.controller.app.inprocesstests;
 
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
-import java.util.Collections;
-import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
-import org.entando.kubernetes.controller.common.CreateExternalServiceCommand;
+import org.entando.kubernetes.controller.database.DbmsVendorStrategy;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
-import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.LabeledArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
@@ -50,10 +41,6 @@ import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
-import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
-import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseServiceSpec;
-import org.entando.kubernetes.model.infrastructure.EntandoClusterInfrastructure;
-import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -118,9 +105,9 @@ public class DeployEntandoWithoutDbTest implements InProcessTestUtil, FluentTrav
         Deployment entandoDeployment = entandoDeploymentCaptor.getValue();
         // And Entando has been configured to use the default embedded Derby database
         assertThat(theVariableNamed("PORTDB_DRIVER").on(theContainerNamed("server-container").on(entandoDeployment)),
-                is("derby"));
+                is(DbmsVendorStrategy.DERBY.getHibernateDialect()));
         assertThat(theVariableNamed("SERVDB_DRIVER").on(theContainerNamed("server-container").on(entandoDeployment)),
-                is("derby"));
+                is(DbmsVendorStrategy.DERBY.getHibernateDialect()));
         //But the db check on startup is disabled
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(thePrimaryContainerOn(entandoDeployment)), is("false"));
 
