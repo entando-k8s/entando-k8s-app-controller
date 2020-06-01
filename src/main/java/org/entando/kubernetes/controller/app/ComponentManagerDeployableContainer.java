@@ -31,7 +31,9 @@ import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
 import org.entando.kubernetes.controller.database.DatabaseSchemaCreationResult;
+import org.entando.kubernetes.controller.database.DbmsVendorStrategy;
 import org.entando.kubernetes.controller.spi.DatabasePopulator;
+import org.entando.kubernetes.controller.spi.DbAware;
 import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.Permission;
@@ -77,6 +79,23 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPort()), null));
         infrastructureConfig.ifPresent(c -> vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", c.getK8SExternalServiceUrl(), null)));
+    }
+
+    @Override
+    public void addDatabaseConnectionVariables(List<EnvVar> vars) {
+        SpringBootDeployableContainer.super.addDatabaseConnectionVariables(vars);
+
+        if (getDatabaseSchema() == null) {
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_USERNAME.name(),
+                    DbmsVendorStrategy.H2.getDefaultAdminUsername(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_PASSWORD.name(), "", null));
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_URL.name(), DbmsVendorStrategy.H2.getConnectionStringBuilder()
+                            .toHost("/entando-data/" + COMPONENT_MANAGER_QUALIFIER)
+                            .usingDatabase("h2.db")
+                            .buildConnectionString(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_JPA_DATABASE_PLATFORM.name(),
+                    DbmsVendorStrategy.H2.getHibernateDialect(), null));
+        }
     }
 
     @Override

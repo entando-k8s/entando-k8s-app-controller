@@ -16,6 +16,8 @@
 
 package org.entando.kubernetes.controller.app;
 
+import static java.lang.String.format;
+
 import io.fabric8.kubernetes.api.model.EnvVar;
 import java.util.Arrays;
 import java.util.List;
@@ -64,7 +66,10 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
 
         if (dbDeploymentResult == null) {
             vendor = DbmsVendorStrategy.DERBY;
-            jdbcUrl = DbmsVendorStrategy.DERBY.getConnectionStringBuilder().usingDatabase("production").buildConnectionString();
+            jdbcUrl = DbmsVendorStrategy.DERBY.getConnectionStringBuilder()
+                    .toHost("/entando-data/entando")
+                    .usingDatabase("derby.db")
+                    .buildConnectionString();
         } else {
             vendor = dbDeploymentResult.getVendor();
             jdbcUrl = dbDeploymentResult.getJdbcUrl();
@@ -78,7 +83,6 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
                     KubeUtils.secretKeyRef(result.getSchemaSecretName(), KubeUtils.USERNAME_KEY)));
             vars.add(new EnvVar(varNamePrefix + "PASSWORD", null,
                     KubeUtils.secretKeyRef(result.getSchemaSecretName(), KubeUtils.PASSSWORD_KEY)));
-
         });
     }
 

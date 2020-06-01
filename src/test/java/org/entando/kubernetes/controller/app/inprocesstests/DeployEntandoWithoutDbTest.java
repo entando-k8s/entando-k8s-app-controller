@@ -18,7 +18,8 @@ package org.entando.kubernetes.controller.app.inprocesstests;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.core.IsNull.nullValue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -57,7 +58,7 @@ public class DeployEntandoWithoutDbTest implements InProcessTestUtil, FluentTrav
 
     private static final String MY_APP_SERVDB_SECRET = MY_APP + "-servdb-secret";
     private static final String MY_APP_PORTDB_SECRET = MY_APP + "-portdb-secret";
-    private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withDbms(DbmsVendor.NONE).endSpec()
+    private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withDbms(DbmsVendor.EMBEDDED).endSpec()
             .build();
     @Spy
     private final SimpleK8SClient<EntandoResourceClientDouble> client = new SimpleK8SClientDouble();
@@ -114,24 +115,23 @@ public class DeployEntandoWithoutDbTest implements InProcessTestUtil, FluentTrav
         // And the ComponentManager has been configured to use and embedded h2 database
         assertThat(theVariableNamed(SpringProperty.SPRING_JPA_DATABASE_PLATFORM.name())
                         .on(theContainerNamed("de-container").on(entandoDeployment)),
-                is("org.hibernate.dialect.H2Dialect"));
+                is(DbmsVendorStrategy.H2.getHibernateDialect()));
         assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_USERNAME.name())
                         .on(theContainerNamed("de-container").on(entandoDeployment)),
-                is("root"));
+                is("sa"));
         assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_PASSWORD.name())
                         .on(theContainerNamed("de-container").on(entandoDeployment)),
-                is("root"));
-        assertThat(
-                theVariableNamed(SpringProperty.SPRING_DATASOURCE_URL.name()).on(theContainerNamed("de-container").on(entandoDeployment)),
-                is("jdbc:h2:/entando-data/"));
+                is(""));
+        assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_URL.name())
+                        .on(theContainerNamed("de-container").on(entandoDeployment)),
+                is("jdbc:h2:file:/entando-data/de/h2.db;DB_CLOSE_ON_EXIT=FALSE"));
         // And a volume mount has been set up reflecting the correct location of the h2 database
-        assertThat(theVolumeNamed("de-volume").on(entandoDeployment).getPersistentVolumeClaim().getClaimName(), is(MY_APP + "de-pvc"));
-        assertThat(theVolumeMountNamed("de-volume").on(theContainerNamed("de-container").on(entandoDeployment)).getMountPath(),
+        assertThat(theVolumeNamed(MY_APP + "-server-volume").on(entandoDeployment).getPersistentVolumeClaim().getClaimName(), is(MY_APP + "-server-pvc"));
+        assertThat(theVolumeMountNamed(MY_APP + "-server-volume").on(thePrimaryContainerOn(entandoDeployment)).getMountPath(),
                 is("/entando-data"));
         // And a PersistentVolumeClaim has been created for the h2 database
-        assertTrue(this.client.persistentVolumeClaims().loadPersistentVolumeClaim(entandoApp, MY_APP + "-de-pvc") != null);
+        assertThat(this.client.persistentVolumeClaims().loadPersistentVolumeClaim(entandoApp, MY_APP + "-server-pvc"), not(nullValue()));
         verifyThatAllVolumesAreMapped(entandoApp, client, entandoDeployment);
-
     }
 
 }
