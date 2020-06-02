@@ -123,7 +123,7 @@ public class DeployEntandoWithoutDbTest implements InProcessTestUtil, FluentTrav
                 is(""));
         assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_URL.name())
                         .on(theContainerNamed("de-container").on(entandoDeployment)),
-                is("jdbc:h2:file:/entando-data/de/h2.db;DB_CLOSE_ON_EXIT=FALSE"));
+                is("jdbc:h2:file:/entando-data/databases/de/h2.db;DB_CLOSE_ON_EXIT=FALSE"));
         // And a volume mount has been set up reflecting the correct location of the h2 database
         assertThat(theVolumeNamed(MY_APP + "-server-volume").on(entandoDeployment).getPersistentVolumeClaim().getClaimName(), is(MY_APP + "-server-pvc"));
         assertThat(theVolumeMountNamed(MY_APP + "-server-volume").on(thePrimaryContainerOn(entandoDeployment)).getMountPath(),
