@@ -73,7 +73,6 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
             jdbcUrl = dbDeploymentResult.getJdbcUrl();
         }
 
-        vars.add(new EnvVar(varNamePrefix + "DRIVER", vendor.getHibernateDialect(), null));
         vars.add(new EnvVar(varNamePrefix + "URL", jdbcUrl, null));
 
         Optional.ofNullable(dbDeploymentResult).ifPresent(result -> {

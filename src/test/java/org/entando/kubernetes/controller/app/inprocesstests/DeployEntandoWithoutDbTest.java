@@ -104,10 +104,10 @@ public class DeployEntandoWithoutDbTest implements InProcessTestUtil, FluentTrav
         verify(client.deployments()).createOrPatchDeployment(eq(newEntandoApp), entandoDeploymentCaptor.capture());
         Deployment entandoDeployment = entandoDeploymentCaptor.getValue();
         // And Entando has been configured to use the default embedded Derby database
-        assertThat(theVariableNamed("PORTDB_DRIVER").on(theContainerNamed("server-container").on(entandoDeployment)),
-                is(DbmsVendorConfig.DERBY.getHibernateDialect()));
-        assertThat(theVariableNamed("SERVDB_DRIVER").on(theContainerNamed("server-container").on(entandoDeployment)),
-                is(DbmsVendorConfig.DERBY.getHibernateDialect()));
+        assertThat(theVariableNamed("PORTDB_URL").on(theContainerNamed("server-container").on(entandoDeployment)),
+                is("jdbc:derby:/entando-data/databases/portdb;create=true"));
+        assertThat(theVariableNamed("SERVDB_URL").on(theContainerNamed("server-container").on(entandoDeployment)),
+                is("jdbc:derby:/entando-data/databases/servdb;create=true"));
         //But the db check on startup is disabled
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(thePrimaryContainerOn(entandoDeployment)), is("false"));
 
