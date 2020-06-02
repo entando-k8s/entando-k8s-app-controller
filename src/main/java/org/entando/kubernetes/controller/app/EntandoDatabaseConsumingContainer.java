@@ -16,8 +16,6 @@
 
 package org.entando.kubernetes.controller.app;
 
-import static java.lang.String.format;
-
 import io.fabric8.kubernetes.api.model.EnvVar;
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +24,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.database.DatabaseSchemaCreationResult;
-import org.entando.kubernetes.controller.database.DbmsVendorStrategy;
+import org.entando.kubernetes.controller.database.DbmsVendorConfig;
 import org.entando.kubernetes.controller.spi.DatabasePopulator;
 import org.entando.kubernetes.controller.spi.DbAware;
 import org.entando.kubernetes.controller.spi.IngressingContainer;
@@ -56,22 +54,22 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
     @Override
     public void addEnvironmentVariables(List<EnvVar> vars) {
         vars.add(new EnvVar("DB_STARTUP_CHECK", "false", null));
-        addEntandoDbConnectionVars(vars, this.dbSchemas.get(PORTDB), PORTDB_PREFIX);
-        addEntandoDbConnectionVars(vars, this.dbSchemas.get(SERVDB), SERVDB_PREFIX);
+        addEntandoDbConnectionVars(vars, PORTDB, this.dbSchemas.get(PORTDB), PORTDB_PREFIX);
+        addEntandoDbConnectionVars(vars, SERVDB, this.dbSchemas.get(SERVDB), SERVDB_PREFIX);
     }
 
-    private void addEntandoDbConnectionVars(List<EnvVar> vars, DatabaseSchemaCreationResult dbDeploymentResult, String varNamePrefix) {
-        final DbmsVendorStrategy vendor;
+    private void addEntandoDbConnectionVars(List<EnvVar> vars, String databaseName, DatabaseSchemaCreationResult dbDeploymentResult, String varNamePrefix) {
+        final DbmsVendorConfig vendor;
         final String jdbcUrl;
 
         if (dbDeploymentResult == null) {
-            vendor = DbmsVendorStrategy.DERBY;
-            jdbcUrl = DbmsVendorStrategy.DERBY.getConnectionStringBuilder()
-                    .toHost("/entando-data/entando")
-                    .usingDatabase("derby.db")
+            vendor = DbmsVendorConfig.DERBY;
+            jdbcUrl = vendor.getConnectionStringBuilder()
+                    .toHost("/entando-data/databases")
+                    .usingDatabase(databaseName)
                     .buildConnectionString();
         } else {
-            vendor = dbDeploymentResult.getVendor();
+            vendor = dbDeploymentResult.getVendor().getVendorConfig();
             jdbcUrl = dbDeploymentResult.getJdbcUrl();
         }
 

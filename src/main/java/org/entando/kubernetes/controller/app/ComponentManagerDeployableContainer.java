@@ -31,9 +31,8 @@ import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
 import org.entando.kubernetes.controller.database.DatabaseSchemaCreationResult;
-import org.entando.kubernetes.controller.database.DbmsVendorStrategy;
+import org.entando.kubernetes.controller.database.DbmsVendorConfig;
 import org.entando.kubernetes.controller.spi.DatabasePopulator;
-import org.entando.kubernetes.controller.spi.DbAware;
 import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.Permission;
@@ -48,6 +47,8 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     private final KeycloakConnectionConfig keycloakConnectionConfig;
     private final Optional<InfrastructureConfig> infrastructureConfig;
     private Map<String, DatabaseSchemaCreationResult> dbSchemas = new ConcurrentHashMap<>();
+
+    private static final DbmsVendorConfig DEFAULT_EMBEDDED_VENDOR = DbmsVendorConfig.H2;
 
     public ComponentManagerDeployableContainer(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig,
             InfrastructureConfig infrastructureConfig) {
@@ -86,15 +87,13 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
         SpringBootDeployableContainer.super.addDatabaseConnectionVariables(vars);
 
         if (getDatabaseSchema() == null) {
-            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_USERNAME.name(),
-                    DbmsVendorStrategy.H2.getDefaultAdminUsername(), null));
-            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_PASSWORD.name(), "", null));
-            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_URL.name(), DbmsVendorStrategy.H2.getConnectionStringBuilder()
-                            .toHost("/entando-data/" + COMPONENT_MANAGER_QUALIFIER)
-                            .usingDatabase("h2.db")
-                            .buildConnectionString(), null));
-            vars.add(new EnvVar(SpringProperty.SPRING_JPA_DATABASE_PLATFORM.name(),
-                    DbmsVendorStrategy.H2.getHibernateDialect(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_JPA_DATABASE_PLATFORM.name(), DEFAULT_EMBEDDED_VENDOR.getHibernateDialect(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_USERNAME.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultUser(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_PASSWORD.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultPassword(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_URL.name(), DEFAULT_EMBEDDED_VENDOR.getConnectionStringBuilder()
+                    .toHost("/entando-data/databases/" + COMPONENT_MANAGER_QUALIFIER)
+                    .usingDatabase(DEFAULT_EMBEDDED_VENDOR.toString().toLowerCase() + ".db")
+                    .buildConnectionString(), null));
         }
     }
 

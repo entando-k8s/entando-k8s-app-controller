@@ -31,7 +31,7 @@ import io.quarkus.runtime.StartupEvent;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
-import org.entando.kubernetes.controller.database.DbmsVendorStrategy;
+import org.entando.kubernetes.controller.database.DbmsVendorConfig;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
@@ -55,7 +55,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 //in execute component test
 @Tag("in-process")
 public class DeployEntandoWithoutDbTest implements InProcessTestUtil, FluentTraversals {
-
     private static final String MY_APP_SERVDB_SECRET = MY_APP + "-servdb-secret";
     private static final String MY_APP_PORTDB_SECRET = MY_APP + "-portdb-secret";
     private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withDbms(DbmsVendor.EMBEDDED).endSpec()
@@ -106,16 +105,16 @@ public class DeployEntandoWithoutDbTest implements InProcessTestUtil, FluentTrav
         Deployment entandoDeployment = entandoDeploymentCaptor.getValue();
         // And Entando has been configured to use the default embedded Derby database
         assertThat(theVariableNamed("PORTDB_DRIVER").on(theContainerNamed("server-container").on(entandoDeployment)),
-                is(DbmsVendorStrategy.DERBY.getHibernateDialect()));
+                is(DbmsVendorConfig.DERBY.getHibernateDialect()));
         assertThat(theVariableNamed("SERVDB_DRIVER").on(theContainerNamed("server-container").on(entandoDeployment)),
-                is(DbmsVendorStrategy.DERBY.getHibernateDialect()));
+                is(DbmsVendorConfig.DERBY.getHibernateDialect()));
         //But the db check on startup is disabled
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(thePrimaryContainerOn(entandoDeployment)), is("false"));
 
         // And the ComponentManager has been configured to use and embedded h2 database
         assertThat(theVariableNamed(SpringProperty.SPRING_JPA_DATABASE_PLATFORM.name())
                         .on(theContainerNamed("de-container").on(entandoDeployment)),
-                is(DbmsVendorStrategy.H2.getHibernateDialect()));
+                is(DbmsVendorConfig.H2.getHibernateDialect()));
         assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_USERNAME.name())
                         .on(theContainerNamed("de-container").on(entandoDeployment)),
                 is("sa"));

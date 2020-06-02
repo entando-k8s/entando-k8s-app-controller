@@ -30,7 +30,7 @@ import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.common.KeycloakConnectionSecret;
 import org.entando.kubernetes.controller.database.DatabaseDeployable;
 import org.entando.kubernetes.controller.database.DatabaseServiceResult;
-import org.entando.kubernetes.controller.database.DbmsVendorStrategy;
+import org.entando.kubernetes.controller.database.DbmsDockerVendorStrategy;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.LabeledArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
@@ -62,7 +62,7 @@ public class DeployEntandoDbConsumerTest implements InProcessTestUtil, FluentTra
         //Given I have an EntandoApp
         EntandoApp app = newTestEntandoApp();
         //And a database deployment
-        DatabaseServiceResult databaseServiceResult = new DeployCommand<>(new DatabaseDeployable(DbmsVendorStrategy.POSTGRESQL, app, "db"))
+        DatabaseServiceResult databaseServiceResult = new DeployCommand<>(new DatabaseDeployable(DbmsDockerVendorStrategy.POSTGRESQL, app, "db"))
                 .execute(client, Optional.empty());
         //And a KeycloakConnectionsecret
         KeycloakConnectionSecret keycloakConnectionSecret = new KeycloakConnectionSecret(new SecretBuilder()
