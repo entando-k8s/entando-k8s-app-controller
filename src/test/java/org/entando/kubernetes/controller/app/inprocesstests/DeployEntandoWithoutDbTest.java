@@ -55,6 +55,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 //in execute component test
 @Tag("in-process")
 public class DeployEntandoWithoutDbTest implements InProcessTestUtil, FluentTraversals {
+
     private static final String MY_APP_SERVDB_SECRET = MY_APP + "-servdb-secret";
     private static final String MY_APP_PORTDB_SECRET = MY_APP + "-portdb-secret";
     private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withDbms(DbmsVendor.EMBEDDED).endSpec()
@@ -125,7 +126,8 @@ public class DeployEntandoWithoutDbTest implements InProcessTestUtil, FluentTrav
                         .on(theContainerNamed("de-container").on(entandoDeployment)),
                 is("jdbc:h2:file:/entando-data/databases/de/h2.db;DB_CLOSE_ON_EXIT=FALSE"));
         // And a volume mount has been set up reflecting the correct location of the h2 database
-        assertThat(theVolumeNamed(MY_APP + "-server-volume").on(entandoDeployment).getPersistentVolumeClaim().getClaimName(), is(MY_APP + "-server-pvc"));
+        assertThat(theVolumeNamed(MY_APP + "-server-volume").on(entandoDeployment).getPersistentVolumeClaim().getClaimName(),
+                is(MY_APP + "-server-pvc"));
         assertThat(theVolumeMountNamed(MY_APP + "-server-volume").on(thePrimaryContainerOn(entandoDeployment)).getMountPath(),
                 is("/entando-data"));
         // And a PersistentVolumeClaim has been created for the h2 database

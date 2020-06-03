@@ -49,7 +49,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 //in execute component test
-@Tags({@Tag("in-process"),@Tag("pre-deployment") })
+@Tags({@Tag("in-process"), @Tag("pre-deployment")})
 public class DeployEntandoDbConsumerTest implements InProcessTestUtil, FluentTraversals {
 
     @Spy
@@ -62,7 +62,8 @@ public class DeployEntandoDbConsumerTest implements InProcessTestUtil, FluentTra
         //Given I have an EntandoApp
         EntandoApp app = newTestEntandoApp();
         //And a database deployment
-        DatabaseServiceResult databaseServiceResult = new DeployCommand<>(new DatabaseDeployable(DbmsDockerVendorStrategy.POSTGRESQL, app, "db"))
+        DatabaseServiceResult databaseServiceResult = new DeployCommand<>(
+                new DatabaseDeployable(DbmsDockerVendorStrategy.POSTGRESQL, app, "db"))
                 .execute(client, Optional.empty());
         //And a KeycloakConnectionsecret
         KeycloakConnectionSecret keycloakConnectionSecret = new KeycloakConnectionSecret(new SecretBuilder()

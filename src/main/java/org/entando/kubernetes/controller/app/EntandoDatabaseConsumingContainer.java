@@ -58,7 +58,8 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
         addEntandoDbConnectionVars(vars, SERVDB, this.dbSchemas.get(SERVDB), SERVDB_PREFIX);
     }
 
-    private void addEntandoDbConnectionVars(List<EnvVar> vars, String databaseName, DatabaseSchemaCreationResult dbDeploymentResult, String varNamePrefix) {
+    private void addEntandoDbConnectionVars(List<EnvVar> vars, String databaseName, DatabaseSchemaCreationResult dbDeploymentResult,
+            String varNamePrefix) {
         final DbmsVendorConfig vendor;
         final String jdbcUrl;
 

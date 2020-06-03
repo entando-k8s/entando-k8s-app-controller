@@ -57,6 +57,7 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
     public boolean hasContainersExpectingSchemas() {
         return entandoApp.getSpec().getDbms().map(v -> v != DbmsVendor.NONE && v != DbmsVendor.EMBEDDED).orElse(false);
     }
+
     @Override
     public int getReplicas() {
         return entandoApp.getSpec().getReplicas().orElse(1);
