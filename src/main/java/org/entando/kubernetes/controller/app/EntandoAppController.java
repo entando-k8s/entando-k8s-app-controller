@@ -72,7 +72,7 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
         KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources().findKeycloak(entandoApp);
         InfrastructureConfig infrastructureConfig = findInfrastructureConfig(entandoApp);
         DatabaseServiceResult databaseServiceResult = prepareDatabaseService(entandoApp, entandoApp.getSpec().getDbms().orElse(
-                DbmsVendor.POSTGRESQL), "db");
+                DbmsVendor.EMBEDDED), "db");
         return new EntandoAppServerDeployable(
                 entandoApp,
                 keycloakConnectionConfig,

@@ -25,17 +25,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
 import org.entando.kubernetes.controller.database.DatabaseSchemaCreationResult;
+import org.entando.kubernetes.controller.database.DbmsVendorConfig;
 import org.entando.kubernetes.controller.spi.DatabasePopulator;
+import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
 import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.Permission;
 
-public class ComponentManagerDeployableContainer implements SpringBootDeployableContainer {
+public class ComponentManagerDeployableContainer implements SpringBootDeployableContainer, PersistentVolumeAware {
 
     public static final String COMPONENT_MANAGER_QUALIFIER = "de";
     public static final String COMPONENT_MANAGER_IMAGE_NAME = "entando/entando-component-manager";
@@ -44,7 +47,9 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     private final EntandoApp entandoApp;
     private final KeycloakConnectionConfig keycloakConnectionConfig;
     private final Optional<InfrastructureConfig> infrastructureConfig;
-    private Map<String, DatabaseSchemaCreationResult> dbSchemas;
+    private Map<String, DatabaseSchemaCreationResult> dbSchemas = new ConcurrentHashMap<>();
+
+    private static final DbmsVendorConfig DEFAULT_EMBEDDED_VENDOR = DbmsVendorConfig.H2;
 
     public ComponentManagerDeployableContainer(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig,
             InfrastructureConfig infrastructureConfig) {
@@ -76,6 +81,21 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPort()), null));
         infrastructureConfig.ifPresent(c -> vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", c.getK8SExternalServiceUrl(), null)));
+    }
+
+    @Override
+    public void addDatabaseConnectionVariables(List<EnvVar> vars) {
+        SpringBootDeployableContainer.super.addDatabaseConnectionVariables(vars);
+
+        if (getDatabaseSchema() == null) {
+            vars.add(new EnvVar(SpringProperty.SPRING_JPA_DATABASE_PLATFORM.name(), DEFAULT_EMBEDDED_VENDOR.getHibernateDialect(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_USERNAME.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultUser(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_PASSWORD.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultPassword(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_URL.name(), DEFAULT_EMBEDDED_VENDOR.getConnectionStringBuilder()
+                    .toHost("/entando-data/databases/" + COMPONENT_MANAGER_QUALIFIER)
+                    .usingDatabase(DEFAULT_EMBEDDED_VENDOR.toString().toLowerCase() + ".db")
+                    .buildConnectionString(), null));
+        }
     }
 
     @Override
@@ -126,8 +146,12 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
 
     @Override
     public Optional<DatabasePopulator> useDatabaseSchemas(Map<String, DatabaseSchemaCreationResult> dbSchemas) {
-        this.dbSchemas = dbSchemas;
+        this.dbSchemas = Optional.ofNullable(dbSchemas).orElse(new ConcurrentHashMap<>());
         return Optional.empty();
     }
 
+    @Override
+    public String getVolumeMountPath() {
+        return "/entando-data";
+    }
 }

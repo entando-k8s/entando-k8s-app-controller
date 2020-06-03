@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
 
 @Tags({@Tag("end-to-end"), @Tag("inter-process")})
-public class AddEntandoAppWithEmbeddedDatabaseIT extends AddEntandoAppBaseIT {
+public class AddEntandoAppWithContainerizedDatabaseIT extends AddEntandoAppBaseIT {
 
     public static final int ENTANDO_DB_PORT = 5432;
 

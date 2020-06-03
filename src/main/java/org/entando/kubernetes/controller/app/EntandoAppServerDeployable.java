@@ -30,6 +30,7 @@ import org.entando.kubernetes.controller.database.DatabaseServiceResult;
 import org.entando.kubernetes.controller.spi.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.PublicIngressingDeployable;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class EntandoAppServerDeployable implements PublicIngressingDeployable<ServiceDeploymentResult>, DbAwareDeployable {
@@ -50,6 +51,11 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
                 new AppBuilderDeployableContainer(entandoApp)
         );
         this.keycloakConnectionConfig = keycloakConnectionConfig;
+    }
+
+    @Override
+    public boolean hasContainersExpectingSchemas() {
+        return entandoApp.getSpec().getDbms().map(v -> v != DbmsVendor.NONE && v != DbmsVendor.EMBEDDED).orElse(false);
     }
 
     @Override
