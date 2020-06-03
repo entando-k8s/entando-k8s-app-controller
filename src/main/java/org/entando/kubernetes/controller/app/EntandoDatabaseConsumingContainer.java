@@ -60,28 +60,18 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
 
     private void addEntandoDbConnectionVars(List<EnvVar> vars, String databaseName, DatabaseSchemaCreationResult dbDeploymentResult,
             String varNamePrefix) {
-        final DbmsVendorConfig vendor;
-        final String jdbcUrl;
 
         if (dbDeploymentResult == null) {
-            vendor = DbmsVendorConfig.DERBY;
-            jdbcUrl = vendor.getConnectionStringBuilder()
-                    .toHost("/entando-data/databases")
-                    .usingDatabase(databaseName)
-                    .buildConnectionString();
+            vars.add(new EnvVar(varNamePrefix + "DRIVER", "derby", null));
         } else {
-            vendor = dbDeploymentResult.getVendor().getVendorConfig();
-            jdbcUrl = dbDeploymentResult.getJdbcUrl();
+            String jdbcUrl = dbDeploymentResult.getJdbcUrl();
+            vars.add(new EnvVar(varNamePrefix + "URL", jdbcUrl, null));
+            vars.add(new EnvVar(varNamePrefix + "USERNAME", null,
+                    KubeUtils.secretKeyRef(dbDeploymentResult.getSchemaSecretName(), KubeUtils.USERNAME_KEY)));
+            vars.add(new EnvVar(varNamePrefix + "PASSWORD", null,
+                    KubeUtils.secretKeyRef(dbDeploymentResult.getSchemaSecretName(), KubeUtils.PASSSWORD_KEY)));
         }
 
-        vars.add(new EnvVar(varNamePrefix + "URL", jdbcUrl, null));
-
-        Optional.ofNullable(dbDeploymentResult).ifPresent(result -> {
-            vars.add(new EnvVar(varNamePrefix + "USERNAME", null,
-                    KubeUtils.secretKeyRef(result.getSchemaSecretName(), KubeUtils.USERNAME_KEY)));
-            vars.add(new EnvVar(varNamePrefix + "PASSWORD", null,
-                    KubeUtils.secretKeyRef(result.getSchemaSecretName(), KubeUtils.PASSSWORD_KEY)));
-        });
     }
 
     @Override
