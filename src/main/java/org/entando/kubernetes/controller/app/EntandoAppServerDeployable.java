@@ -22,6 +22,7 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.ServiceDeploymentResult;
@@ -31,6 +32,7 @@ import org.entando.kubernetes.controller.spi.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.PublicIngressingDeployable;
 import org.entando.kubernetes.model.DbmsVendor;
+import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class EntandoAppServerDeployable implements PublicIngressingDeployable<ServiceDeploymentResult>, DbAwareDeployable {
@@ -51,6 +53,22 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
                 new AppBuilderDeployableContainer(entandoApp)
         );
         this.keycloakConnectionConfig = keycloakConnectionConfig;
+    }
+
+    @Override
+    public Optional<Long> getFileSystemUserAndGroupId() {
+        return entandoApp.getSpec().getStandardServerImage().map(jeeServer -> {
+            switch (jeeServer){
+                case WILDFLY:
+                case JETTY:
+                    return 1001L;
+                case EAP:
+                    return 185L;
+                default:
+                    return null;
+            }
+        });
+
     }
 
     @Override
