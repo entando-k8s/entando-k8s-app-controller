@@ -54,9 +54,12 @@ import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
+import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.infrastructure.EntandoClusterInfrastructure;
 import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -84,9 +87,8 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     private static final String MY_APP_SERVER_DEPLOYMENT = MY_APP_SERVER + "-deployment";
     private static final String APPBUILDER_PORT = "appbuilder-port";
     private static final String MY_APP_DB_SERVICE = MY_APP + "-db-service";
-    private final EntandoApp entandoApp = newTestEntandoApp();
-    private final EntandoKeycloakServer keycloakServer = newEntandoKeycloakServer();
-    private final EntandoClusterInfrastructure entandoInfrastructure = newEntandoClusterInfrastructure();
+    private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withStandardServerImage(JeeServer.EAP)
+            .endSpec().build();
     @Spy
     private final SimpleK8SClient<EntandoResourceClientDouble> client = new SimpleK8SClientDouble();
 
@@ -104,12 +106,19 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAMESPACE, entandoApp.getMetadata().getNamespace());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAME, entandoApp.getMetadata().getName());
+        System.setProperty(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty(), "true");
+
+    }
+
+    @AfterEach
+    public void removeJvmProps() {
+        System.getProperties().remove(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty());
 
     }
 
     @Test
     public void testPersistentVolumeClaim() {
-        //Given I have an Entando App with a Wildfly server
+        //Given I have an Entando App with a JBoss EAP server
         EntandoApp newEntandoApp = entandoApp;
         //And that K8S is up and receiving PVC requests
         PersistentVolumeClaimStatus pvcStatus = new PersistentVolumeClaimStatus();
@@ -143,7 +152,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
 
     @Test
     public void testService() {
-        //Given I have an Entando App with a Wildfly server
+        //Given I have an Entando App with a JBoss EAP server
         EntandoApp newEntandoApp = entandoApp;
         //And that K8S is up and receiving Service requests
         ServiceStatus serviceStatus = new ServiceStatus();
@@ -177,7 +186,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
 
     @Test
     public void testIngress() {
-        //Given I have an Entando App with a Wildfly server
+        //Given I have an Entando App with a JBoss EAP server
         EntandoApp newEntandoApp = entandoApp;
         //And that K8S is up and receiving Ingress requests
         IngressStatus ingressStatus = new IngressStatus();
@@ -214,7 +223,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     public void testDeployment() {
         //Given I use the 6.0.0 image version by default
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_DOCKER_IMAGE_VERSION_FALLBACK.getJvmSystemProperty(), "6.0.0");
-        //Given I have an Entando App with a Wildfly server
+        //Given I have an Entando App with a JBoss EAP server
         EntandoApp newEntandoApp = entandoApp;
         //And K8S is receiving Deployment requests
         DeploymentStatus deploymentStatus = new DeploymentStatus();
@@ -256,6 +265,8 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         //And all volumes have been mapped
         verifyThatAllVolumesAreMapped(newEntandoApp, client, theServerDeployment);
         verifyThatAllVariablesAreMapped(newEntandoApp, client, theServerDeployment);
+
+        assertThat(theServerDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is(185L));
 
     }
 
@@ -311,7 +322,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         // container
         Container theEntandoServerContainer = theContainerNamed("server-container").on(theServerDeployment);
         //That points to the correct Docker image
-        assertThat(theEntandoServerContainer.getImage(), is("docker.io/entando/entando-de-app-wildfly:6.0.0"));
+        assertThat(theEntandoServerContainer.getImage(), is("docker.io/entando/entando-de-app-eap:6.0.0"));
         //Exposing a port named 'server-port' on 8080
         assertThat(thePortNamed(SERVER_PORT).on(theEntandoServerContainer).getContainerPort(), is(8080));
         assertThat(thePortNamed(SERVER_PORT).on(theEntandoServerContainer).getProtocol(), is(TCP));

@@ -31,6 +31,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
+import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
@@ -45,6 +46,7 @@ import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -76,9 +78,16 @@ public class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, Fluen
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);
+        System.setProperty(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty(), "true");
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAMESPACE, entandoApp.getMetadata().getNamespace());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAME, entandoApp.getMetadata().getName());
+    }
+
+    @AfterEach
+    public void removeJvmProps() {
+        System.getProperties().remove(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty());
+
     }
 
     @Test
@@ -148,7 +157,7 @@ public class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, Fluen
                 is("/entando-data"));
         // And a PersistentVolumeClaim has been created for the derby database
         assertThat(this.client.persistentVolumeClaims().loadPersistentVolumeClaim(entandoApp, MY_APP + "-de-pvc"), not(nullValue()));
-
+        assertThat(entandoDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is(1001L));
         verifyThatAllVolumesAreMapped(entandoApp, client, entandoDeployment);
     }
 

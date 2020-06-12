@@ -22,6 +22,7 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.ServiceDeploymentResult;
@@ -31,10 +32,20 @@ import org.entando.kubernetes.controller.spi.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.PublicIngressingDeployable;
 import org.entando.kubernetes.model.DbmsVendor;
+import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class EntandoAppServerDeployable implements PublicIngressingDeployable<ServiceDeploymentResult>, DbAwareDeployable {
-
+    /**
+     * The operating system level id of the default user in the EAP base image. Was determined to be 185 running the
+     * 'id' command in the entando/entando-eap71-base image
+     * */
+    public static final long DEFAULT_USERID_IN_EAP_BASE_IMAGE = 185L;
+    /**
+     * The operating system level id of the default user in the wildfly base image. Was determined to be 1001 running the
+     * 'id' command in the entando/entando-wildfly12-base image
+     * */
+    public static final long DEFAULT_USERID_IN_WILDFLY_BASE_IMAGE = 1001L;
     private final EntandoApp entandoApp;
     private final List<DeployableContainer> containers;
     private final DatabaseServiceResult databaseServiceResult;
@@ -51,6 +62,19 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
                 new AppBuilderDeployableContainer(entandoApp)
         );
         this.keycloakConnectionConfig = keycloakConnectionConfig;
+    }
+
+    @Override
+    public Optional<Long> getFileSystemUserAndGroupId() {
+        return entandoApp.getSpec().getStandardServerImage().map(jeeServer -> {
+            switch (jeeServer) {
+                case EAP:
+                    return DEFAULT_USERID_IN_EAP_BASE_IMAGE;
+                default:
+                    return DEFAULT_USERID_IN_WILDFLY_BASE_IMAGE;
+            }
+        });
+
     }
 
     @Override
