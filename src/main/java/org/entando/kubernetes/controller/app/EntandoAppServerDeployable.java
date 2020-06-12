@@ -59,13 +59,10 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
     public Optional<Long> getFileSystemUserAndGroupId() {
         return entandoApp.getSpec().getStandardServerImage().map(jeeServer -> {
             switch (jeeServer){
-                case WILDFLY:
-                case JETTY:
-                    return 1001L;
                 case EAP:
                     return 185L;
                 default:
-                    return null;
+                    return 1001L;
             }
         });
 
