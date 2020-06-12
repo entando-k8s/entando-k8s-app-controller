@@ -36,7 +36,16 @@ import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class EntandoAppServerDeployable implements PublicIngressingDeployable<ServiceDeploymentResult>, DbAwareDeployable {
-
+    /**
+     * The operating system level id of the default user in the EAP base image. Was determined to be 185 running the
+     * 'id' command in the entando/entando-eap71-base image
+     * */
+    public static final long DEFAULT_USERID_IN_EAP_BASE_IMAGE = 185L;
+    /**
+     * The operating system level id of the default user in the wildfly base image. Was determined to be 1001 running the
+     * 'id' command in the entando/entando-wildfly12-base image
+     * */
+    public static final long DEFAULT_USERID_IN_WILDFLY_BASE_IMAGE = 1001L;
     private final EntandoApp entandoApp;
     private final List<DeployableContainer> containers;
     private final DatabaseServiceResult databaseServiceResult;
@@ -60,9 +69,9 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
         return entandoApp.getSpec().getStandardServerImage().map(jeeServer -> {
             switch (jeeServer) {
                 case EAP:
-                    return 185L;
+                    return DEFAULT_USERID_IN_EAP_BASE_IMAGE;
                 default:
-                    return 1001L;
+                    return DEFAULT_USERID_IN_WILDFLY_BASE_IMAGE;
             }
         });
 
