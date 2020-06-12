@@ -266,7 +266,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         verifyThatAllVolumesAreMapped(newEntandoApp, client, theServerDeployment);
         verifyThatAllVariablesAreMapped(newEntandoApp, client, theServerDeployment);
 
-        assertThat(theServerDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is (185L));
+        assertThat(theServerDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is(185L));
 
     }
 

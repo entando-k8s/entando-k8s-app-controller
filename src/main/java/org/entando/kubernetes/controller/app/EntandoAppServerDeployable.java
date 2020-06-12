@@ -58,7 +58,7 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
     @Override
     public Optional<Long> getFileSystemUserAndGroupId() {
         return entandoApp.getSpec().getStandardServerImage().map(jeeServer -> {
-            switch (jeeServer){
+            switch (jeeServer) {
                 case EAP:
                     return 185L;
                 default:

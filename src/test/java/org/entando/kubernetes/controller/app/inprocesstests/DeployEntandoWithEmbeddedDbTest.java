@@ -78,16 +78,18 @@ public class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, Fluen
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);
-        System.setProperty(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty(),"true");
+        System.setProperty(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty(), "true");
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAMESPACE, entandoApp.getMetadata().getNamespace());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAME, entandoApp.getMetadata().getName());
     }
+
     @AfterEach
-    public void removeJvmProps(){
+    public void removeJvmProps() {
         System.getProperties().remove(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty());
 
     }
+
     @Test
     public void testSecrets() {
         //Given I have created an EntandoApp with the spec.dbms property set to 'none'
@@ -155,7 +157,7 @@ public class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, Fluen
                 is("/entando-data"));
         // And a PersistentVolumeClaim has been created for the derby database
         assertThat(this.client.persistentVolumeClaims().loadPersistentVolumeClaim(entandoApp, MY_APP + "-de-pvc"), not(nullValue()));
-        assertThat(entandoDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is (1001L));
+        assertThat(entandoDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is(1001L));
         verifyThatAllVolumesAreMapped(entandoApp, client, entandoDeployment);
     }
 
