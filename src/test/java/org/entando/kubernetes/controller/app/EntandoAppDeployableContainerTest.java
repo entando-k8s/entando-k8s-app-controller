@@ -24,13 +24,14 @@ import org.entando.kubernetes.model.app.EntandoApp;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
-public class EntandoAppDeployableContainerTest implements InProcessTestUtil {
+class EntandoAppDeployableContainerTest implements InProcessTestUtil {
 
     private EntandoApp entandoApp = newTestEntandoApp();
     @Mock
     private KeycloakConnectionSecret keycloakConnectionSecret;
 
-    private EntandoAppDeployableContainer entandoAppDeployableContainer = new EntandoAppDeployableContainer(entandoApp, keycloakConnectionSecret);
+    private EntandoAppDeployableContainer entandoAppDeployableContainer =
+            new EntandoAppDeployableContainer(entandoApp, keycloakConnectionSecret);
 
     @Test
     void getHealthCheckPathTest() {
