@@ -366,7 +366,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
 
         //And an appropriate readinessProbe was defined
         assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPath(),
-                is(ENTANDO_DE_APP + EntandoAppDeployableContainer.HEALTH_CHECK_PATH));
+                is(ENTANDO_DE_APP + EntandoAppDeployableContainer.HEALTH_CHECK));
         assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPort().getIntVal(), is(8080));
 
     }
