@@ -45,6 +45,7 @@ import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
+import org.entando.kubernetes.controller.app.EntandoAppDeployableContainer;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.KeycloakClientConfigArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
@@ -364,7 +365,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         assertThat(theVolumeMountNamed(MY_APP_SERVER_VOLUME).on(theEntandoServerContainer).getMountPath(), is("/entando-data"));
 
         //And an appropriate readinessProbe was defined
-        assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPath(), is(ENTANDO_DE_APP));
+        assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPath(), is(ENTANDO_DE_APP + EntandoAppDeployableContainer.HEALTH_CHECK_PATH));
         assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPort().getIntVal(), is(8080));
 
     }
