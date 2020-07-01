@@ -37,7 +37,7 @@ class EntandoAppDeployableContainerTest implements InProcessTestUtil {
     void getHealthCheckPathTest() {
 
         //noinspection OptionalGetWithoutIsPresent
-        assertEquals(EntandoAppDeployableContainer.INGRESS_WEB_CONTEXT + EntandoAppDeployableContainer.HEALTH_CHECK_PATH,
+        assertEquals(EntandoAppDeployableContainer.INGRESS_WEB_CONTEXT + EntandoAppDeployableContainer.HEALTH_CHECK,
                 entandoAppDeployableContainer.getHealthCheckPath().get());
     }
 }
