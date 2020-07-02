@@ -39,6 +39,7 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
 
     public static final String INGRESS_WEB_CONTEXT = "/entando-de-app";
     public static final int PORT = 8080;
+    public static final String HEALTH_CHECK = "/api/health";
     private final EntandoApp entandoApp;
     private final KeycloakConnectionConfig keycloakConnectionConfig;
 
@@ -97,7 +98,7 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
 
     @Override
     public Optional<String> getHealthCheckPath() {
-        return Optional.of(getWebContextPath());
+        return Optional.of(getWebContextPath() + HEALTH_CHECK);
     }
 
     @Override

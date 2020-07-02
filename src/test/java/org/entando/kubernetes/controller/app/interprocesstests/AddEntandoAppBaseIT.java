@@ -137,7 +137,7 @@ public abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
                 .inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                 .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME).fromServer()
                 .get().getStatus().forServerQualifiedBy("server").isPresent());
-        await().atMost(30, SECONDS).ignoreExceptions().until(() -> readPath("/app-builder/index.html").contains("Entando App Builder"));
+        await().atMost(30, SECONDS).ignoreExceptions().until(() -> readPath("/app-builder/index.html").contains("App Builder"));
         await().atMost(30, SECONDS).ignoreExceptions().until(() -> readPath("/entando-de-app/index.jsp").contains("Entando - Welcome"));
         await().atMost(30, SECONDS).ignoreExceptions().until(() -> pathOk("/digital-exchange/actuator/health"));
     }
