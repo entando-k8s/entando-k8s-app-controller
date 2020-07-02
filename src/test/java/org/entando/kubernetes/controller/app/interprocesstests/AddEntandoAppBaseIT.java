@@ -133,11 +133,11 @@ public abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
         assertThat(thePortNamed("de-port").on(service).getPort(), is(8083));
         assertThat(thePortNamed("appbuilder-port").on(service).getPort(), is(8081));
         assertTrue(deployment.getStatus().getReadyReplicas() >= 1);
-        await().atMost(30, SECONDS).ignoreExceptions().until(() -> helper.entandoApps().getOperations()
+        assertTrue(helper.entandoApps().getOperations()
                 .inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                 .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME).fromServer()
                 .get().getStatus().forServerQualifiedBy("server").isPresent());
-        await().atMost(30, SECONDS).ignoreExceptions().until(() -> readPath("/app-builder/index.html").contains("Entando App Builder"));
+        await().atMost(30, SECONDS).ignoreExceptions().until(() -> readPath("/app-builder/index.html").contains("App Builder"));
         await().atMost(30, SECONDS).ignoreExceptions().until(() -> readPath("/entando-de-app/index.jsp").contains("Entando - Welcome"));
         await().atMost(30, SECONDS).ignoreExceptions().until(() -> pathOk("/digital-exchange/actuator/health"));
     }
