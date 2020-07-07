@@ -338,9 +338,11 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
                 is(KubeUtils.PASSSWORD_KEY));
 
         //And per schema env vars are injected
-        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "PORTDB_", this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
+        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "PORTDB_",
+                this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
                 DbmsVendor.MYSQL.toString().toLowerCase(), "3306", "my_app_portdb");
-        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "SERVDB_", this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
+        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "SERVDB_",
+                this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
                 DbmsVendor.MYSQL.toString().toLowerCase(), "3306", "my_app_servdb");
 
         //But the db check on startup is disabled

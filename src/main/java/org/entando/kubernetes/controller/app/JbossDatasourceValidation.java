@@ -14,10 +14,11 @@
  *
  */
 
-/**
- * contains the ValidConnectionChecker and ExceptionSorted class names
- */
 package org.entando.kubernetes.controller.app;
+
+/**
+ * contains the ValidConnectionChecker and ExceptionSorted class names.
+ */
 
 import java.util.Optional;
 import org.entando.kubernetes.model.DbmsVendor;
@@ -35,12 +36,12 @@ public enum JbossDatasourceValidation {
 
 
     /**
-     * contains full class name responsible to check for connection validity
+     * contains full class name responsible to check for connection validity.
      */
     private final String validConnectionCheckerClassName;
 
     /**
-     * contains full class name responsible to sort db connection exception
+     * contains full class name responsible to sort db connection exception.
      */
     private final String exceptionSorterClassName;
 
@@ -59,7 +60,7 @@ public enum JbossDatasourceValidation {
     }
 
     /**
-     * receives a DbmsVendor and returns the corresponing JbossDatasourceValidation
+     * receives a DbmsVendor and returns the corresponing JbossDatasourceValidation.
      * @param dbmsVendor the DbmsVendor on which switch
      * @return the corresponing JbossDatasourceValidation
      */

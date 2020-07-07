@@ -77,8 +77,10 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
                     KubeUtils.secretKeyRef(dbDeploymentResult.getSchemaSecretName(), KubeUtils.PASSSWORD_KEY)));
 
             JbossDatasourceValidation jbossDatasourceValidation = JbossDatasourceValidation.getValidConnectionCheckerClass(this.dbmsVendor);
-            vars.add(new EnvVar(varNamePrefix + "CONNECTION_CHECKER", jbossDatasourceValidation.getValidConnectionCheckerClassName(), null));
-            vars.add(new EnvVar(varNamePrefix + "EXCEPTION_SORTER", jbossDatasourceValidation.getExceptionSorterClassName(), null));
+            vars.add(new EnvVar(varNamePrefix + "CONNECTION_CHECKER", jbossDatasourceValidation.getValidConnectionCheckerClassName(),
+                    null));
+            vars.add(new EnvVar(varNamePrefix + "EXCEPTION_SORTER", jbossDatasourceValidation.getExceptionSorterClassName(),
+                    null));
         }
 
     }
@@ -96,7 +98,7 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
 
 
     /**
-     * EntandoAppDatabasePopulator class
+     * EntandoAppDatabasePopulator class.
      */
     public static class EntandoAppDatabasePopulator implements DatabasePopulator {
 

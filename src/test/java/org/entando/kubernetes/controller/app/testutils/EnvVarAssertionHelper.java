@@ -27,10 +27,14 @@ public class EnvVarAssertionHelper {
 
 
     /**
-     * does assertions on some environment variables
+     * does assertions on some environment variables.
      * @param dbPopulationJob the container on which do assertions
      * @param schemaPrefix the schema prefix to prepend to the env vars to check
-     * @param
+     * @param fluentTraversals the class implementing FluentTraversals interface from which get actual schema prefix
+     * @param dbService expected db service
+     * @param appNamespace expected db app namespace
+     * @param dbVendor expected db vendor name
+     * @param dbName expected db name
      */
     public static void assertSchemaEnvironmentVariables(Container dbPopulationJob, String schemaPrefix, FluentTraversals fluentTraversals,
             String dbService, String appNamespace, String dbVendor, String port, String dbName) {
