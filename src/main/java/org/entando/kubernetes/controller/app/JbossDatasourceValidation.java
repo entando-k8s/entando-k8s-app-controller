@@ -26,7 +26,7 @@ public enum JbossDatasourceValidation {
 
     MYSQL("org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLValidConnectionChecker",
             "org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLExceptionSorter"),
-    POSTGRES("org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker",
+    POSTGRESQL("org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker",
             "org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter"),
     ORACLE("org.jboss.jca.adapters.jdbc.extensions.oracle.OracleValidConnectionChecker",
             "org.jboss.jca.adapters.jdbc.extensions.oracle.OracleExceptionSorter"),
@@ -34,8 +34,16 @@ public enum JbossDatasourceValidation {
             "org.jboss.jca.adapters.jdbc.extensions.novendor.NullExceptionSorter");
 
 
-    private String validConnectionCheckerClassName;
-    private String exceptionSorterClassName;
+    /**
+     * contains full class name responsible to check for connection validity
+     */
+    private final String validConnectionCheckerClassName;
+
+    /**
+     * contains full class name responsible to sort db connection exception
+     */
+    private final String exceptionSorterClassName;
+
 
     JbossDatasourceValidation(String validConnectionCheckerClassName, String exceptionSorterClassName) {
         this.validConnectionCheckerClassName = validConnectionCheckerClassName;
@@ -66,7 +74,7 @@ public enum JbossDatasourceValidation {
                 return ORACLE;
 
             case POSTGRESQL:
-                return POSTGRES;
+                return POSTGRESQL;
 
             default:
                 return DEFAULT;
