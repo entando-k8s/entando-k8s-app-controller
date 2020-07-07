@@ -332,14 +332,10 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
                 is(MY_APP + "-portdb-secret"));
         assertThat(theVariableReferenceNamed("PORTDB_USERNAME").on(theEntandoServerContainer).getSecretKeyRef().getKey(),
                 is(KubeUtils.USERNAME_KEY));
-//        assertThat(theVariableNamed("PORTDB_URL").on(theEntandoServerContainer),
-//                is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_portdb"));
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(theEntandoServerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-servdb-secret"));
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(theEntandoServerContainer).getSecretKeyRef().getKey(),
                 is(KubeUtils.PASSSWORD_KEY));
-//        assertThat(theVariableNamed("SERVDB_URL").on(theEntandoServerContainer),
-//                is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_servdb"));
 
         //And per schema env vars are injected
         EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "PORTDB_", this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
