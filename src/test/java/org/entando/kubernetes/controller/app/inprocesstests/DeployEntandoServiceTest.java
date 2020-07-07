@@ -46,6 +46,7 @@ import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
 import org.entando.kubernetes.controller.app.EntandoAppDeployableContainer;
+import org.entando.kubernetes.controller.app.testutils.EnvVarAssertionHelper;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.KeycloakClientConfigArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
@@ -54,12 +55,11 @@ import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8S
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
-import org.entando.kubernetes.model.infrastructure.EntandoClusterInfrastructure;
-import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -332,14 +332,21 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
                 is(MY_APP + "-portdb-secret"));
         assertThat(theVariableReferenceNamed("PORTDB_USERNAME").on(theEntandoServerContainer).getSecretKeyRef().getKey(),
                 is(KubeUtils.USERNAME_KEY));
-        assertThat(theVariableNamed("PORTDB_URL").on(theEntandoServerContainer),
-                is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_portdb"));
+//        assertThat(theVariableNamed("PORTDB_URL").on(theEntandoServerContainer),
+//                is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_portdb"));
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(theEntandoServerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-servdb-secret"));
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(theEntandoServerContainer).getSecretKeyRef().getKey(),
                 is(KubeUtils.PASSSWORD_KEY));
-        assertThat(theVariableNamed("SERVDB_URL").on(theEntandoServerContainer),
-                is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_servdb"));
+//        assertThat(theVariableNamed("SERVDB_URL").on(theEntandoServerContainer),
+//                is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_servdb"));
+
+        //And per schema env vars are injected
+        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "PORTDB_", this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
+                DbmsVendor.MYSQL.toString().toLowerCase(), "3306", "my_app_portdb");
+        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "SERVDB_", this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
+                DbmsVendor.MYSQL.toString().toLowerCase(), "3306", "my_app_servdb");
+
         //But the db check on startup is disabled
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(theEntandoServerContainer), is("false"));
         //And Keycloak was configured to support OIDC Integration from the EntandoApp

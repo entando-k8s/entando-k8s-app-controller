@@ -30,6 +30,7 @@ import org.entando.kubernetes.controller.database.DatabaseServiceResult;
 import org.entando.kubernetes.controller.spi.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.PublicIngressingDeployable;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.EntandoCustomResource;
 import org.entando.kubernetes.model.app.EntandoApp;
 
@@ -49,7 +50,7 @@ public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.entandoApp = entandoApp;
         this.databaseServiceResult = databaseServiceResult;
-        this.containers = Arrays.asList(new EntandoDatabaseConsumingContainer() {
+        this.containers = Arrays.asList(new EntandoDatabaseConsumingContainer(entandoApp.getSpec().getDbms().orElse(DbmsVendor.EMBEDDED)) {
 
             @Override
             public void addDatabaseConnectionVariables(List<EnvVar> envVars) {
@@ -70,6 +71,8 @@ public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<
             public int getPort() {
                 return 8080;
             }
+
+
         });
     }
 

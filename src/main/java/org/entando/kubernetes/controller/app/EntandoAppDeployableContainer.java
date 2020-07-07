@@ -29,6 +29,7 @@ import org.entando.kubernetes.controller.spi.KeycloakAware;
 import org.entando.kubernetes.controller.spi.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
 import org.entando.kubernetes.controller.spi.TlsAware;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.EntandoDeploymentSpec;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -44,6 +45,7 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
     private final KeycloakConnectionConfig keycloakConnectionConfig;
 
     public EntandoAppDeployableContainer(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig) {
+        super(entandoApp.getSpec().getDbms().orElse(DbmsVendor.EMBEDDED));
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
     }
