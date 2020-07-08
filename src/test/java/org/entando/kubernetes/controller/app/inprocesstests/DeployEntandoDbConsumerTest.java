@@ -103,8 +103,8 @@ public class DeployEntandoDbConsumerTest implements InProcessTestUtil, FluentTra
 
         //And per schema env vars are injected
         EnvVarAssertionHelper.assertSchemaEnvironmentVariables(dbPopulationJob, "PORTDB_", this, "my-app-db-service", MY_APP_NAMESPACE,
-                DbmsVendor.POSTGRESQL.toString().toLowerCase(), "5432", "my_app_db");
+                "postgresql", "5432", "my_app_db");
         EnvVarAssertionHelper.assertSchemaEnvironmentVariables(dbPopulationJob, "SERVDB_", this, "my-app-db-service", MY_APP_NAMESPACE,
-                DbmsVendor.POSTGRESQL.toString().toLowerCase(), "5432", "my_app_db");
+                "postgresql", "5432", "my_app_db");
     }
 }

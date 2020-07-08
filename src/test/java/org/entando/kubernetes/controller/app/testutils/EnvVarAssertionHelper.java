@@ -42,8 +42,8 @@ public class EnvVarAssertionHelper {
         assertThat(fluentTraversals.theVariableNamed(schemaPrefix + "URL").on(dbPopulationJob),
                 is("jdbc:" + dbVendor + "://" + dbService + "." + appNamespace + ".svc.cluster.local:" + port + "/" + dbName));
         assertThat(fluentTraversals.theVariableNamed(schemaPrefix + "CONNECTION_CHECKER").on(dbPopulationJob),
-                is(JbossDatasourceValidation.MYSQL.getValidConnectionCheckerClassName()));
+                is("org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLValidConnectionChecker"));
         assertThat(fluentTraversals.theVariableNamed(schemaPrefix + "EXCEPTION_SORTER").on(dbPopulationJob),
-                is(JbossDatasourceValidation.MYSQL.getExceptionSorterClassName()));
+                is("org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLExceptionSorter"));
     }
 }

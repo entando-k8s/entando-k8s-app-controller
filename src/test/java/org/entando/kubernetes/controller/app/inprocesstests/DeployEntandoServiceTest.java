@@ -340,10 +340,10 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         //And per schema env vars are injected
         EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "PORTDB_",
                 this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
-                DbmsVendor.MYSQL.toString().toLowerCase(), "3306", "my_app_portdb");
+                "mysql", "3306", "my_app_portdb");
         EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "SERVDB_",
                 this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
-                DbmsVendor.MYSQL.toString().toLowerCase(), "3306", "my_app_servdb");
+                "mysql", "3306", "my_app_servdb");
 
         //But the db check on startup is disabled
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(theEntandoServerContainer), is("false"));
