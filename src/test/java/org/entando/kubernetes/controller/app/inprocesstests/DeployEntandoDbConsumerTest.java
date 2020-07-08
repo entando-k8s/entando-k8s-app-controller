@@ -27,6 +27,7 @@ import java.util.Optional;
 import org.entando.kubernetes.controller.DeployCommand;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.app.testutils.EnvVarAssertionHelper;
 import org.entando.kubernetes.controller.common.KeycloakConnectionSecret;
 import org.entando.kubernetes.controller.database.DatabaseDeployable;
 import org.entando.kubernetes.controller.database.DatabaseServiceResult;
@@ -99,9 +100,11 @@ public class DeployEntandoDbConsumerTest implements InProcessTestUtil, FluentTra
         //And the Entando port and serv dbs have been populated
         Container dbPopulationJob = theInitContainerNamed(MY_APP + "-server-db-population-job").on(dbJob);
         assertThat(dbPopulationJob.getCommand().get(2), is("/entando-common/init-db-from-deployment.sh"));
-        assertThat(theVariableNamed("PORTDB_URL").on(dbPopulationJob),
-                is("jdbc:postgresql://" + MY_APP + "-db-service." + MY_APP_NAMESPACE + ".svc.cluster.local:5432/my_app_db"));
-        assertThat(theVariableNamed("SERVDB_URL").on(dbPopulationJob),
-                is("jdbc:postgresql://" + MY_APP + "-db-service." + MY_APP_NAMESPACE + ".svc.cluster.local:5432/my_app_db"));
+
+        //And per schema env vars are injected
+        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(dbPopulationJob, "PORTDB_", this, "my-app-db-service", MY_APP_NAMESPACE,
+                "postgresql", "5432", "my_app_db");
+        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(dbPopulationJob, "SERVDB_", this, "my-app-db-service", MY_APP_NAMESPACE,
+                "postgresql", "5432", "my_app_db");
     }
 }

@@ -24,10 +24,10 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.database.DatabaseSchemaCreationResult;
-import org.entando.kubernetes.controller.database.DbmsVendorConfig;
 import org.entando.kubernetes.controller.spi.DatabasePopulator;
 import org.entando.kubernetes.controller.spi.DbAware;
 import org.entando.kubernetes.controller.spi.IngressingContainer;
+import org.entando.kubernetes.model.DbmsVendor;
 
 public abstract class EntandoDatabaseConsumingContainer implements DbAware, IngressingContainer {
 
@@ -36,6 +36,11 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
     private static final String PORTDB_PREFIX = "PORTDB_";
     private static final String SERVDB_PREFIX = "SERVDB_";
     private Map<String, DatabaseSchemaCreationResult> dbSchemas = new ConcurrentHashMap<>();
+    private DbmsVendor dbmsVendor;
+
+    public EntandoDatabaseConsumingContainer(DbmsVendor dbmsVendor) {
+        this.dbmsVendor = dbmsVendor;
+    }
 
     protected DatabasePopulator buildDatabasePopulator() {
         return new EntandoAppDatabasePopulator(this);
@@ -70,6 +75,12 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
                     KubeUtils.secretKeyRef(dbDeploymentResult.getSchemaSecretName(), KubeUtils.USERNAME_KEY)));
             vars.add(new EnvVar(varNamePrefix + "PASSWORD", null,
                     KubeUtils.secretKeyRef(dbDeploymentResult.getSchemaSecretName(), KubeUtils.PASSSWORD_KEY)));
+
+            JbossDatasourceValidation jbossDatasourceValidation = JbossDatasourceValidation.getValidConnectionCheckerClass(this.dbmsVendor);
+            vars.add(new EnvVar(varNamePrefix + "CONNECTION_CHECKER", jbossDatasourceValidation.getValidConnectionCheckerClassName(),
+                    null));
+            vars.add(new EnvVar(varNamePrefix + "EXCEPTION_SORTER", jbossDatasourceValidation.getExceptionSorterClassName(),
+                    null));
         }
 
     }
@@ -85,6 +96,10 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
         return Optional.of(buildDatabasePopulator());
     }
 
+
+    /**
+     * EntandoAppDatabasePopulator class.
+     */
     public static class EntandoAppDatabasePopulator implements DatabasePopulator {
 
         private final EntandoDatabaseConsumingContainer entandoAppDeployableContainer;
