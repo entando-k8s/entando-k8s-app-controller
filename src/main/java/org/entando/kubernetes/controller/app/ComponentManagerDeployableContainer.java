@@ -33,12 +33,14 @@ import org.entando.kubernetes.controller.common.InfrastructureConfig;
 import org.entando.kubernetes.controller.database.DatabaseSchemaCreationResult;
 import org.entando.kubernetes.controller.database.DbmsVendorConfig;
 import org.entando.kubernetes.controller.spi.DatabasePopulator;
+import org.entando.kubernetes.controller.spi.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
 import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
+import org.entando.kubernetes.model.EntandoDeploymentSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.Permission;
 
-public class ComponentManagerDeployableContainer implements SpringBootDeployableContainer, PersistentVolumeAware {
+public class ComponentManagerDeployableContainer implements SpringBootDeployableContainer, PersistentVolumeAware, ParameterizableContainer {
 
     public static final String COMPONENT_MANAGER_QUALIFIER = "de";
     public static final String COMPONENT_MANAGER_IMAGE_NAME = "entando/entando-component-manager";
@@ -153,5 +155,10 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     @Override
     public String getVolumeMountPath() {
         return "/entando-data";
+    }
+
+    @Override
+    public EntandoDeploymentSpec getCustomResourceSpec() {
+        return this.entandoApp.getSpec();
     }
 }

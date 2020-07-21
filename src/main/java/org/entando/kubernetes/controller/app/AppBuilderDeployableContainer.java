@@ -21,10 +21,12 @@ import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.IngressingContainer;
+import org.entando.kubernetes.controller.spi.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.TlsAware;
+import org.entando.kubernetes.model.EntandoDeploymentSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
 
-public class AppBuilderDeployableContainer implements DeployableContainer, IngressingContainer, TlsAware {
+public class AppBuilderDeployableContainer implements DeployableContainer, IngressingContainer, TlsAware, ParameterizableContainer {
 
     private static final String ENTANDO_APP_BUILDER_IMAGE_NAME = "entando/app-builder";
     private final EntandoApp entandoApp;
@@ -71,5 +73,10 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
     @Override
     public void addEnvironmentVariables(List<EnvVar> vars) {
         vars.add(new EnvVar("REACT_APP_DOMAIN", entandoApp.getSpec().getIngressPath().orElse("/entando-de-app"), null));
+    }
+
+    @Override
+    public EntandoDeploymentSpec getCustomResourceSpec() {
+        return this.entandoApp.getSpec();
     }
 }
