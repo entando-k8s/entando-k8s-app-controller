@@ -39,6 +39,7 @@ import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import io.fabric8.kubernetes.api.model.extensions.IngressStatus;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
+import java.util.Collections;
 import java.util.Map;
 import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
@@ -55,7 +56,6 @@ import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8S
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
-import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -88,8 +88,10 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     private static final String MY_APP_SERVER_DEPLOYMENT = MY_APP_SERVER + "-deployment";
     private static final String APPBUILDER_PORT = "appbuilder-port";
     private static final String MY_APP_DB_SERVICE = MY_APP + "-db-service";
+    public static final String MARKER_VAR_VALUE = "myvalue";
+    public static final String MARKER_VAR_NAME = "MARKER_VAR";
     private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withStandardServerImage(JeeServer.EAP)
-            .endSpec().build();
+            .withParameters(Collections.singletonMap(MARKER_VAR_NAME, MARKER_VAR_VALUE)).endSpec().build();
     @Spy
     private final SimpleK8SClient<EntandoResourceClientDouble> client = new SimpleK8SClientDouble();
 
@@ -293,6 +295,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
                 is(KubeUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer), is("http://localhost:8080/entando-de-app"));
         assertThat(theVariableNamed("DB_VENDOR").on(theComponentManagerContainer), is("mysql"));
+        assertThat(theVariableNamed(MARKER_VAR_NAME).on(theComponentManagerContainer), is(MARKER_VAR_VALUE));
 
         KeycloakClientConfigArgumentCaptor keycloakClientConfigCaptor = forClientId(MY_APP + "-de");
         verify(keycloakClient).prepareClientAndReturnSecret(keycloakClientConfigCaptor.capture());
@@ -314,6 +317,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         assertThat(thePortNamed(APPBUILDER_PORT).on(theAppBuilderContainer).getContainerPort(), is(8081));
         assertThat(thePortNamed(APPBUILDER_PORT).on(theAppBuilderContainer).getProtocol(), is(TCP));
         assertThat(theVariableNamed("REACT_APP_DOMAIN").on(theAppBuilderContainer), is("/entando-de-app"));
+        assertThat(theVariableNamed(MARKER_VAR_NAME).on(theAppBuilderContainer), is(MARKER_VAR_VALUE));
         //That points to the correct Docker image
         assertThat(theAppBuilderContainer.getImage(), is("docker.io/entando/app-builder:6.0.0"));
     }
@@ -336,6 +340,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
                 is(MY_APP + "-servdb-secret"));
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(theEntandoServerContainer).getSecretKeyRef().getKey(),
                 is(KubeUtils.PASSSWORD_KEY));
+        assertThat(theVariableNamed(MARKER_VAR_NAME).on(theEntandoServerContainer), is(MARKER_VAR_VALUE));
 
         //And per schema env vars are injected
         EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "PORTDB_",
