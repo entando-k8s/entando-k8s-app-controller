@@ -72,7 +72,7 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
 
     @Override
     public void addEnvironmentVariables(List<EnvVar> vars) {
-        vars.add(new EnvVar("REACT_APP_DOMAIN", entandoApp.getSpec().getIngressPath().orElse("/entando-de-app"), null));
+        vars.add(new EnvVar("DOMAIN", entandoApp.getSpec().getIngressPath().orElse("/entando-de-app"), null));
     }
 
     @Override
