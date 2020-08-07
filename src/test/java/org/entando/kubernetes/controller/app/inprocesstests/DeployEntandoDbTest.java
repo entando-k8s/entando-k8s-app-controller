@@ -226,7 +226,10 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
         assertThat(theVolumeMountNamed(MY_APP_DB_VOLUME).on(thePrimaryContainerOn(resultingDeployment)).getMountPath(),
                 is("/var/lib/mysql/data"));
         //That is linked to the previously created PersistentVolumeClaim
-        assertThat(thePrimaryContainerOn(resultingDeployment).getImage(), is("docker.io/centos/mysql-57-centos7:latest"));
+        //Please note: the docker.io and 6.0.0 my seem counter-intuitive, but it indicates that we are
+        //actually controlling the image as intended
+        //With the correct version in the configmap this will work as planned
+        assertThat(thePrimaryContainerOn(resultingDeployment).getImage(), is("docker.io/entando/mysql-57-centos7:6.0.0"));
         //And the Deployment state was reloaded from K8S
         verify(client.deployments()).loadDeployment(eq(newEntandoApp), eq(MY_APP_DB_DEPLOYMENT));
 
