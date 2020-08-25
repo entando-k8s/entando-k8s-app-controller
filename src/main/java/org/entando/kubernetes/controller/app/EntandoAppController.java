@@ -81,7 +81,7 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
     }
 
     private InfrastructureConfig findInfrastructureConfig(EntandoApp entandoApp) {
-        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp);
+        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp.getSpec());
         if (infrastructureConfig.getInfrastructureSecret() == null) {
             return null;
         }
