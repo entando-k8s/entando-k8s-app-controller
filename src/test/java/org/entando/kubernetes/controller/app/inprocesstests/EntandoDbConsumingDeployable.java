@@ -31,8 +31,10 @@ import org.entando.kubernetes.controller.spi.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.PublicIngressingDeployable;
 import org.entando.kubernetes.model.DbmsVendor;
+import org.entando.kubernetes.model.EntandoBaseCustomResource;
 import org.entando.kubernetes.model.EntandoCustomResource;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.app.EntandoAppSpec;
 
 public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<ServiceDeploymentResult>, DbAwareDeployable {
 
@@ -112,7 +114,7 @@ public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<
     }
 
     @Override
-    public EntandoCustomResource getCustomResource() {
+    public EntandoBaseCustomResource<EntandoAppSpec> getCustomResource() {
         return entandoApp;
     }
 
