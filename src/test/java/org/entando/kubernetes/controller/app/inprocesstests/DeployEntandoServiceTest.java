@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaimStatus;
+import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceStatus;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -91,7 +92,14 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     public static final String MARKER_VAR_VALUE = "myvalue";
     public static final String MARKER_VAR_NAME = "MARKER_VAR";
     private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withStandardServerImage(JeeServer.EAP)
-            .withParameters(Collections.singletonMap(MARKER_VAR_NAME, MARKER_VAR_VALUE)).endSpec().build();
+            .withParameters(Collections.singletonMap(MARKER_VAR_NAME, MARKER_VAR_VALUE))
+            .withNewResourceRequirements()
+            .withFileUploadLimit("500m")
+            .withMemoryLimit("3Gi")
+            .withCpuLimit("2000m")
+            .withStorageRequest("4Gi")
+            .endResourceRequirements()
+            .endSpec().build();
     @Spy
     private final SimpleK8SClient<EntandoResourceClientDouble> client = new SimpleK8SClientDouble();
 
@@ -137,9 +145,9 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         //With a name that reflects the EntandoApp and the fact that this is a JEE Server claim
         PersistentVolumeClaim resultingPersistentVolumeClaim = pvcCaptor.getValue();
         assertThat(resultingPersistentVolumeClaim.getSpec().getAccessModes().get(0), is("ReadWriteOnce"));
-        //With a default size of 2Gi
+        //With a request size of 4i
         assertThat(resultingPersistentVolumeClaim.getSpec().getResources().getRequests().get("storage").getAmount(),
-                is("2"));
+                is("4"));
         assertThat(resultingPersistentVolumeClaim.getSpec().getResources().getRequests().get("storage").getFormat(),
                 is("Gi"));
         //And labels that link this PVC to the EntandoApp JEE Server deployment
@@ -214,6 +222,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         // And a K8S Ingress Path was created that reflects the webcontext of the appbuilder
         assertThat(theHttpPath(APP_BUILDER).on(theIngress).getBackend().getServicePort().getIntVal(), is(8081));
         assertThat(theHttpPath(APP_BUILDER).on(theIngress).getBackend().getServiceName(), is(MY_APP_SERVER_SERVICE));
+        assertThat(theIngress.getMetadata().getAnnotations().get("nginx.ingress.kubernetes.io/proxy-body-size"), is("500m"));
 
         //And the Ingress state was reloaded from K8S
         verify(client.ingresses(), atLeast(2))
@@ -320,6 +329,19 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theAppBuilderContainer), is(MARKER_VAR_VALUE));
         //That points to the correct Docker image
         assertThat(theAppBuilderContainer.getImage(), is("docker.io/entando/app-builder:6.0.0"));
+        Quantity memoryRequest = theAppBuilderContainer.getResources().getRequests().get("memory");
+        assertThat(memoryRequest.getAmount(), is("51.2"));
+        assertThat(memoryRequest.getFormat(), is("Mi"));
+        Quantity cpuRequest = theAppBuilderContainer.getResources().getRequests().get("cpu");
+        assertThat(cpuRequest.getAmount(), is("50"));
+        assertThat(cpuRequest.getFormat(), is("m"));
+        Quantity memoryLimit = theAppBuilderContainer.getResources().getLimits().get("memory");
+        assertThat(memoryLimit.getAmount(), is("512"));
+        assertThat(memoryLimit.getFormat(), is("Mi"));
+        Quantity cpuLimit = theAppBuilderContainer.getResources().getLimits().get("cpu");
+        assertThat(cpuLimit.getAmount(), is("500"));
+        assertThat(cpuLimit.getFormat(), is("m"));
+
     }
 
     private void verifyTheEntandoServerContainer(Deployment theServerDeployment) {
@@ -378,6 +400,18 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPath(),
                 is(ENTANDO_DE_APP + EntandoAppDeployableContainer.HEALTH_CHECK));
         assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPort().getIntVal(), is(8080));
+        Quantity memoryRequest = theEntandoServerContainer.getResources().getRequests().get("memory");
+        assertThat(memoryRequest.getAmount(), is("0.3"));
+        assertThat(memoryRequest.getFormat(), is("Gi"));
+        Quantity cpuRequest = theEntandoServerContainer.getResources().getRequests().get("cpu");
+        assertThat(cpuRequest.getAmount(), is("200"));
+        assertThat(cpuRequest.getFormat(), is("m"));
+        Quantity memoryLimit = theEntandoServerContainer.getResources().getLimits().get("memory");
+        assertThat(memoryLimit.getAmount(), is("3"));
+        assertThat(memoryLimit.getFormat(), is("Gi"));
+        Quantity cpuLimit = theEntandoServerContainer.getResources().getLimits().get("cpu");
+        assertThat(cpuLimit.getAmount(), is("2000"));
+        assertThat(cpuLimit.getFormat(), is("m"));
 
     }
 }

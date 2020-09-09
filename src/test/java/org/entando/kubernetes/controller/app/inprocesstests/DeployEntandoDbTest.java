@@ -146,9 +146,9 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
         assertThat(resultingPersistentVolumeClaim.getSpec().getAccessModes().get(0), is("ReadWriteOnce"));
         //With a default size of 2Gi
         assertThat(resultingPersistentVolumeClaim.getSpec().getResources().getRequests().get("storage").getAmount(),
-                is("2"));
+                is("204.8"));
         assertThat(resultingPersistentVolumeClaim.getSpec().getResources().getRequests().get("storage").getFormat(),
-                is("Gi"));
+                is("Mi"));
         //And labels that link this PVC to the EntandoAppd DB deployment
         assertThat(resultingPersistentVolumeClaim.getMetadata().getLabels().get(ENTANDO_APP_LABEL_NAME), is(MY_APP));
         assertThat(resultingPersistentVolumeClaim.getMetadata().getLabels().get(DEPLOYMENT_LABEL_NAME), is(MY_APP_DB));
