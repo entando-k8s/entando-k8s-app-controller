@@ -144,14 +144,14 @@ public abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
 
     private Boolean pathOk(String pathToTest) {
         return HttpTestHelper.statusOk(
-                TlsHelper.getDefaultProtocol() + "://" + EntandoAppIntegrationTestHelper.TEST_APP_NAME + "."
+                HttpTestHelper.getDefaultProtocol() + "://" + EntandoAppIntegrationTestHelper.TEST_APP_NAME + "."
                         + helper.getDomainSuffix()
                         + pathToTest);
     }
 
     private String readPath(String pathToTest) {
         return HttpTestHelper
-                .read(TlsHelper.getDefaultProtocol() + "://" + EntandoAppIntegrationTestHelper.TEST_APP_NAME + "."
+                .read(HttpTestHelper.getDefaultProtocol() + "://" + EntandoAppIntegrationTestHelper.TEST_APP_NAME + "."
                         + helper.getDomainSuffix()
                         + pathToTest);
     }

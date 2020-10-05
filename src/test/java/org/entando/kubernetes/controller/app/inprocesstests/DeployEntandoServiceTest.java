@@ -32,6 +32,7 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaimStatus;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceStatus;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -99,6 +100,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
             .withCpuLimit("2000m")
             .withStorageRequest("4Gi")
             .endResourceRequirements()
+            .withEcrGitSshSecretname("my-git-secret")
             .endSpec().build();
     @Spy
     private final SimpleK8SClient<EntandoResourceClientDouble> client = new SimpleK8SClientDouble();
@@ -118,7 +120,8 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAMESPACE, entandoApp.getMetadata().getNamespace());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAME, entandoApp.getMetadata().getName());
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty(), "true");
-
+        client.secrets()
+                .createSecretIfAbsent(entandoApp, new SecretBuilder().withNewMetadata().withName("my-git-secret").endMetadata().build());
     }
 
     @AfterEach
@@ -305,6 +308,8 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer), is("http://localhost:8080/entando-de-app"));
         assertThat(theVariableNamed("DB_VENDOR").on(theComponentManagerContainer), is("mysql"));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theComponentManagerContainer), is(MARKER_VAR_VALUE));
+        assertThat(theVariableNamed("GIT_SSH_COMMAND").on(theComponentManagerContainer),
+                is("ssh -o UserKnownHostsFile=/etc/ecr-git-config/known_hosts -i /etc/ecr-git-config/id_rsa -o IdentitiesOnly=yes"));
 
         KeycloakClientConfigArgumentCaptor keycloakClientConfigCaptor = forClientId(MY_APP + "-de");
         verify(keycloakClient).prepareClientAndReturnSecret(keycloakClientConfigCaptor.capture());

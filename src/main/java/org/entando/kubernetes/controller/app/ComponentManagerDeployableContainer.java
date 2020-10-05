@@ -35,6 +35,7 @@ import org.entando.kubernetes.controller.database.DbmsVendorConfig;
 import org.entando.kubernetes.controller.spi.DatabasePopulator;
 import org.entando.kubernetes.controller.spi.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
+import org.entando.kubernetes.controller.spi.SecretToMount;
 import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
 import org.entando.kubernetes.model.EntandoDeploymentSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -46,6 +47,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     public static final String COMPONENT_MANAGER_IMAGE_NAME = "entando/entando-component-manager";
 
     private static final String DEDB = "dedb";
+    public static final String ECR_GIT_CONFIG_DIR = "/etc/ecr-git-config";
     private final EntandoApp entandoApp;
     private final KeycloakConnectionConfig keycloakConnectionConfig;
     private final Optional<InfrastructureConfig> infrastructureConfig;
@@ -83,6 +85,12 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPort()), null));
         infrastructureConfig.ifPresent(c -> vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", c.getK8SExternalServiceUrl(), null)));
+        //The ssh files will be copied to /opt/.ssh and chmod to 400. This can only happen at runtime because Openshift generates a
+        // random userid
+        entandoApp.getSpec().getEcrGitSshSecretName().ifPresent(s -> vars.add(new EnvVar("GIT_SSH_COMMAND", "ssh "
+                + "-o UserKnownHostsFile=/opt/.ssh/known_hosts "
+                + "-i /opt/.ssh/id_rsa "
+                + "-o IdentitiesOnly=yes", null)));
     }
 
     @Override
@@ -98,6 +106,13 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
                     .usingDatabase(DEFAULT_EMBEDDED_VENDOR.toString().toLowerCase() + ".db")
                     .buildConnectionString(), null));
         }
+    }
+
+    @Override
+    public List<SecretToMount> getSecretsToMount() {
+        List<SecretToMount> result = new ArrayList<>();
+        entandoApp.getSpec().getEcrGitSshSecretName().ifPresent(s -> result.add(new SecretToMount(s, ECR_GIT_CONFIG_DIR)));
+        return result;
     }
 
     @Override
