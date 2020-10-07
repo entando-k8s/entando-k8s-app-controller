@@ -309,7 +309,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
         assertThat(theVariableNamed("DB_VENDOR").on(theComponentManagerContainer), is("mysql"));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theComponentManagerContainer), is(MARKER_VAR_VALUE));
         assertThat(theVariableNamed("GIT_SSH_COMMAND").on(theComponentManagerContainer),
-                is("ssh -o UserKnownHostsFile=/etc/ecr-git-config/known_hosts -i /etc/ecr-git-config/id_rsa -o IdentitiesOnly=yes"));
+                is("ssh -o UserKnownHostsFile=/opt/.ssh/known_hosts -i /opt/.ssh/id_rsa -o IdentitiesOnly=yes"));
 
         KeycloakClientConfigArgumentCaptor keycloakClientConfigCaptor = forClientId(MY_APP + "-de");
         verify(keycloakClient).prepareClientAndReturnSecret(keycloakClientConfigCaptor.capture());
