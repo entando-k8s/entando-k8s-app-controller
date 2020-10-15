@@ -3,13 +3,13 @@
  * Copyright 2015-Present Entando Inc. (http://www.entando.com) All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
+ * the terms of the GNU Lesser General License as published by the Free
  * Software Foundation; either version 2.1 of the License, or (at your option)
  * any later version.
  *
  *  This library is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General License for more
  * details.
  *
  */
@@ -52,6 +52,7 @@ import org.entando.kubernetes.model.infrastructure.EntandoClusterInfrastructure;
 import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -60,9 +61,8 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-//in execute component test
-@Tag("in-process")
-public class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversals {
+@Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
+class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversals {
 
     private static final String MY_APP_SERVDB_SECRET = MY_APP + "-servdb-secret";
     private static final String MY_APP_PORTDB_SECRET = MY_APP + "-portdb-secret";
@@ -79,7 +79,7 @@ public class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentT
     private EntandoAppController entandoAppController;
 
     @BeforeEach
-    public void createCustomResources() {
+    void createCustomResources() {
         client.entandoResources().createOrPatchEntandoResource(externalDatabase);
         client.secrets().overwriteControllerSecret(buildKeycloakSecret());
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
@@ -91,7 +91,7 @@ public class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentT
     }
 
     @Test
-    public void testSecrets() {
+    void testSecrets() {
         //Given I have created an ExternalDatabase custom resource
         new CreateExternalServiceCommand(externalDatabase).execute(client);
         //and I have an Entando App with a Wildfly server
@@ -112,7 +112,7 @@ public class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentT
     }
 
     @Test
-    public void testDeployment() {
+    void testDeployment() {
         //Given I have created an ExternalDatabase custom resource
         new CreateExternalServiceCommand(externalDatabase).execute(client);
         //and I have an Entando App with a Wildfly server

@@ -38,7 +38,7 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
     private Map<String, DatabaseSchemaCreationResult> dbSchemas = new ConcurrentHashMap<>();
     private DbmsVendor dbmsVendor;
 
-    public EntandoDatabaseConsumingContainer(DbmsVendor dbmsVendor) {
+    protected EntandoDatabaseConsumingContainer(DbmsVendor dbmsVendor) {
         this.dbmsVendor = dbmsVendor;
     }
 
@@ -59,11 +59,11 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
     @Override
     public void addEnvironmentVariables(List<EnvVar> vars) {
         vars.add(new EnvVar("DB_STARTUP_CHECK", "false", null));
-        addEntandoDbConnectionVars(vars, PORTDB, this.dbSchemas.get(PORTDB), PORTDB_PREFIX);
-        addEntandoDbConnectionVars(vars, SERVDB, this.dbSchemas.get(SERVDB), SERVDB_PREFIX);
+        addEntandoDbConnectionVars(vars, this.dbSchemas.get(PORTDB), PORTDB_PREFIX);
+        addEntandoDbConnectionVars(vars, this.dbSchemas.get(SERVDB), SERVDB_PREFIX);
     }
 
-    private void addEntandoDbConnectionVars(List<EnvVar> vars, String databaseName, DatabaseSchemaCreationResult dbDeploymentResult,
+    private void addEntandoDbConnectionVars(List<EnvVar> vars, DatabaseSchemaCreationResult dbDeploymentResult,
             String varNamePrefix) {
 
         if (dbDeploymentResult == null) {
@@ -95,7 +95,6 @@ public abstract class EntandoDatabaseConsumingContainer implements DbAware, Ingr
         this.dbSchemas = Optional.ofNullable(dbSchemas).orElse(new ConcurrentHashMap<>());
         return Optional.of(buildDatabasePopulator());
     }
-
 
     /**
      * EntandoAppDatabasePopulator class.

@@ -3,13 +3,13 @@
  * Copyright 2015-Present Entando Inc. (http://www.entando.com) All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
+ * the terms of the GNU Lesser General License as published by the Free
  * Software Foundation; either version 2.1 of the License, or (at your option)
  * any later version.
  *
  *  This library is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General License for more
  * details.
  *
  */
@@ -52,13 +52,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 
-public abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
+abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
 
     protected final K8SIntegrationTestHelper helper = new K8SIntegrationTestHelper();
     protected final DefaultKubernetesClient client = helper.getClient();
 
     @BeforeEach
-    public void cleanup() {
+    void cleanup() {
         helper.setTextFixture(
                 deleteAll(EntandoDatabaseService.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                         .deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
@@ -89,7 +89,7 @@ public abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
                 .listenAndRespondWithLatestImage(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE);
     }
 
-    public void createAndWaitForApp(EntandoApp entandoApp, int waitOffset, boolean deployingDbContainers) {
+    void createAndWaitForApp(EntandoApp entandoApp, int waitOffset, boolean deployingDbContainers) {
         this.helper.keycloak().ensureKeycloak();
         this.helper.clusterInfrastructure().ensureInfrastructureSecret();
         this.helper.keycloak().deleteKeycloakClients("entando-web", EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-de",
@@ -100,7 +100,7 @@ public abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
     }
 
     @AfterEach
-    public void afterwards() {
+    void afterwards() {
         helper.afterTest();
     }
 

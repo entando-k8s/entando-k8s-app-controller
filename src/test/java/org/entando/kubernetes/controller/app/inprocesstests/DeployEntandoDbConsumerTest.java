@@ -3,13 +3,13 @@
  * Copyright 2015-Present Entando Inc. (http://www.entando.com) All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
+ * the terms of the GNU Lesser General License as published by the Free
  * Software Foundation; either version 2.1 of the License, or (at your option)
  * any later version.
  *
  *  This library is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General License for more
  * details.
  *
  */
@@ -30,7 +30,7 @@ import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.testutils.EnvVarAssertionHelper;
 import org.entando.kubernetes.controller.common.KeycloakConnectionSecret;
 import org.entando.kubernetes.controller.database.DatabaseDeployable;
-import org.entando.kubernetes.controller.database.DatabaseServiceResult;
+import org.entando.kubernetes.controller.database.DatabaseDeploymentResult;
 import org.entando.kubernetes.controller.database.DbmsDockerVendorStrategy;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.LabeledArgumentCaptor;
@@ -49,9 +49,8 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-//in execute component test
-@Tags({@Tag("in-process"), @Tag("pre-deployment")})
-public class DeployEntandoDbConsumerTest implements InProcessTestUtil, FluentTraversals {
+@Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
+class DeployEntandoDbConsumerTest implements InProcessTestUtil, FluentTraversals {
 
     @Spy
     private final SimpleK8SClient<EntandoResourceClientDouble> client = new SimpleK8SClientDouble();
@@ -59,12 +58,13 @@ public class DeployEntandoDbConsumerTest implements InProcessTestUtil, FluentTra
     private SimpleKeycloakClient keycloakClient;
 
     @Test
-    public void testit() {
+    void testit() {
         //Given I have an EntandoApp
         EntandoApp app = newTestEntandoApp();
         //And a database deployment
-        DatabaseServiceResult databaseServiceResult = new DeployCommand<>(
-                new DatabaseDeployable(DbmsDockerVendorStrategy.POSTGRESQL, app, "db"))
+        DeployCommand<DatabaseDeploymentResult, EntandoApp> db = new DeployCommand<>(
+                new DatabaseDeployable(DbmsDockerVendorStrategy.POSTGRESQL, app, "db"));
+        DatabaseDeploymentResult databaseServiceResult = db
                 .execute(client, Optional.empty());
         //And a KeycloakConnectionsecret
         KeycloakConnectionSecret keycloakConnectionSecret = new KeycloakConnectionSecret(new SecretBuilder()

@@ -3,13 +3,13 @@
  * Copyright 2015-Present Entando Inc. (http://www.entando.com) All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
+ * the terms of the GNU Lesser General License as published by the Free
  * Software Foundation; either version 2.1 of the License, or (at your option)
  * any later version.
  *
  *  This library is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General License for more
  * details.
  *
  */
@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaimStatus;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -65,6 +66,7 @@ import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -74,9 +76,8 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-//in execute component test
-@Tag("in-process")
-public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, VariableReferenceAssertions {
+@Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
+class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, VariableReferenceAssertions {
 
     private static final String MY_APP_SERVER = MY_APP + "-server";
     private static final String MY_APP_SERVER_SERVICE = MY_APP_SERVER + "-service";
@@ -90,10 +91,10 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     private static final String MY_APP_SERVER_DEPLOYMENT = MY_APP_SERVER + "-deployment";
     private static final String APPBUILDER_PORT = "appbuilder-port";
     private static final String MY_APP_DB_SERVICE = MY_APP + "-db-service";
-    public static final String MARKER_VAR_VALUE = "myvalue";
-    public static final String MARKER_VAR_NAME = "MARKER_VAR";
+    static final String MARKER_VAR_VALUE = "myvalue";
+    static final String MARKER_VAR_NAME = "MARKER_VAR";
     private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withStandardServerImage(JeeServer.EAP)
-            .withParameters(Collections.singletonMap(MARKER_VAR_NAME, MARKER_VAR_VALUE))
+            .withParameters(Collections.singletonList(new EnvVar(MARKER_VAR_NAME, MARKER_VAR_VALUE,null)))
             .withNewResourceRequirements()
             .withFileUploadLimit("500m")
             .withMemoryLimit("3Gi")
@@ -111,7 +112,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     private EntandoAppController entandoAppController;
 
     @BeforeEach
-    public void createReusedSecrets() {
+    void createReusedSecrets() {
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
         client.secrets().overwriteControllerSecret(buildKeycloakSecret());
         entandoAppController = new EntandoAppController(client, keycloakClient);
@@ -125,13 +126,13 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     }
 
     @AfterEach
-    public void removeJvmProps() {
+    void removeJvmProps() {
         System.getProperties().remove(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty());
 
     }
 
     @Test
-    public void testPersistentVolumeClaim() {
+    void testPersistentVolumeClaim() {
         //Given I have an Entando App with a JBoss EAP server
         EntandoApp newEntandoApp = entandoApp;
         //And that K8S is up and receiving PVC requests
@@ -165,7 +166,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     }
 
     @Test
-    public void testService() {
+    void testService() {
         //Given I have an Entando App with a JBoss EAP server
         EntandoApp newEntandoApp = entandoApp;
         //And that K8S is up and receiving Service requests
@@ -199,7 +200,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     }
 
     @Test
-    public void testIngress() {
+    void testIngress() {
         //Given I have an Entando App with a JBoss EAP server
         EntandoApp newEntandoApp = entandoApp;
         //And that K8S is up and receiving Ingress requests
@@ -235,7 +236,7 @@ public class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraver
     }
 
     @Test
-    public void testDeployment() {
+    void testDeployment() {
         //Given I use the 6.0.0 image version by default
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_DOCKER_IMAGE_VERSION_FALLBACK.getJvmSystemProperty(), "6.0.0");
         //Given I have an Entando App with a JBoss EAP server

@@ -17,7 +17,6 @@
 package org.entando.kubernetes.controller.app;
 
 import static java.util.Optional.of;
-import static org.entando.kubernetes.controller.KubeUtils.ENTANDO_KEYCLOAK_REALM;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.runtime.StartupEvent;
@@ -25,9 +24,8 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import org.entando.kubernetes.controller.AbstractDbAwareController;
 import org.entando.kubernetes.controller.DeployCommand;
-import org.entando.kubernetes.controller.KeycloakClientConfig;
+import org.entando.kubernetes.controller.ExposedDeploymentResult;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.ServiceDeploymentResult;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
 import org.entando.kubernetes.controller.database.DatabaseServiceResult;
@@ -58,14 +56,12 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
     protected void synchronizeDeploymentState(EntandoApp entandoApp) {
         EntandoAppServerDeployable deployable = buildEntandoAppServerDeployable(entandoApp);
         performDeployCommand(deployable);
-        grantOperatorSuperuserRoleOnEntando(entandoApp);
     }
 
-    private DeployCommand<ServiceDeploymentResult> performDeployCommand(EntandoAppServerDeployable deployable) {
-        DeployCommand<ServiceDeploymentResult> deployCommand = new DeployCommand<>(deployable);
-        deployCommand.execute(k8sClient, of(keycloakClient));
-        k8sClient.entandoResources().updateStatus(deployable.getCustomResource(), deployCommand.getStatus());
-        return deployCommand;
+    private void performDeployCommand(EntandoAppServerDeployable deployable) {
+        DeployCommand<EntandoAppDeploymentResult, EntandoApp> deployCommand = new DeployCommand<>(deployable);
+        EntandoAppDeploymentResult result = deployCommand.execute(k8sClient, of(keycloakClient));
+        k8sClient.entandoResources().updateStatus(deployable.getCustomResource(), result.getStatus());
     }
 
     private EntandoAppServerDeployable buildEntandoAppServerDeployable(EntandoApp entandoApp) {
@@ -86,14 +82,6 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
             return null;
         }
         return infrastructureConfig;
-    }
-
-    private void grantOperatorSuperuserRoleOnEntando(EntandoApp entandoApp) {
-        //TODO this is ugly but will fall away once the App/Plugin decoupling happens
-        String entandoAppClientId = EntandoAppDeployableContainer.clientIdOf(entandoApp);
-        KeycloakClientConfig config = new KeycloakClientConfig(ENTANDO_KEYCLOAK_REALM, "entando-k8s-operator", null);
-        config.withPermission(entandoAppClientId, "superuser");
-        keycloakClient.updateClient(config);
     }
 
 }
