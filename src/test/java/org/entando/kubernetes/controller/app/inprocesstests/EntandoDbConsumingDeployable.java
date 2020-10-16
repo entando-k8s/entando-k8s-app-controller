@@ -23,20 +23,17 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import java.util.Arrays;
 import java.util.List;
+import org.entando.kubernetes.controller.ExposedDeploymentResult;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.ServiceDeploymentResult;
 import org.entando.kubernetes.controller.app.EntandoDatabaseConsumingContainer;
 import org.entando.kubernetes.controller.database.DatabaseServiceResult;
 import org.entando.kubernetes.controller.spi.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.PublicIngressingDeployable;
 import org.entando.kubernetes.model.DbmsVendor;
-import org.entando.kubernetes.model.EntandoBaseCustomResource;
-import org.entando.kubernetes.model.EntandoCustomResource;
 import org.entando.kubernetes.model.app.EntandoApp;
-import org.entando.kubernetes.model.app.EntandoAppSpec;
 
-public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<ServiceDeploymentResult>, DbAwareDeployable {
+public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<ExposedDeploymentResult, EntandoApp>, DbAwareDeployable {
 
     public static final String KEYCLOAK_PUBLIC_CLIENT_ID = "keycloak-public-client-id";
     public static final String TEST_INGRESS_NAMESPACE = "test-ingress-namespace";
@@ -73,7 +70,6 @@ public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<
             public int getPort() {
                 return 8080;
             }
-
 
         });
     }
@@ -114,12 +110,12 @@ public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<
     }
 
     @Override
-    public EntandoBaseCustomResource<EntandoAppSpec> getCustomResource() {
+    public EntandoApp getCustomResource() {
         return entandoApp;
     }
 
     @Override
-    public ServiceDeploymentResult createResult(Deployment deployment, Service service, Ingress ingress, Pod pod) {
-        return new ServiceDeploymentResult(service, ingress);
+    public ExposedDeploymentResult createResult(Deployment deployment, Service service, Ingress ingress, Pod pod) {
+        return new ExposedDeploymentResult(pod, service, ingress);
     }
 }

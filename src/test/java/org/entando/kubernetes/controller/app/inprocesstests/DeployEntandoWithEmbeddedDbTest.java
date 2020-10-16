@@ -3,13 +3,13 @@
 // * Copyright 2015-Present Entando Inc. (http://www.entando.com) All rights reserved.
 // *
 // * This library is free software; you can redistribute it and/or modify it under
-// * the terms of the GNU Lesser General Public License as published by the Free
+// * the terms of the GNU Lesser General License as published by the Free
 // * Software Foundation; either version 2.1 of the License, or (at your option)
 // * any later version.
 // *
 // *  This library is distributed in the hope that it will be useful, but WITHOUT
 // * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+// * FOR A PARTICULAR PURPOSE. See the GNU Lesser General License for more
 // * details.
 // *
 // */
@@ -49,6 +49,7 @@ import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -57,9 +58,8 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-//in execute component test
-@Tag("in-process")
-public class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, FluentTraversals {
+@Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
+class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, FluentTraversals {
 
     private static final String MY_APP_SERVDB_SECRET = MY_APP + "-servdb-secret";
     private static final String MY_APP_PORTDB_SECRET = MY_APP + "-portdb-secret";
@@ -73,7 +73,7 @@ public class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, Fluen
     private EntandoAppController entandoAppController;
 
     @BeforeEach
-    public void createCustomResources() {
+    void createCustomResources() {
         client.secrets().overwriteControllerSecret(buildKeycloakSecret());
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
         entandoAppController = new EntandoAppController(client, keycloakClient);
@@ -85,13 +85,13 @@ public class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, Fluen
     }
 
     @AfterEach
-    public void removeJvmProps() {
+    void removeJvmProps() {
         System.getProperties().remove(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty());
 
     }
 
     @Test
-    public void testSecrets() {
+    void testSecrets() {
         //Given I have created an EntandoApp with the spec.dbms property set to 'none'
         EntandoApp newEntandoApp = entandoApp;
         //When the EntanooAppController processes the addition request
@@ -105,7 +105,7 @@ public class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, Fluen
     }
 
     @Test
-    public void testDeployment() {
+    void testDeployment() {
         //Given I have created an EntandoApp with the spec.dbms property set to 'none'
         EntandoApp newEntandoApp = entandoApp;
         //When the DeployCommand processes the addition request

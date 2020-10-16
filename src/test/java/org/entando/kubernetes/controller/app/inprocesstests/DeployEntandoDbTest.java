@@ -3,13 +3,13 @@
  * Copyright 2015-Present Entando Inc. (http://www.entando.com) All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
+ * the terms of the GNU Lesser General License as published by the Free
  * Software Foundation; either version 2.1 of the License, or (at your option)
  * any later version.
  *
  *  This library is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General License for more
  * details.
  *
  */
@@ -56,6 +56,7 @@ import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -63,9 +64,8 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("in-process")
-//in execute component test
-public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
+@Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
+class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
 
     private static final String MY_APP_PORTDB_SECRET = MY_APP + "-portdb-secret";
     private static final String MY_APP_SERVDB_SECRET = MY_APP + "-servdb-secret";
@@ -84,7 +84,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
     private EntandoAppController entandoAppController;
 
     @BeforeEach
-    public void createReusedSecrets() {
+    void createReusedSecrets() {
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
         client.secrets().overwriteControllerSecret(buildKeycloakSecret());
         entandoAppController = new EntandoAppController(client, keycloakClient);
@@ -95,7 +95,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
     }
 
     @Test
-    public void testSecrets() {
+    void testSecrets() {
         //Given I have a fully deployed KeycloakServer
         client.secrets().overwriteControllerSecret(newKeycloakAdminSecret());
         //and I have an Entando App with a Wildfly server
@@ -126,7 +126,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
     }
 
     @Test
-    public void testPersistentVolumeClaim() {
+    void testPersistentVolumeClaim() {
         //Given I have a fully deployed KeycloakServer
         client.secrets().overwriteControllerSecret(newKeycloakAdminSecret());
         //and I have an Entando App with a Wildfly server
@@ -161,7 +161,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
     }
 
     @Test
-    public void testService() {
+    void testService() {
         //Given I have a fully deployed KeycloakServer
         client.secrets().overwriteControllerSecret(newKeycloakAdminSecret());
         //and I have an Entando App with a Wildfly server
@@ -193,7 +193,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
     }
 
     @Test
-    public void testDeployment() {
+    void testDeployment() {
         //Given I use the 6.0.0 image version by default
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_DOCKER_IMAGE_VERSION_FALLBACK.getJvmSystemProperty(), "6.0.0");
 
@@ -242,7 +242,7 @@ public class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals 
     }
 
     @Test
-    public void testSchemaPreparation() {
+    void testSchemaPreparation() {
         //Given I have a fully deployed KeycloakServer
         client.secrets().overwriteControllerSecret(newKeycloakAdminSecret());
         //and I have an Entando App with a Wildfly server

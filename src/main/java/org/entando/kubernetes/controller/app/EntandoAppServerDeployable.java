@@ -16,6 +16,8 @@
 
 package org.entando.kubernetes.controller.app;
 
+import static org.entando.kubernetes.model.JeeServer.EAP;
+
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -25,26 +27,26 @@ import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.ServiceDeploymentResult;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
 import org.entando.kubernetes.controller.database.DatabaseServiceResult;
 import org.entando.kubernetes.controller.spi.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.PublicIngressingDeployable;
 import org.entando.kubernetes.model.DbmsVendor;
-import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 
-public class EntandoAppServerDeployable implements PublicIngressingDeployable<ServiceDeploymentResult>, DbAwareDeployable {
+public class EntandoAppServerDeployable implements PublicIngressingDeployable<EntandoAppDeploymentResult, EntandoApp>,
+        DbAwareDeployable {
+
     /**
-     * The operating system level id of the default user in the EAP base image. Was determined to be 185 running the
-     * 'id' command in the entando/entando-eap71-base image
-     * */
+     * The operating system level id of the default user in the EAP base image. Was determined to be 185 running the 'id' command in the
+     * entando/entando-eap71-base image
+     */
     public static final long DEFAULT_USERID_IN_EAP_BASE_IMAGE = 185L;
     /**
-     * The operating system level id of the default user in the wildfly base image. Was determined to be 1001 running the
-     * 'id' command in the entando/entando-wildfly12-base image
-     * */
+     * The operating system level id of the default user in the wildfly base image. Was determined to be 1001 running the 'id' command in
+     * the entando/entando-wildfly12-base image
+     */
     public static final long DEFAULT_USERID_IN_WILDFLY_BASE_IMAGE = 1001L;
     private final EntandoApp entandoApp;
     private final List<DeployableContainer> containers;
@@ -67,11 +69,10 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
     @Override
     public Optional<Long> getFileSystemUserAndGroupId() {
         return entandoApp.getSpec().getStandardServerImage().map(jeeServer -> {
-            switch (jeeServer) {
-                case EAP:
-                    return DEFAULT_USERID_IN_EAP_BASE_IMAGE;
-                default:
-                    return DEFAULT_USERID_IN_WILDFLY_BASE_IMAGE;
+            if (jeeServer == EAP) {
+                return DEFAULT_USERID_IN_EAP_BASE_IMAGE;
+            } else {
+                return DEFAULT_USERID_IN_WILDFLY_BASE_IMAGE;
             }
         });
 
@@ -108,8 +109,8 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<Se
     }
 
     @Override
-    public ServiceDeploymentResult createResult(Deployment deployment, Service service, Ingress ingress, Pod pod) {
-        return new ServiceDeploymentResult(service, ingress);
+    public EntandoAppDeploymentResult createResult(Deployment deployment, Service service, Ingress ingress, Pod pod) {
+        return new EntandoAppDeploymentResult(pod, service, ingress);
     }
 
     @Override

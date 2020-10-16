@@ -3,13 +3,13 @@
  * Copyright 2015-Present Entando Inc. (http://www.entando.com) All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
+ * the terms of the GNU Lesser General License as published by the Free
  * Software Foundation; either version 2.1 of the License, or (at your option)
  * any later version.
  *
  *  This library is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General License for more
  * details.
  *
  */
@@ -29,10 +29,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("still-waiting-for-fix-on-entando-core")
-public class AddEntandoAppWithExternalOracleDatabaseIT extends AddEntandoAppBaseIT {
+class AddEntandoAppWithExternalOracleDatabaseIT extends AddEntandoAppBaseIT {
 
     @Test
-    public void create() {
+    void create() {
         //Given I have an external Oracle database
         helper.externalDatabases()
                 .prepareExternalOracleDatabase(EntandoAppIntegrationTestHelper.TEST_NAMESPACE,
