@@ -17,8 +17,11 @@
 package org.entando.kubernetes.controller.app;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.entando.kubernetes.controller.DeployCommand;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
@@ -29,6 +32,7 @@ import org.entando.kubernetes.controller.spi.IngressingContainer;
 import org.entando.kubernetes.controller.spi.KeycloakAware;
 import org.entando.kubernetes.controller.spi.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
+import org.entando.kubernetes.controller.spi.PortSpec;
 import org.entando.kubernetes.controller.spi.TlsAware;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.EntandoDeploymentSpec;
@@ -78,8 +82,34 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
     }
 
     @Override
-    public int getPort() {
+    public void addEnvironmentVariables(List<EnvVar> vars) {
+        super.addEnvironmentVariables(vars);
+        if (entandoApp.getSpec().getStandardServerImage().orElse(JeeServer.WILDFLY) == JeeServer.EAP) {
+            vars.add(new EnvVar("JGROUPS_PING_PROTOCOL", "openshift.KUBE_PING", null));
+            vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", RandomStringUtils.randomAlphanumeric(10), null));
+            vars.add(new EnvVar("OPENSHIFT_KUBE_PING_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
+            vars.add(new EnvVar("OPENSHIFT_KUBE_PING_LABELS",
+                    DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+                            + KubeUtils.DEFAULT_SERVER_QUALIFIER,
+                    null));
+        } else {
+            vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", RandomStringUtils.randomAlphanumeric(10), null));
+            vars.add(new EnvVar("KUBERNETES_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
+            vars.add(new EnvVar("KUBERNETES_LABELS",
+                    DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+                            + KubeUtils.DEFAULT_SERVER_QUALIFIER,
+                    null));
+        }
+    }
+
+    @Override
+    public int getPrimaryPort() {
         return PORT;
+    }
+
+    @Override
+    public List<PortSpec> getAdditionalPorts() {
+        return Arrays.asList(new PortSpec("ping", 8888), new PortSpec("ping2", 7600));
     }
 
     public KeycloakConnectionConfig getKeycloakConnectionConfig() {

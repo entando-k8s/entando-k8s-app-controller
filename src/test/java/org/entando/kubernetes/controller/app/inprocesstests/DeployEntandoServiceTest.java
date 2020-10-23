@@ -18,6 +18,7 @@ package org.entando.kubernetes.controller.app.inprocesstests;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyString;
@@ -44,6 +45,7 @@ import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
 import java.util.Collections;
 import java.util.Map;
+import org.entando.kubernetes.controller.DeployCommand;
 import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KubeUtils;
@@ -94,7 +96,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
     static final String MARKER_VAR_VALUE = "myvalue";
     static final String MARKER_VAR_NAME = "MARKER_VAR";
     private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withStandardServerImage(JeeServer.EAP)
-            .withParameters(Collections.singletonList(new EnvVar(MARKER_VAR_NAME, MARKER_VAR_VALUE,null)))
+            .withEnvironmentVariables(Collections.singletonList(new EnvVar(MARKER_VAR_NAME, MARKER_VAR_VALUE, null)))
             .withNewResourceRequirements()
             .withFileUploadLimit("500m")
             .withMemoryLimit("3Gi")
@@ -359,6 +361,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         //Exposing a port named 'server-port' on 8080
         assertThat(thePortNamed(SERVER_PORT).on(theEntandoServerContainer).getContainerPort(), is(8080));
         assertThat(thePortNamed(SERVER_PORT).on(theEntandoServerContainer).getProtocol(), is(TCP));
+        assertThat(thePortNamed("ping").on(theEntandoServerContainer).getContainerPort(), is(8888));
         //And that is configured to point to the DB Service
         assertThat(theVariableReferenceNamed("PORTDB_USERNAME").on(theEntandoServerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-portdb-secret"));
@@ -369,6 +372,11 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(theEntandoServerContainer).getSecretKeyRef().getKey(),
                 is(KubeUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theEntandoServerContainer), is(MARKER_VAR_VALUE));
+        assertThat(theVariableNamed("JGROUPS_CLUSTER_PASSWORD").on(theEntandoServerContainer), is(notNullValue()));
+        assertThat(theVariableNamed("OPENSHIFT_KUBE_PING_NAMESPACE").on(theEntandoServerContainer), is(MY_APP_NAMESPACE));
+        assertThat(theVariableNamed("OPENSHIFT_KUBE_PING_LABELS").on(theEntandoServerContainer),
+                is(DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+                        + KubeUtils.DEFAULT_SERVER_QUALIFIER));
 
         //And per schema env vars are injected
         EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "PORTDB_",

@@ -136,7 +136,7 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
         assertThat(theVariableReferenceNamed("PORTDB_PASSWORD").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getKey(),
                 is(KubeUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed("PORTDB_URL").on(thePrimaryContainerOn(entandoDeployment)),
-                is("jdbc:oracle:thin:@//mydb-service." + MY_APP_NAMESPACE + ".svc.cluster.local:1521/my_db"));
+                is("jdbc:oracle:thin:@//mydb-db-service." + MY_APP_NAMESPACE + ".svc.cluster.local:1521/my_db"));
         assertThat(theVariableReferenceNamed("SERVDB_USERNAME").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getName(),
                 is(MY_APP_SERVDB_SECRET));
         assertThat(theVariableReferenceNamed("SERVDB_USERNAME").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getKey(),
@@ -144,7 +144,7 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getKey(),
                 is(KubeUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed("SERVDB_URL").on(thePrimaryContainerOn(entandoDeployment)),
-                is("jdbc:oracle:thin:@//mydb-service." + MY_APP_NAMESPACE + ".svc.cluster.local:1521/my_db"));
+                is("jdbc:oracle:thin:@//mydb-db-service." + MY_APP_NAMESPACE + ".svc.cluster.local:1521/my_db"));
         //But the db check on startup is disabled
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(thePrimaryContainerOn(entandoDeployment)), is("false"));
 
@@ -161,7 +161,7 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
 
     private EntandoDatabaseService buildExternalDatabase() {
         EntandoDatabaseService edb = new EntandoDatabaseService(
-                new EntandoDatabaseServiceSpec(DbmsVendor.ORACLE, "myoracle.com", 1521, "my_db", null, "my-secret",
+                new EntandoDatabaseServiceSpec(DbmsVendor.ORACLE, "myoracle.com", 1521, "my_db", null, "my-secret", false,
                         Collections.emptyMap()));
         edb.getMetadata().setName("mydb");
         edb.getMetadata().setNamespace(MY_APP_NAMESPACE);
