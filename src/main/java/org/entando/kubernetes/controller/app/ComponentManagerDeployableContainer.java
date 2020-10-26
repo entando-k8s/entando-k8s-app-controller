@@ -73,7 +73,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     }
 
     @Override
-    public int getPort() {
+    public int getPrimaryPort() {
         return 8083;
     }
 
@@ -83,7 +83,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
                 entandoApp.getSpec().getIngressPath().orElse(EntandoAppDeployableContainer.INGRESS_WEB_CONTEXT));
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
-        vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPort()), null));
+        vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPrimaryPort()), null));
         infrastructureConfig.ifPresent(c -> vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", c.getK8SExternalServiceUrl(), null)));
         //The ssh files will be copied to /opt/.ssh and chmod to 400. This can only happen at runtime because Openshift generates a
         // random userid

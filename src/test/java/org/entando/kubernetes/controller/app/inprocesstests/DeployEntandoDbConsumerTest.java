@@ -63,7 +63,7 @@ class DeployEntandoDbConsumerTest implements InProcessTestUtil, FluentTraversals
         EntandoApp app = newTestEntandoApp();
         //And a database deployment
         DeployCommand<DatabaseDeploymentResult, EntandoApp> db = new DeployCommand<>(
-                new DatabaseDeployable(DbmsDockerVendorStrategy.POSTGRESQL, app, "db"));
+                new DatabaseDeployable<>(DbmsDockerVendorStrategy.POSTGRESQL, app, "db", null));
         DatabaseDeploymentResult databaseServiceResult = db
                 .execute(client, Optional.empty());
         //And a KeycloakConnectionsecret
