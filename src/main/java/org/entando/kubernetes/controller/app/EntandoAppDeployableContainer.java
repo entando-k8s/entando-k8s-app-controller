@@ -84,21 +84,17 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
     @Override
     public void addEnvironmentVariables(List<EnvVar> vars) {
         super.addEnvironmentVariables(vars);
+        vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", RandomStringUtils.randomAlphanumeric(10), null));
+        vars.add(new EnvVar("JGROUPS_JOIN_TIMEOUT", "3000", null));
+        String labelExpression = DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+                + KubeUtils.DEFAULT_SERVER_QUALIFIER;
         if (entandoApp.getSpec().getStandardServerImage().orElse(JeeServer.WILDFLY) == JeeServer.EAP) {
             vars.add(new EnvVar("JGROUPS_PING_PROTOCOL", "openshift.KUBE_PING", null));
-            vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", RandomStringUtils.randomAlphanumeric(10), null));
             vars.add(new EnvVar("OPENSHIFT_KUBE_PING_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
-            vars.add(new EnvVar("OPENSHIFT_KUBE_PING_LABELS",
-                    DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
-                            + KubeUtils.DEFAULT_SERVER_QUALIFIER,
-                    null));
+            vars.add(new EnvVar("OPENSHIFT_KUBE_PING_LABELS", labelExpression, null));
         } else {
-            vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", RandomStringUtils.randomAlphanumeric(10), null));
             vars.add(new EnvVar("KUBERNETES_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
-            vars.add(new EnvVar("KUBERNETES_LABELS",
-                    DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
-                            + KubeUtils.DEFAULT_SERVER_QUALIFIER,
-                    null));
+            vars.add(new EnvVar("KUBERNETES_LABELS", labelExpression, null));
         }
     }
 
