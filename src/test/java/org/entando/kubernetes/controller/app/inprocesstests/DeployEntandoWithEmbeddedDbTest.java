@@ -157,7 +157,7 @@ class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, FluentTraver
                 is("/entando-data"));
         // And a PersistentVolumeClaim has been created for the derby database
         assertThat(this.client.persistentVolumeClaims().loadPersistentVolumeClaim(entandoApp, MY_APP + "-de-pvc"), not(nullValue()));
-        assertThat(entandoDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is(1001L));
+        assertThat(entandoDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is(185L));
         verifyThatAllVolumesAreMapped(entandoApp, client, entandoDeployment);
     }
 
