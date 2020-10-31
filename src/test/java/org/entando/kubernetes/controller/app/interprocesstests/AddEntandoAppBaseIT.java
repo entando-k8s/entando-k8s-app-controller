@@ -31,11 +31,9 @@ import io.fabric8.kubernetes.client.dsl.PodResource;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.app.ComponentManagerDeployableContainer;
 import org.entando.kubernetes.controller.app.EntandoAppController;
-import org.entando.kubernetes.controller.common.TlsHelper;
 import org.entando.kubernetes.controller.integrationtest.support.ClusterInfrastructureIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoOperatorTestConfig;
@@ -46,7 +44,6 @@ import org.entando.kubernetes.controller.integrationtest.support.K8SIntegrationT
 import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
-import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.keycloak.representations.idm.ClientRepresentation;
@@ -61,9 +58,8 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
     void cleanup() {
         helper.setTextFixture(
                 deleteAll(EntandoDatabaseService.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                        .deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                        .deleteAll(EntandoKeycloakServer.class).fromNamespace(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE));
-        await().atMost(2, TimeUnit.MINUTES).ignoreExceptions().pollInterval(10, TimeUnit.SECONDS).until(this::killPgPod);
+                        .deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
+        this.helper.externalDatabases().deletePgTestPod(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
         registerListeners();
     }
 
@@ -90,12 +86,13 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
     }
 
     void createAndWaitForApp(EntandoApp entandoApp, int waitOffset, boolean deployingDbContainers) {
-        this.helper.keycloak().ensureKeycloak();
         this.helper.clusterInfrastructure().ensureInfrastructureSecret();
-        this.helper.keycloak().deleteKeycloakClients("entando-web", EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-de",
-                EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + "server");
+        this.helper.keycloak()
+                .deleteKeycloakClients(entandoApp, "entando-web", EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-de",
+                        EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + "server");
         String k8sSvcClientId = ClusterInfrastructureIntegrationTestHelper.CLUSTER_INFRASTRUCTURE_NAME + "-k8s-svc";
-        this.helper.keycloak().ensureKeycloakClient(k8sSvcClientId, Collections.singletonList(KubeUtils.ENTANDO_APP_ROLE));
+        this.helper.keycloak()
+                .ensureKeycloakClient(entandoApp.getSpec(), k8sSvcClientId, Collections.singletonList(KubeUtils.ENTANDO_APP_ROLE));
         this.helper.entandoApps().createAndWaitForApp(entandoApp, waitOffset, deployingDbContainers);
     }
 
@@ -174,12 +171,14 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
 
     protected void verifyKeycloakClientsCreation() {
         Optional<ClientRepresentation> serverClient = helper.keycloak()
-                .findClientById(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER);
+                .findClientById(KeycloakIntegrationTestHelper.KEYCLOAK_REALM,
+                        EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER);
         assertTrue(serverClient.isPresent());
         String componentManagerClientId = EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-"
                 + ComponentManagerDeployableContainer.COMPONENT_MANAGER_QUALIFIER;
         String k8sSvcClientId = ClusterInfrastructureIntegrationTestHelper.CLUSTER_INFRASTRUCTURE_NAME + "-k8s-svc";
-        List<RoleRepresentation> roles = helper.keycloak().retrieveServiceAccountRoles(componentManagerClientId, k8sSvcClientId);
+        List<RoleRepresentation> roles = helper.keycloak()
+                .retrieveServiceAccountRoles(KeycloakIntegrationTestHelper.KEYCLOAK_REALM, componentManagerClientId, k8sSvcClientId);
         assertTrue(roles.stream().anyMatch(role -> role.getName().equals(KubeUtils.ENTANDO_APP_ROLE)));
 
     }

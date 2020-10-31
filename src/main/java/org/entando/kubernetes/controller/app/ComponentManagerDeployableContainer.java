@@ -39,6 +39,7 @@ import org.entando.kubernetes.controller.spi.SecretToMount;
 import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
 import org.entando.kubernetes.model.EntandoDeploymentSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.app.KeycloakAwareSpec;
 import org.entando.kubernetes.model.plugin.Permission;
 
 public class ComponentManagerDeployableContainer implements SpringBootDeployableContainer, PersistentVolumeAware, ParameterizableContainer {
@@ -141,9 +142,14 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
         List<Permission> permissions = new ArrayList<>();
         permissions.add(new Permission(entandoAppClientId, "superuser"));
         this.infrastructureConfig.ifPresent(c -> permissions.add(new Permission(c.getK8sServiceClientId(), KubeUtils.ENTANDO_APP_ROLE)));
-        return new KeycloakClientConfig(KubeUtils.ENTANDO_KEYCLOAK_REALM, clientId, clientId,
+        return new KeycloakClientConfig(determineRealm(), clientId, clientId,
                 Collections.emptyList(),
                 permissions);
+    }
+
+    @Override
+    public KeycloakAwareSpec getKeycloakAwareSpec() {
+        return entandoApp.getSpec();
     }
 
     @Override
@@ -174,6 +180,6 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
 
     @Override
     public EntandoDeploymentSpec getCustomResourceSpec() {
-        return this.entandoApp.getSpec();
+        return getKeycloakAwareSpec();
     }
 }

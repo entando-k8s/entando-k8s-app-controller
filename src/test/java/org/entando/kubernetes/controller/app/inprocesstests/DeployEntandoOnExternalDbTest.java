@@ -81,7 +81,7 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
     @BeforeEach
     void createCustomResources() {
         client.entandoResources().createOrPatchEntandoResource(externalDatabase);
-        client.secrets().overwriteControllerSecret(buildKeycloakSecret());
+        emulateKeycloakDeployment(client);
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);

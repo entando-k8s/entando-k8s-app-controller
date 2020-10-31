@@ -37,8 +37,10 @@ import org.entando.kubernetes.controller.spi.TlsAware;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.EntandoDeploymentSpec;
 import org.entando.kubernetes.model.JeeServer;
+import org.entando.kubernetes.model.KeycloakToUse;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppSpec;
+import org.entando.kubernetes.model.app.KeycloakAwareSpec;
 
 public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingContainer implements IngressingContainer, PersistentVolumeAware,
         KeycloakAware, DbAware, TlsAware, ParameterizableContainer, ConfigurableResourceContainer {
@@ -115,7 +117,7 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
     @Override
     public KeycloakClientConfig getKeycloakClientConfig() {
         String clientId = clientIdOf(this.entandoApp);
-        return new KeycloakClientConfig(KubeUtils.ENTANDO_KEYCLOAK_REALM,
+        return new KeycloakClientConfig(determineRealm(),
                 clientId,
                 clientId).withRole("superuser").withPermission("realm-management", "realm-admin");
     }
@@ -147,6 +149,11 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
 
     @Override
     public EntandoDeploymentSpec getCustomResourceSpec() {
+        return getKeycloakAwareSpec();
+    }
+
+    @Override
+    public KeycloakAwareSpec getKeycloakAwareSpec() {
         return this.entandoApp.getSpec();
     }
 }
