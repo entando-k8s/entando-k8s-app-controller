@@ -75,7 +75,7 @@ class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, FluentTraver
     @BeforeEach
     void createCustomResources() {
         emulateKeycloakDeployment(client);
-        client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
+        emulateClusterInfrastuctureDeployment(client);
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE.getJvmSystemProperty(), "true");

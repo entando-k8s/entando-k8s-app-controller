@@ -53,9 +53,7 @@ import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8S
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.model.DbmsVendor;
-import org.entando.kubernetes.model.ResourceReference;
 import org.entando.kubernetes.model.app.EntandoApp;
-import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Tags;
@@ -87,7 +85,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
 
     @BeforeEach
     void createReusedSecrets() {
-        client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
+        emulateClusterInfrastuctureDeployment(client);
         emulateKeycloakDeployment(client);
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);

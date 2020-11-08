@@ -32,8 +32,9 @@ import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.PublicIngressingDeployable;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.app.EntandoAppSpec;
 
-public class EntandoAppServerDeployable implements PublicIngressingDeployable<EntandoAppDeploymentResult, EntandoApp>,
+public class EntandoAppServerDeployable implements PublicIngressingDeployable<EntandoAppDeploymentResult, EntandoAppSpec>,
         DbAwareDeployable {
 
     /**
@@ -107,12 +108,6 @@ public class EntandoAppServerDeployable implements PublicIngressingDeployable<En
     @Override
     public String getIngressNamespace() {
         return entandoApp.getMetadata().getNamespace();
-    }
-
-    @Override
-    public String getPublicKeycloakClientId() {
-        //Needs to reflect the EntandoApp.name, but will that affect AppBuilder?
-        return "entando";
     }
 
     @Override

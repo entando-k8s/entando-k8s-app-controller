@@ -37,9 +37,9 @@ import org.entando.kubernetes.controller.spi.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
 import org.entando.kubernetes.controller.spi.SecretToMount;
 import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
-import org.entando.kubernetes.model.EntandoDeploymentSpec;
+import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
+import org.entando.kubernetes.model.KeycloakAwareSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
-import org.entando.kubernetes.model.app.KeycloakAwareSpec;
 import org.entando.kubernetes.model.plugin.Permission;
 
 public class ComponentManagerDeployableContainer implements SpringBootDeployableContainer, PersistentVolumeAware, ParameterizableContainer {
@@ -56,7 +56,9 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
 
     private static final DbmsVendorConfig DEFAULT_EMBEDDED_VENDOR = DbmsVendorConfig.H2;
 
-    public ComponentManagerDeployableContainer(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig,
+    public ComponentManagerDeployableContainer(
+            EntandoApp entandoApp,
+            KeycloakConnectionConfig keycloakConnectionConfig,
             InfrastructureConfig infrastructureConfig) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
@@ -179,7 +181,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     }
 
     @Override
-    public EntandoDeploymentSpec getCustomResourceSpec() {
+    public EntandoIngressingDeploymentSpec getCustomResourceSpec() {
         return getKeycloakAwareSpec();
     }
 }

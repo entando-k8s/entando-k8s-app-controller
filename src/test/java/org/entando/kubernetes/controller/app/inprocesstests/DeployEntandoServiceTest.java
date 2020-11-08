@@ -45,8 +45,8 @@ import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
 import java.util.Collections;
 import java.util.Map;
-import org.entando.kubernetes.controller.DeployCommand;
 import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
+import org.entando.kubernetes.controller.IngressingDeployCommand;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
@@ -115,7 +115,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
 
     @BeforeEach
     void createReusedSecrets() {
-        client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
+        emulateClusterInfrastuctureDeployment(client);
         emulateKeycloakDeployment(client);
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);
@@ -375,7 +375,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         assertThat(theVariableNamed("JGROUPS_CLUSTER_PASSWORD").on(theEntandoServerContainer), is(notNullValue()));
         assertThat(theVariableNamed("OPENSHIFT_KUBE_PING_NAMESPACE").on(theEntandoServerContainer), is(MY_APP_NAMESPACE));
         assertThat(theVariableNamed("OPENSHIFT_KUBE_PING_LABELS").on(theEntandoServerContainer),
-                is(DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+                is(IngressingDeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
                         + KubeUtils.DEFAULT_SERVER_QUALIFIER));
 
         //And per schema env vars are injected

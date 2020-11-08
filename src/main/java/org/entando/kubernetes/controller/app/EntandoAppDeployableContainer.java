@@ -21,7 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.entando.kubernetes.controller.DeployCommand;
+import org.entando.kubernetes.controller.IngressingDeployCommand;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
@@ -35,12 +35,11 @@ import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
 import org.entando.kubernetes.controller.spi.PortSpec;
 import org.entando.kubernetes.controller.spi.TlsAware;
 import org.entando.kubernetes.model.DbmsVendor;
-import org.entando.kubernetes.model.EntandoDeploymentSpec;
+import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
 import org.entando.kubernetes.model.JeeServer;
-import org.entando.kubernetes.model.KeycloakToUse;
+import org.entando.kubernetes.model.KeycloakAwareSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppSpec;
-import org.entando.kubernetes.model.app.KeycloakAwareSpec;
 
 public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingContainer implements IngressingContainer, PersistentVolumeAware,
         KeycloakAware, DbAware, TlsAware, ParameterizableContainer, ConfigurableResourceContainer {
@@ -88,7 +87,7 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
         super.addEnvironmentVariables(vars);
         vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", RandomStringUtils.randomAlphanumeric(10), null));
         vars.add(new EnvVar("JGROUPS_JOIN_TIMEOUT", "3000", null));
-        String labelExpression = DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+        String labelExpression = IngressingDeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
                 + KubeUtils.DEFAULT_SERVER_QUALIFIER;
         if (entandoApp.getSpec().getStandardServerImage().orElse(JeeServer.WILDFLY) == JeeServer.EAP) {
             vars.add(new EnvVar("JGROUPS_PING_PROTOCOL", "openshift.KUBE_PING", null));
@@ -148,7 +147,7 @@ public class EntandoAppDeployableContainer extends EntandoDatabaseConsumingConta
     }
 
     @Override
-    public EntandoDeploymentSpec getCustomResourceSpec() {
+    public EntandoIngressingDeploymentSpec getCustomResourceSpec() {
         return getKeycloakAwareSpec();
     }
 

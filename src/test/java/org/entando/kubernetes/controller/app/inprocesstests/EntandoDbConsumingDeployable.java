@@ -32,8 +32,10 @@ import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.PublicIngressingDeployable;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.app.EntandoAppSpec;
 
-public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<ExposedDeploymentResult, EntandoApp>, DbAwareDeployable {
+public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<ExposedDeploymentResult, EntandoAppSpec>,
+        DbAwareDeployable {
 
     public static final String KEYCLOAK_PUBLIC_CLIENT_ID = "keycloak-public-client-id";
     public static final String TEST_INGRESS_NAMESPACE = "test-ingress-namespace";
@@ -72,11 +74,6 @@ public class EntandoDbConsumingDeployable implements PublicIngressingDeployable<
             }
 
         });
-    }
-
-    @Override
-    public String getPublicKeycloakClientId() {
-        return KEYCLOAK_PUBLIC_CLIENT_ID;
     }
 
     @Override
