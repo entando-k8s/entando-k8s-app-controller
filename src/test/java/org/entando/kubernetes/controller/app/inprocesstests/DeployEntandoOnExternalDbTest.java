@@ -30,7 +30,6 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
-import java.util.Collections;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
@@ -47,7 +46,7 @@ import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
-import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseServiceSpec;
+import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseServiceBuilder;
 import org.entando.kubernetes.model.infrastructure.EntandoClusterInfrastructure;
 import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,8 +80,8 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
     @BeforeEach
     void createCustomResources() {
         client.entandoResources().createOrPatchEntandoResource(externalDatabase);
-        client.secrets().overwriteControllerSecret(buildKeycloakSecret());
-        client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
+        emulateKeycloakDeployment(client);
+        emulateClusterInfrastuctureDeployment(client);
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
@@ -160,11 +159,17 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
     }
 
     private EntandoDatabaseService buildExternalDatabase() {
-        EntandoDatabaseService edb = new EntandoDatabaseService(
-                new EntandoDatabaseServiceSpec(DbmsVendor.ORACLE, "myoracle.com", 1521, "my_db", null, "my-secret", false,
-                        Collections.emptyMap()));
-        edb.getMetadata().setName("mydb");
-        edb.getMetadata().setNamespace(MY_APP_NAMESPACE);
-        return edb;
+        return new EntandoDatabaseServiceBuilder()
+                .withNewMetadata()
+                .withName("mydb")
+                .withNamespace(MY_APP_NAMESPACE)
+                .endMetadata()
+                .withNewSpec()
+                .withDbms(DbmsVendor.ORACLE)
+                .withHost("myoracle.com")
+                .withPort(1521)
+                .withDatabaseName("my_db")
+                .withSecretName("my-secret")
+                .withCreateDeployment(false).endSpec().build();
     }
 }

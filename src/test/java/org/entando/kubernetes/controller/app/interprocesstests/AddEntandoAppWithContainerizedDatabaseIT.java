@@ -24,6 +24,7 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
+import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.SampleWriter;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.JeeServer;
@@ -45,6 +46,9 @@ class AddEntandoAppWithContainerizedDatabaseIT extends AddEntandoAppBaseIT {
                 .withNewSpec()
                 .withStandardServerImage(JeeServer.WILDFLY)
                 .withDbms(DbmsVendor.POSTGRESQL)
+                .withNewKeycloakToUse()
+                .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
+                .endKeycloakToUse()
                 .withIngressHostName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
                 .withReplicas(1)
                 .endSpec()
@@ -53,6 +57,7 @@ class AddEntandoAppWithContainerizedDatabaseIT extends AddEntandoAppBaseIT {
         entandoApp.getMetadata().setNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
         entandoApp.getMetadata().setName(EntandoAppIntegrationTestHelper.TEST_APP_NAME);
         SampleWriter.writeSample(entandoApp, "app-with-embedded-postgresql-db");
+
 
         createAndWaitForApp(entandoApp, 100, true);
         //Then I expect to see

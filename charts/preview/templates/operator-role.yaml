@@ -7,28 +7,9 @@ rules:
   - apiGroups:
       - entando.org
     resources:
-      - entandokeycloakservers
-      - entandokeycloakservers/finalizers
-      - entandoclusterinfrastructures
-      - entandoclusterinfrastructures/finalizers
-      - entandoapps
-      - entandoapps/finalizers
-      - entandoplugins
-      - entandoplugins/finalizers
-      - entandoapppluginlinks
-      - entandoapppluginlinks/finalizers
-      - entandodatabaseservices
-      - entandodatabaseservices/finalizers
-      - entandocompositeapps
-      - entandocompositeapps/finalizers
+      - "*"
     verbs:
       - "*"
-  - apiGroups:
-      - ""
-    resources:
-      - "pods/exec"
-    verbs:
-      - "get"
   - apiGroups:
       - ""
     resources:
@@ -41,11 +22,18 @@ rules:
   - apiGroups:
       - ""
     resources:
+      - "pods/exec"
+    verbs:
+      - "get"
+  - apiGroups:
+      - ""
+    resources:
       - pods
       - services
       - endpoints
       - persistentvolumeclaims
       - configmaps
+      - serviceaccounts
     verbs:
       - "*"
   - apiGroups:
@@ -81,6 +69,12 @@ rules:
       - rbac.authorization.k8s.io
     resources:
       - roles
+    verbs:
+      - get
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
       - rolebindings
     verbs:
       - get
+      - create

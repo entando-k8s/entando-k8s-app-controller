@@ -45,8 +45,8 @@ import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
 import java.util.Collections;
 import java.util.Map;
-import org.entando.kubernetes.controller.DeployCommand;
 import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
+import org.entando.kubernetes.controller.IngressingDeployCommand;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
@@ -115,8 +115,8 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
 
     @BeforeEach
     void createReusedSecrets() {
-        client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
-        client.secrets().overwriteControllerSecret(buildKeycloakSecret());
+        emulateClusterInfrastuctureDeployment(client);
+        emulateKeycloakDeployment(client);
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
@@ -375,7 +375,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         assertThat(theVariableNamed("JGROUPS_CLUSTER_PASSWORD").on(theEntandoServerContainer), is(notNullValue()));
         assertThat(theVariableNamed("OPENSHIFT_KUBE_PING_NAMESPACE").on(theEntandoServerContainer), is(MY_APP_NAMESPACE));
         assertThat(theVariableNamed("OPENSHIFT_KUBE_PING_LABELS").on(theEntandoServerContainer),
-                is(DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+                is(IngressingDeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
                         + KubeUtils.DEFAULT_SERVER_QUALIFIER));
 
         //And per schema env vars are injected
@@ -389,7 +389,8 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         //But the db check on startup is disabled
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(theEntandoServerContainer), is("false"));
         //And Keycloak was configured to support OIDC Integration from the EntandoApp
-        verify(keycloakClient).createPublicClient(eq(ENTANDO_KEYCLOAK_REALM), eq("https://myapp.192.168.0.100.nip.io"));
+        verify(keycloakClient)
+                .createPublicClient(eq(ENTANDO_KEYCLOAK_REALM), eq(ENTANDO_PUBLIC_CLIENT), eq("https://myapp.192.168.0.100.nip.io"));
         //the controllers logged into Keycloak independently for the EntandoApp deployment
         verify(keycloakClient, atLeast(1))
                 .login(eq(MY_KEYCLOAK_BASE_URL), eq("entando_keycloak_admin"), anyString());

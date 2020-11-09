@@ -23,8 +23,7 @@ import io.quarkus.runtime.StartupEvent;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import org.entando.kubernetes.controller.AbstractDbAwareController;
-import org.entando.kubernetes.controller.DeployCommand;
-import org.entando.kubernetes.controller.ExposedDeploymentResult;
+import org.entando.kubernetes.controller.IngressingDeployCommand;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
@@ -59,14 +58,13 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
     }
 
     private void performDeployCommand(EntandoAppServerDeployable deployable) {
-        DeployCommand<EntandoAppDeploymentResult, EntandoApp> deployCommand = new DeployCommand<>(deployable);
-        EntandoAppDeploymentResult result = deployCommand.execute(k8sClient, of(keycloakClient));
+        EntandoAppDeploymentResult result = new IngressingDeployCommand<>(deployable).execute(k8sClient, of(keycloakClient));
         k8sClient.entandoResources().updateStatus(deployable.getCustomResource(), result.getStatus());
     }
 
     private EntandoAppServerDeployable buildEntandoAppServerDeployable(EntandoApp entandoApp) {
         KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources().findKeycloak(entandoApp);
-        InfrastructureConfig infrastructureConfig = findInfrastructureConfig(entandoApp);
+        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp).orElse(null);
         DatabaseServiceResult databaseServiceResult = prepareDatabaseService(entandoApp, entandoApp.getSpec().getDbms().orElse(
                 DbmsVendor.EMBEDDED), "db");
         return new EntandoAppServerDeployable(
@@ -74,14 +72,6 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
                 keycloakConnectionConfig,
                 infrastructureConfig,
                 databaseServiceResult);
-    }
-
-    private InfrastructureConfig findInfrastructureConfig(EntandoApp entandoApp) {
-        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp.getSpec());
-        if (infrastructureConfig.getInfrastructureSecret() == null) {
-            return null;
-        }
-        return infrastructureConfig;
     }
 
 }

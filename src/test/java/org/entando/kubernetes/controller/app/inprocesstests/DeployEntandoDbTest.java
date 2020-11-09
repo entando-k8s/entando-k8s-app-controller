@@ -85,8 +85,8 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
 
     @BeforeEach
     void createReusedSecrets() {
-        client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
-        client.secrets().overwriteControllerSecret(buildKeycloakSecret());
+        emulateClusterInfrastuctureDeployment(client);
+        emulateKeycloakDeployment(client);
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
@@ -97,7 +97,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
     @Test
     void testSecrets() {
         //Given I have a fully deployed KeycloakServer
-        client.secrets().overwriteControllerSecret(newKeycloakAdminSecret());
+        emulateKeycloakDeployment(this.client);
         //and I have an Entando App with a Wildfly server
         EntandoApp newEntandoApp = entandoApp;
         //When the DeployCommand processes the addition request
@@ -125,10 +125,11 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
         assertThat(componentManagerSecret.getStringData().get(KubeUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
     }
 
+
     @Test
     void testPersistentVolumeClaim() {
         //Given I have a fully deployed KeycloakServer
-        client.secrets().overwriteControllerSecret(newKeycloakAdminSecret());
+        emulateKeycloakDeployment(this.client);
         //and I have an Entando App with a Wildfly server
         EntandoApp newEntandoApp = entandoApp;
         //And that K8S is up and receiving PVC requests
@@ -163,7 +164,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
     @Test
     void testService() {
         //Given I have a fully deployed KeycloakServer
-        client.secrets().overwriteControllerSecret(newKeycloakAdminSecret());
+        emulateKeycloakDeployment(this.client);
         //and I have an Entando App with a Wildfly server
         EntandoApp newEntandoApp = this.entandoApp;
         //And K8S is receiving Service requests
@@ -198,7 +199,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_DOCKER_IMAGE_VERSION_FALLBACK.getJvmSystemProperty(), "6.0.0");
 
         //Given I have a fully deployed KeycloakServer
-        client.secrets().overwriteControllerSecret(newKeycloakAdminSecret());
+        emulateKeycloakDeployment(this.client);
         //and I have an Entando App with a Wildfly server
         EntandoApp newEntandoApp = this.entandoApp;
         //And K8S is receiving Deployment requests
@@ -244,7 +245,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
     @Test
     void testSchemaPreparation() {
         //Given I have a fully deployed KeycloakServer
-        client.secrets().overwriteControllerSecret(newKeycloakAdminSecret());
+        emulateKeycloakDeployment(this.client);
         //and I have an Entando App with a Wildfly server
         EntandoApp newEntandoApp = this.entandoApp;
         //When the DeployCommand processes the addition request

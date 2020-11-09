@@ -37,7 +37,8 @@ import org.entando.kubernetes.controller.spi.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
 import org.entando.kubernetes.controller.spi.SecretToMount;
 import org.entando.kubernetes.controller.spi.SpringBootDeployableContainer;
-import org.entando.kubernetes.model.EntandoDeploymentSpec;
+import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
+import org.entando.kubernetes.model.KeycloakAwareSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.Permission;
 
@@ -55,7 +56,9 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
 
     private static final DbmsVendorConfig DEFAULT_EMBEDDED_VENDOR = DbmsVendorConfig.H2;
 
-    public ComponentManagerDeployableContainer(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig,
+    public ComponentManagerDeployableContainer(
+            EntandoApp entandoApp,
+            KeycloakConnectionConfig keycloakConnectionConfig,
             InfrastructureConfig infrastructureConfig) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
@@ -141,9 +144,14 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
         List<Permission> permissions = new ArrayList<>();
         permissions.add(new Permission(entandoAppClientId, "superuser"));
         this.infrastructureConfig.ifPresent(c -> permissions.add(new Permission(c.getK8sServiceClientId(), KubeUtils.ENTANDO_APP_ROLE)));
-        return new KeycloakClientConfig(KubeUtils.ENTANDO_KEYCLOAK_REALM, clientId, clientId,
+        return new KeycloakClientConfig(determineRealm(), clientId, clientId,
                 Collections.emptyList(),
                 permissions);
+    }
+
+    @Override
+    public KeycloakAwareSpec getKeycloakAwareSpec() {
+        return entandoApp.getSpec();
     }
 
     @Override
@@ -173,7 +181,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     }
 
     @Override
-    public EntandoDeploymentSpec getCustomResourceSpec() {
-        return this.entandoApp.getSpec();
+    public EntandoIngressingDeploymentSpec getCustomResourceSpec() {
+        return getKeycloakAwareSpec();
     }
 }

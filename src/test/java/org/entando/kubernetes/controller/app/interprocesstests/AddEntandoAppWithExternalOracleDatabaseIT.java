@@ -20,6 +20,7 @@ import static org.entando.kubernetes.controller.KubeUtils.snakeCaseOf;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
+import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.SampleWriter;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.JeeServer;
@@ -43,6 +44,9 @@ class AddEntandoAppWithExternalOracleDatabaseIT extends AddEntandoAppBaseIT {
                 .withStandardServerImage(JeeServer.WILDFLY)
                 .withDbms(DbmsVendor.ORACLE)
                 .withIngressHostName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
+                .withNewKeycloakToUse()
+                .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
+                .endKeycloakToUse()
                 .withReplicas(1)
                 .withTlsSecretName(null)
                 .endSpec()

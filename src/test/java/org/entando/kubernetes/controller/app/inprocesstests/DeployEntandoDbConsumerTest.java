@@ -20,11 +20,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.verify;
 
+import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import java.util.Optional;
 import org.entando.kubernetes.controller.DeployCommand;
+import org.entando.kubernetes.controller.IngressingDeployCommand;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.testutils.EnvVarAssertionHelper;
@@ -40,6 +42,7 @@ import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.app.EntandoAppSpec;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
@@ -62,19 +65,24 @@ class DeployEntandoDbConsumerTest implements InProcessTestUtil, FluentTraversals
         //Given I have an EntandoApp
         EntandoApp app = newTestEntandoApp();
         //And a database deployment
-        DeployCommand<DatabaseDeploymentResult, EntandoApp> db = new DeployCommand<>(
+        DeployCommand<DatabaseDeploymentResult, EntandoAppSpec> db = new DeployCommand<>(
                 new DatabaseDeployable<>(DbmsDockerVendorStrategy.POSTGRESQL, app, "db", null));
         DatabaseDeploymentResult databaseServiceResult = db
                 .execute(client, Optional.empty());
         //And a KeycloakConnectionsecret
-        KeycloakConnectionSecret keycloakConnectionSecret = new KeycloakConnectionSecret(new SecretBuilder()
-                .withNewMetadata().endMetadata()
-                .addToStringData(KubeUtils.URL_KEY, "http://test.domain/auth")
-                .addToStringData(KubeUtils.USERNAME_KEY, "keycloak-admin")
-                .addToStringData(KubeUtils.PASSSWORD_KEY, "P@ssw0rd!")
-                .build());
+        KeycloakConnectionSecret keycloakConnectionSecret = new KeycloakConnectionSecret(
+                new SecretBuilder()
+                        .withNewMetadata().endMetadata()
+                        .addToStringData(KubeUtils.USERNAME_KEY, "keycloak-admin")
+                        .addToStringData(KubeUtils.PASSSWORD_KEY, "P@ssw0rd!")
+                        .build(),
+                new ConfigMapBuilder()
+                        .withNewMetadata()
+                        .endMetadata()
+                        .addToData(KubeUtils.URL_KEY, "http://test.domain/auth")
+                        .build());
         //When I deploy the entandoApp using the KeycloakConsumingDeployable implementations
-        new DeployCommand<>(new EntandoDbConsumingDeployable(keycloakConnectionSecret, app, databaseServiceResult))
+        new IngressingDeployCommand<>(new EntandoDbConsumingDeployable(keycloakConnectionSecret, app, databaseServiceResult))
                 .execute(client, Optional.of(keycloakClient));
         //Then I need to see
         LabeledArgumentCaptor<Pod> dbJobCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
