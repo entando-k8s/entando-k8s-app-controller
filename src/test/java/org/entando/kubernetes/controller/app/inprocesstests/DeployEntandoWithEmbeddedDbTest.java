@@ -112,53 +112,58 @@ class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, FluentTraver
         entandoAppController.onStartup(new StartupEvent());
 
         //Then a K8S deployment is created
-        NamedArgumentCaptor<Deployment> entandoDeploymentCaptor = forResourceNamed(Deployment.class,
+        NamedArgumentCaptor<Deployment> appServerCaptor = forResourceNamed(Deployment.class,
                 MY_APP + "-server-deployment");
-        verify(client.deployments()).createOrPatchDeployment(eq(newEntandoApp), entandoDeploymentCaptor.capture());
-        Deployment entandoDeployment = entandoDeploymentCaptor.getValue();
+        verify(client.deployments()).createOrPatchDeployment(eq(newEntandoApp), appServerCaptor.capture());
+        Deployment appServerDeployment = appServerCaptor.getValue();
         // And Entando has been configured to use the default embedded Derby database
-        assertThat(theVariableNamed("PORTDB_DRIVER").on(theContainerNamed("server-container").on(entandoDeployment)),
+        assertThat(theVariableNamed("PORTDB_DRIVER").on(theContainerNamed("server-container").on(appServerDeployment)),
                 is("derby"));
-        assertThat(theVariableNamed("SERVDB_DRIVER").on(theContainerNamed("server-container").on(entandoDeployment)),
+        assertThat(theVariableNamed("SERVDB_DRIVER").on(theContainerNamed("server-container").on(appServerDeployment)),
                 is("derby"));
 
         // And none of the variables overriding the default derby based environment variables have been overridden
-        Container theServerContainer = theContainerNamed("server-container").on(entandoDeployment);
+        Container theServerContainer = theContainerNamed("server-container").on(appServerDeployment);
         assertTrue(theServerContainer.getEnv().stream().noneMatch(envVar -> isADatabaseVariableThatShouldBeOmitted(envVar)));
 
         //And the db check on startup is disabled
-        assertThat(theVariableNamed("DB_STARTUP_CHECK").on(thePrimaryContainerOn(entandoDeployment)), is("false"));
+        assertThat(theVariableNamed("DB_STARTUP_CHECK").on(thePrimaryContainerOn(appServerDeployment)), is("false"));
         // And a volume mount has been set up reflecting the correct location of the derby database
-        assertThat(theVolumeNamed(MY_APP + "-server-volume").on(entandoDeployment).getPersistentVolumeClaim().getClaimName(),
+        assertThat(theVolumeNamed(MY_APP + "-server-volume").on(appServerDeployment).getPersistentVolumeClaim().getClaimName(),
                 is(MY_APP + "-server-pvc"));
-        assertThat(theVolumeMountNamed(MY_APP + "-server-volume").on(thePrimaryContainerOn(entandoDeployment)).getMountPath(),
+        assertThat(theVolumeMountNamed(MY_APP + "-server-volume").on(thePrimaryContainerOn(appServerDeployment)).getMountPath(),
                 is("/entando-data"));
         // And a PersistentVolumeClaim has been created for the derby database
         assertThat(this.client.persistentVolumeClaims().loadPersistentVolumeClaim(entandoApp, MY_APP + "-server-pvc"), not(nullValue()));
 
         // And the ComponentManager has been configured to use and embedded h2 database
+        NamedArgumentCaptor<Deployment> componentManagerDeploymentCaptor = forResourceNamed(Deployment.class,
+                MY_APP + "-cm-deployment");
+        verify(client.deployments()).createOrPatchDeployment(eq(newEntandoApp), componentManagerDeploymentCaptor.capture());
+        Deployment componentManagerDeployment = componentManagerDeploymentCaptor.getValue();
         assertThat(theVariableNamed(SpringProperty.SPRING_JPA_DATABASE_PLATFORM.name())
-                        .on(theContainerNamed("de-container").on(entandoDeployment)),
+                        .on(theContainerNamed("de-container").on(componentManagerDeployment)),
                 is(DbmsVendorConfig.H2.getHibernateDialect()));
         assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_USERNAME.name())
-                        .on(theContainerNamed("de-container").on(entandoDeployment)),
+                        .on(theContainerNamed("de-container").on(componentManagerDeployment)),
                 is("sa"));
         assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_PASSWORD.name())
-                        .on(theContainerNamed("de-container").on(entandoDeployment)),
+                        .on(theContainerNamed("de-container").on(componentManagerDeployment)),
                 is(""));
         assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_URL.name())
-                        .on(theContainerNamed("de-container").on(entandoDeployment)),
+                        .on(theContainerNamed("de-container").on(componentManagerDeployment)),
                 is("jdbc:h2:file:/entando-data/databases/de/h2.db;DB_CLOSE_ON_EXIT=FALSE"));
 
         // And a volume mount has been set up reflecting the correct location of the h2 database
-        assertThat(theVolumeNamed(MY_APP + "-de-volume").on(entandoDeployment).getPersistentVolumeClaim().getClaimName(),
+        assertThat(theVolumeNamed(MY_APP + "-de-volume").on(componentManagerDeployment).getPersistentVolumeClaim().getClaimName(),
                 is(MY_APP + "-de-pvc"));
-        assertThat(theVolumeMountNamed(MY_APP + "-de-volume").on(theContainerNamed("de-container").on(entandoDeployment)).getMountPath(),
+        assertThat(theVolumeMountNamed(MY_APP + "-de-volume").on(theContainerNamed("de-container").on(componentManagerDeployment))
+                        .getMountPath(),
                 is("/entando-data"));
         // And a PersistentVolumeClaim has been created for the derby database
         assertThat(this.client.persistentVolumeClaims().loadPersistentVolumeClaim(entandoApp, MY_APP + "-de-pvc"), not(nullValue()));
-        assertThat(entandoDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is(185L));
-        verifyThatAllVolumesAreMapped(entandoApp, client, entandoDeployment);
+        assertThat(appServerDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is(185L));
+        verifyThatAllVolumesAreMapped(entandoApp, client, appServerDeployment);
     }
 
     private boolean isADatabaseVariableThatShouldBeOmitted(EnvVar envVar) {

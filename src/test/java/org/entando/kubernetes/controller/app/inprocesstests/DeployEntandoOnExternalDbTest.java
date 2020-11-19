@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -150,8 +151,8 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
         //And another pod was created for PORTDB using the credentials and connection settings of the ExternalDatabase
         LabeledArgumentCaptor<Pod> portSchemaJobCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
                 .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-db-preparation-job");
-        verify(client.pods()).runToCompletion(portSchemaJobCaptor.capture());
-        Pod entandoPortJob = portSchemaJobCaptor.getValue();
+        verify(client.pods(),times(2)).runToCompletion(portSchemaJobCaptor.capture());
+        Pod entandoPortJob = portSchemaJobCaptor.getAllValues().get(0);
         verifyStandardSchemaCreationVariables("my-secret", MY_APP_SERVDB_SECRET,
                 theInitContainerNamed(MY_APP + "-servdb-schema-creation-job").on(entandoPortJob), DbmsVendor.ORACLE);
         verifyStandardSchemaCreationVariables("my-secret", MY_APP_PORTDB_SECRET,

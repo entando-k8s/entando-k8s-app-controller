@@ -53,25 +53,19 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
 
     @Override
     protected void synchronizeDeploymentState(EntandoApp entandoApp) {
-        EntandoAppServerDeployable deployable = buildEntandoAppServerDeployable(entandoApp);
-        performDeployCommand(deployable);
-    }
-
-    private void performDeployCommand(EntandoAppServerDeployable deployable) {
-        EntandoAppDeploymentResult result = new IngressingDeployCommand<>(deployable).execute(k8sClient, of(keycloakClient));
-        k8sClient.entandoResources().updateStatus(deployable.getCustomResource(), result.getStatus());
-    }
-
-    private EntandoAppServerDeployable buildEntandoAppServerDeployable(EntandoApp entandoApp) {
         KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources().findKeycloak(entandoApp);
-        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp).orElse(null);
         DatabaseServiceResult databaseServiceResult = prepareDatabaseService(entandoApp, entandoApp.getSpec().getDbms().orElse(
                 DbmsVendor.EMBEDDED), "db");
-        return new EntandoAppServerDeployable(
-                entandoApp,
-                keycloakConnectionConfig,
-                infrastructureConfig,
-                databaseServiceResult);
+        performDeployCommand(new EntandoAppServerDeployable(entandoApp, keycloakConnectionConfig, databaseServiceResult));
+        performDeployCommand(new AppBuilderDeployable(entandoApp, keycloakConnectionConfig));
+        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp).orElse(null);
+        performDeployCommand(
+                new ComponentManagerDeployable(entandoApp, keycloakConnectionConfig, infrastructureConfig, databaseServiceResult));
+    }
+
+    private void performDeployCommand(AbstractEntandoAppDeployable deployable) {
+        EntandoAppDeploymentResult result = new IngressingDeployCommand<>(deployable).execute(k8sClient, of(keycloakClient));
+        k8sClient.entandoResources().updateStatus(deployable.getCustomResource(), result.getStatus());
     }
 
 }

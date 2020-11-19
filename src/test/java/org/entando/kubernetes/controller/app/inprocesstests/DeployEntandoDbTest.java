@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import io.fabric8.kubernetes.api.model.Container;
@@ -253,13 +254,13 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
         //Then a Pod  is created that has labels linking it to the previously created EntandoApp
         LabeledArgumentCaptor<Pod> podCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
                 .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-db-preparation-job");
-        verify(client.pods()).runToCompletion(podCaptor.capture());
-        Pod pod = podCaptor.getValue();
-        verifySchemaCreationFor(MY_APP_PORTDB_SECRET, pod, MY_APP + "-portdb-schema-creation-job");
-        verifySchemaCreationFor(MY_APP_SERVDB_SECRET, pod, MY_APP + "-servdb-schema-creation-job");
-        verifySchemaCreationFor(MY_APP_DEDB_SECRET, pod, MY_APP + "-dedb-schema-creation-job");
+        verify(client.pods(),times(2)).runToCompletion(podCaptor.capture());
+        Pod entandoEngineDbPreparationPod = podCaptor.getAllValues().get(0);
+        verifySchemaCreationFor(MY_APP_PORTDB_SECRET, entandoEngineDbPreparationPod, MY_APP + "-portdb-schema-creation-job");
+        verifySchemaCreationFor(MY_APP_SERVDB_SECRET, entandoEngineDbPreparationPod, MY_APP + "-servdb-schema-creation-job");
+        verifySchemaCreationFor(MY_APP_DEDB_SECRET, podCaptor.getAllValues().get(1), MY_APP + "-dedb-schema-creation-job");
         //And the DB Image is configured with the appropriate Environment Variables
-        Container theDatabasePopulationJob = theInitContainerNamed(MY_APP + "-server-db-population-job").on(pod);
+        Container theDatabasePopulationJob = theInitContainerNamed(MY_APP + "-server-db-population-job").on(entandoEngineDbPreparationPod);
         assertThat(theDatabasePopulationJob.getCommand(),
                 is(Arrays.asList("/bin/bash", "-c", "/entando-common/init-db-from-deployment.sh")));
         assertThat(theVariableNamed("PORTDB_URL").on(theDatabasePopulationJob),

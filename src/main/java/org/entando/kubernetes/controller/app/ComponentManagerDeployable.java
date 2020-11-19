@@ -21,36 +21,29 @@ import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
+import org.entando.kubernetes.controller.common.InfrastructureConfig;
 import org.entando.kubernetes.controller.database.DatabaseServiceResult;
 import org.entando.kubernetes.controller.spi.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 
-public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable implements
+public class ComponentManagerDeployable extends AbstractEntandoAppDeployable implements
         DbAwareDeployable {
 
-    /**
-     * The operating system level id of the default user in the EAP and Wildfly base images. Was determined to be 185 running the 'id'
-     * command in the entando/entando-eap72-clusted-base image or entando/entando-wildfly17-base image
-     */
     public static final long DEFAULT_USERID_IN_JBOSS_BASE_IMAGES = 185L;
     private final List<DeployableContainer> containers;
     private final DatabaseServiceResult databaseServiceResult;
 
-    public EntandoAppServerDeployable(EntandoApp entandoApp,
+    public ComponentManagerDeployable(EntandoApp entandoApp,
             KeycloakConnectionConfig keycloakConnectionConfig,
+            InfrastructureConfig infrastructureConfig,
             DatabaseServiceResult databaseServiceResult) {
         super(entandoApp, keycloakConnectionConfig);
         this.databaseServiceResult = databaseServiceResult;
         this.containers = Arrays.asList(
-                new EntandoAppDeployableContainer(entandoApp, keycloakConnectionConfig)
+                new ComponentManagerDeployableContainer(entandoApp, keycloakConnectionConfig, infrastructureConfig)
         );
-    }
-
-    @Override
-    public Optional<Long> getFileSystemUserAndGroupId() {
-        return Optional.of(DEFAULT_USERID_IN_JBOSS_BASE_IMAGES);
     }
 
     @Override
@@ -70,7 +63,7 @@ public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable imp
 
     @Override
     public String getNameQualifier() {
-        return KubeUtils.DEFAULT_SERVER_QUALIFIER;
+        return "cm";
     }
 
 }
