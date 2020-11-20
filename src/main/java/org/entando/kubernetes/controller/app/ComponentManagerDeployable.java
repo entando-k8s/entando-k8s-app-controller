@@ -31,7 +31,6 @@ import org.entando.kubernetes.model.app.EntandoApp;
 public class ComponentManagerDeployable extends AbstractEntandoAppDeployable implements
         DbAwareDeployable {
 
-    public static final long DEFAULT_USERID_IN_JBOSS_BASE_IMAGES = 185L;
     private final List<DeployableContainer> containers;
     private final DatabaseServiceResult databaseServiceResult;
 

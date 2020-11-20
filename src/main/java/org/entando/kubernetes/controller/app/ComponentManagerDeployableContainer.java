@@ -82,6 +82,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
 
     @Override
     public void addEnvironmentVariables(List<EnvVar> vars) {
+        fix this
         String entandoUrl = format("http://localhost:%s%s", EntandoAppDeployableContainer.PORT,
                 entandoApp.getSpec().getIngressPath().orElse(EntandoAppDeployableContainer.INGRESS_WEB_CONTEXT));
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));

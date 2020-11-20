@@ -80,7 +80,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
-class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, VariableReferenceAssertions {
+class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelper, VariableReferenceAssertions {
 
     private static final String MY_APP_SERVER = MY_APP + "-server";
     private static final String MY_APP_SERVER_SERVICE = MY_APP_SERVER + "-service";
@@ -431,12 +431,14 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
                         + KubeUtils.DEFAULT_SERVER_QUALIFIER));
 
         //And per schema env vars are injected
-        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "PORTDB_",
-                this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
-                "mysql", "3306", "my_app_portdb");
-        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "SERVDB_",
-                this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
-                "mysql", "3306", "my_app_servdb");
+
+        assertThat(theVariableNamed("PORTDB_URL").on(theEntandoServerContainer),
+                is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_portdb"));
+        assertConnectionValidation(theEntandoServerContainer, "PORTDB_");
+
+        assertThat(theVariableNamed("SERVDB_URL").on(theEntandoServerContainer),
+                is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_servdb"));
+        assertConnectionValidation(theEntandoServerContainer, "SERVDB_");
 
         //But the db check on startup is disabled
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(theEntandoServerContainer), is("false"));
@@ -467,6 +469,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPath(),
                 is(ENTANDO_DE_APP + EntandoAppDeployableContainer.HEALTH_CHECK));
         assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPort().getIntVal(), is(8080));
+        //And the correct resource requests and limits have been applied
         Quantity memoryRequest = theEntandoServerContainer.getResources().getRequests().get("memory");
         assertThat(memoryRequest.getAmount(), is("0.3"));
         assertThat(memoryRequest.getFormat(), is("Gi"));

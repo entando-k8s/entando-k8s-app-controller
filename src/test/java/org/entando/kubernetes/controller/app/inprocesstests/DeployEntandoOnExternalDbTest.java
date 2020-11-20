@@ -149,14 +149,20 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(thePrimaryContainerOn(entandoDeployment)), is("false"));
 
         //And another pod was created for PORTDB using the credentials and connection settings of the ExternalDatabase
-        LabeledArgumentCaptor<Pod> portSchemaJobCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
-                .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-db-preparation-job");
-        verify(client.pods(),times(2)).runToCompletion(portSchemaJobCaptor.capture());
-        Pod entandoPortJob = portSchemaJobCaptor.getAllValues().get(0);
+        LabeledArgumentCaptor<Pod> entandoAppDbJobCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
+                .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-server-db-preparation-job");
+        verify(client.pods()).runToCompletion(entandoAppDbJobCaptor.capture());
+        Pod entandoPortJob = entandoAppDbJobCaptor.getValue();
         verifyStandardSchemaCreationVariables("my-secret", MY_APP_SERVDB_SECRET,
                 theInitContainerNamed(MY_APP + "-servdb-schema-creation-job").on(entandoPortJob), DbmsVendor.ORACLE);
         verifyStandardSchemaCreationVariables("my-secret", MY_APP_PORTDB_SECRET,
                 theInitContainerNamed(MY_APP + "-portdb-schema-creation-job").on(entandoPortJob), DbmsVendor.ORACLE);
+        LabeledArgumentCaptor<Pod> cmDbJobCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
+                .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-cm-db-preparation-job");
+        verify(client.pods()).runToCompletion(cmDbJobCaptor.capture());
+        Pod cmJob = cmDbJobCaptor.getValue();
+        verifyStandardSchemaCreationVariables("my-secret", MY_APP+"-dedb-secret",
+                theInitContainerNamed(MY_APP + "-dedb-schema-creation-job").on(cmJob), DbmsVendor.ORACLE);
     }
 
     private EntandoDatabaseService buildExternalDatabase() {

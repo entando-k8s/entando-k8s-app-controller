@@ -252,13 +252,17 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
         //When the DeployCommand processes the addition request
         entandoAppController.onStartup(new StartupEvent());
         //Then a Pod  is created that has labels linking it to the previously created EntandoApp
-        LabeledArgumentCaptor<Pod> podCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
-                .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-db-preparation-job");
-        verify(client.pods(),times(2)).runToCompletion(podCaptor.capture());
-        Pod entandoEngineDbPreparationPod = podCaptor.getAllValues().get(0);
+        LabeledArgumentCaptor<Pod> entandoEngineDbPreparationPodCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
+                .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-server-db-preparation-job");
+        verify(client.pods()).runToCompletion(entandoEngineDbPreparationPodCaptor.capture());
+        Pod entandoEngineDbPreparationPod = entandoEngineDbPreparationPodCaptor.getValue();
         verifySchemaCreationFor(MY_APP_PORTDB_SECRET, entandoEngineDbPreparationPod, MY_APP + "-portdb-schema-creation-job");
         verifySchemaCreationFor(MY_APP_SERVDB_SECRET, entandoEngineDbPreparationPod, MY_APP + "-servdb-schema-creation-job");
-        verifySchemaCreationFor(MY_APP_DEDB_SECRET, podCaptor.getAllValues().get(1), MY_APP + "-dedb-schema-creation-job");
+
+        LabeledArgumentCaptor<Pod> componentManagerDbPreparationPodCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
+                .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-cm-db-preparation-job");
+        verify(client.pods()).runToCompletion(componentManagerDbPreparationPodCaptor.capture());
+        verifySchemaCreationFor(MY_APP_DEDB_SECRET, componentManagerDbPreparationPodCaptor.getValue(), MY_APP + "-dedb-schema-creation-job");
         //And the DB Image is configured with the appropriate Environment Variables
         Container theDatabasePopulationJob = theInitContainerNamed(MY_APP + "-server-db-population-job").on(entandoEngineDbPreparationPod);
         assertThat(theDatabasePopulationJob.getCommand(),

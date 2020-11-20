@@ -96,25 +96,36 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
     protected abstract void verifyEntandoDbDeployment();
 
     protected void verifyEntandoServerDeployment() {
-        Deployment deployment = client.apps().deployments().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
+        Deployment appServerDeployment = client.apps().deployments().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                 .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-deployment")
                 .get();
-        Container theEntandoAppContainer = theContainerNamed("server-container").on(deployment);
+        Container theEntandoAppContainer = theContainerNamed("server-container").on(appServerDeployment);
         assertThat(thePortNamed(SERVER_PORT).on(theEntandoAppContainer).getContainerPort(), is(8080));
         assertThat(theEntandoAppContainer.getImage(), containsString("entando-de-app-wildfly"));
-        Container theComponentManagerContainer = theContainerNamed("de-container").on(deployment);
+        Deployment componentManagerDeployment = client.apps().deployments().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
+                .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-cm-deployment")
+                .get();
+        Container theComponentManagerContainer = theContainerNamed("de-container").on(componentManagerDeployment);
         assertThat(theComponentManagerContainer.getImage(), containsString("entando-component-manager"));
         assertThat(thePortNamed("de-port").on(theComponentManagerContainer).getContainerPort(), is(8083));
+        Deployment appBuilderDeployment = client.apps().deployments().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
+                .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-ab-deployment")
+                .get();
         Container theAppBuilderContainer = theContainerNamed("appbuilder-container")
-                .on(deployment);
+                .on(appBuilderDeployment);
         assertThat(theAppBuilderContainer.getImage(), containsString("app-builder"));
         assertThat(thePortNamed("appbuilder-port").on(theAppBuilderContainer).getContainerPort(), is(8081));
-        Service service = client.services().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
+        Service appServerService = client.services().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                 .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-service").get();
-        assertThat(thePortNamed(SERVER_PORT).on(service).getPort(), is(8080));
-        assertThat(thePortNamed("de-port").on(service).getPort(), is(8083));
-        assertThat(thePortNamed("appbuilder-port").on(service).getPort(), is(8081));
-        assertTrue(deployment.getStatus().getReadyReplicas() >= 1);
+        assertThat(thePortNamed(SERVER_PORT).on(appServerService).getPort(), is(8080));
+
+        Service componentManagerService = client.services().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
+                .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-cm-service").get();
+        assertThat(thePortNamed("de-port").on(componentManagerService).getPort(), is(8083));
+        Service appBuilderService = client.services().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
+                .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-ab-service").get();
+        assertThat(thePortNamed("appbuilder-port").on(appBuilderService).getPort(), is(8081));
+        assertTrue(appServerDeployment.getStatus().getReadyReplicas() >= 1);
         assertTrue(helper.entandoApps().getOperations()
                 .inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                 .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME).fromServer()
@@ -139,18 +150,25 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
     }
 
     protected void verifyEntandoDatabasePreparation() {
-        Pod pod = client.pods().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                .withLabel(KubeUtils.DB_JOB_LABEL_NAME, EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-db-preparation-job")
+        Pod entandoServerDbPreparationPod = client.pods().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
+                .withLabel(KubeUtils.DB_JOB_LABEL_NAME, EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-db-preparation-job")
                 .list().getItems().get(0);
-        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-portdb-schema-creation-job").on(pod).getImage(),
+        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-portdb-schema-creation-job").on(entandoServerDbPreparationPod).getImage(),
                 containsString("entando-k8s-dbjob"));
-        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-servdb-schema-creation-job").on(pod).getImage(),
+        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-servdb-schema-creation-job").on(entandoServerDbPreparationPod).getImage(),
                 containsString("entando-k8s-dbjob"));
-        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-dedb-schema-creation-job").on(pod).getImage(),
+        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-dedb-schema-creation-job").on(entandoServerDbPreparationPod).getImage(),
                 containsString("entando-k8s-dbjob"));
-        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-db-population-job").on(pod).getImage(),
+        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-db-population-job").on(entandoServerDbPreparationPod).getImage(),
                 containsString("entando-de-app-wildfly"));
-        pod.getStatus().getInitContainerStatuses()
+        entandoServerDbPreparationPod.getStatus().getInitContainerStatuses()
+                .forEach(containerStatus -> assertThat(containerStatus.getState().getTerminated().getExitCode(), is(0)));
+        Pod componentManagerDbPreparationPod = client.pods().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
+                .withLabel(KubeUtils.DB_JOB_LABEL_NAME, EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-cm-db-preparation-job")
+                .list().getItems().get(0);
+        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-dedb-schema-creation-job").on(componentManagerDbPreparationPod).getImage(),
+                containsString("entando-k8s-dbjob"));
+        componentManagerDbPreparationPod.getStatus().getInitContainerStatuses()
                 .forEach(containerStatus -> assertThat(containerStatus.getState().getTerminated().getExitCode(), is(0)));
     }
 
