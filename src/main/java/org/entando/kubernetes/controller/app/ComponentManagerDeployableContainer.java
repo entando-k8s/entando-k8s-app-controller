@@ -52,6 +52,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     private final EntandoApp entandoApp;
     private final KeycloakConnectionConfig keycloakConnectionConfig;
     private final Optional<InfrastructureConfig> infrastructureConfig;
+    private final EntandoAppDeploymentResult entandoAppDeployment;
     private Map<String, DatabaseSchemaCreationResult> dbSchemas = new ConcurrentHashMap<>();
 
     private static final DbmsVendorConfig DEFAULT_EMBEDDED_VENDOR = DbmsVendorConfig.H2;
@@ -59,10 +60,12 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     public ComponentManagerDeployableContainer(
             EntandoApp entandoApp,
             KeycloakConnectionConfig keycloakConnectionConfig,
-            InfrastructureConfig infrastructureConfig) {
+            InfrastructureConfig infrastructureConfig,
+            EntandoAppDeploymentResult entandoAppDeployment) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.infrastructureConfig = Optional.ofNullable(infrastructureConfig);
+        this.entandoAppDeployment = entandoAppDeployment;
     }
 
     @Override
@@ -82,9 +85,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
 
     @Override
     public void addEnvironmentVariables(List<EnvVar> vars) {
-        fix this
-        String entandoUrl = format("http://localhost:%s%s", EntandoAppDeployableContainer.PORT,
-                entandoApp.getSpec().getIngressPath().orElse(EntandoAppDeployableContainer.INGRESS_WEB_CONTEXT));
+        String entandoUrl = format(entandoAppDeployment.getInternalBaseUrl());
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPrimaryPort()), null));

@@ -56,16 +56,21 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
         KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources().findKeycloak(entandoApp);
         DatabaseServiceResult databaseServiceResult = prepareDatabaseService(entandoApp, entandoApp.getSpec().getDbms().orElse(
                 DbmsVendor.EMBEDDED), "db");
-        performDeployCommand(new EntandoAppServerDeployable(entandoApp, keycloakConnectionConfig, databaseServiceResult));
+        EntandoAppDeploymentResult entandoAppDeployment = performDeployCommand(
+                new EntandoAppServerDeployable(entandoApp, keycloakConnectionConfig, databaseServiceResult)
+        );
         performDeployCommand(new AppBuilderDeployable(entandoApp, keycloakConnectionConfig));
         InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp).orElse(null);
         performDeployCommand(
-                new ComponentManagerDeployable(entandoApp, keycloakConnectionConfig, infrastructureConfig, databaseServiceResult));
+                new ComponentManagerDeployable(entandoApp, keycloakConnectionConfig, infrastructureConfig, databaseServiceResult,
+                        entandoAppDeployment)
+        );
     }
 
-    private void performDeployCommand(AbstractEntandoAppDeployable deployable) {
+    private EntandoAppDeploymentResult performDeployCommand(AbstractEntandoAppDeployable deployable) {
         EntandoAppDeploymentResult result = new IngressingDeployCommand<>(deployable).execute(k8sClient, of(keycloakClient));
         k8sClient.entandoResources().updateStatus(deployable.getCustomResource(), result.getStatus());
+        return result;
     }
 
 }

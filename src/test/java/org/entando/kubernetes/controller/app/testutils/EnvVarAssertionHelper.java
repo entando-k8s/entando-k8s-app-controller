@@ -20,10 +20,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 import io.fabric8.kubernetes.api.model.Container;
-import org.entando.kubernetes.controller.app.JbossDatasourceValidation;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 
-public interface EnvVarAssertionHelper extends FluentTraversals{
+public interface EnvVarAssertionHelper extends FluentTraversals {
 
     default void assertConnectionValidation(Container dbPopulationJob, String schemaPrefix) {
         assertThat(theVariableNamed(schemaPrefix + "CONNECTION_CHECKER").on(dbPopulationJob),

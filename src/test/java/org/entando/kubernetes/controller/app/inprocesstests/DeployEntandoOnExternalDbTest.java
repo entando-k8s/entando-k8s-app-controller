@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -161,7 +160,7 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
                 .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-cm-db-preparation-job");
         verify(client.pods()).runToCompletion(cmDbJobCaptor.capture());
         Pod cmJob = cmDbJobCaptor.getValue();
-        verifyStandardSchemaCreationVariables("my-secret", MY_APP+"-dedb-secret",
+        verifyStandardSchemaCreationVariables("my-secret", MY_APP + "-dedb-secret",
                 theInitContainerNamed(MY_APP + "-dedb-schema-creation-job").on(cmJob), DbmsVendor.ORACLE);
     }
 

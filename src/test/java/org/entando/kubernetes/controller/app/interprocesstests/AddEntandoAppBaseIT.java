@@ -153,20 +153,25 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
         Pod entandoServerDbPreparationPod = client.pods().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                 .withLabel(KubeUtils.DB_JOB_LABEL_NAME, EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-db-preparation-job")
                 .list().getItems().get(0);
-        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-portdb-schema-creation-job").on(entandoServerDbPreparationPod).getImage(),
+        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-portdb-schema-creation-job")
+                        .on(entandoServerDbPreparationPod).getImage(),
                 containsString("entando-k8s-dbjob"));
-        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-servdb-schema-creation-job").on(entandoServerDbPreparationPod).getImage(),
+        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-servdb-schema-creation-job")
+                        .on(entandoServerDbPreparationPod).getImage(),
                 containsString("entando-k8s-dbjob"));
-        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-dedb-schema-creation-job").on(entandoServerDbPreparationPod).getImage(),
+        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-dedb-schema-creation-job")
+                        .on(entandoServerDbPreparationPod).getImage(),
                 containsString("entando-k8s-dbjob"));
-        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-db-population-job").on(entandoServerDbPreparationPod).getImage(),
+        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-db-population-job")
+                        .on(entandoServerDbPreparationPod).getImage(),
                 containsString("entando-de-app-wildfly"));
         entandoServerDbPreparationPod.getStatus().getInitContainerStatuses()
                 .forEach(containerStatus -> assertThat(containerStatus.getState().getTerminated().getExitCode(), is(0)));
         Pod componentManagerDbPreparationPod = client.pods().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                 .withLabel(KubeUtils.DB_JOB_LABEL_NAME, EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-cm-db-preparation-job")
                 .list().getItems().get(0);
-        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-dedb-schema-creation-job").on(componentManagerDbPreparationPod).getImage(),
+        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-dedb-schema-creation-job")
+                        .on(componentManagerDbPreparationPod).getImage(),
                 containsString("entando-k8s-dbjob"));
         componentManagerDbPreparationPod.getStatus().getInitContainerStatuses()
                 .forEach(containerStatus -> assertThat(containerStatus.getState().getTerminated().getExitCode(), is(0)));

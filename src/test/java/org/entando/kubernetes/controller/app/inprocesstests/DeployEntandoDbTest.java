@@ -25,7 +25,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import io.fabric8.kubernetes.api.model.Container;
@@ -125,7 +124,6 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
         assertThat(componentManagerSecret.getStringData().get(KubeUtils.USERNAME_KEY), is("my_app_dedb"));
         assertThat(componentManagerSecret.getStringData().get(KubeUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
     }
-
 
     @Test
     void testPersistentVolumeClaim() {
@@ -262,7 +260,8 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
         LabeledArgumentCaptor<Pod> componentManagerDbPreparationPodCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
                 .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-cm-db-preparation-job");
         verify(client.pods()).runToCompletion(componentManagerDbPreparationPodCaptor.capture());
-        verifySchemaCreationFor(MY_APP_DEDB_SECRET, componentManagerDbPreparationPodCaptor.getValue(), MY_APP + "-dedb-schema-creation-job");
+        verifySchemaCreationFor(MY_APP_DEDB_SECRET, componentManagerDbPreparationPodCaptor.getValue(),
+                MY_APP + "-dedb-schema-creation-job");
         //And the DB Image is configured with the appropriate Environment Variables
         Container theDatabasePopulationJob = theInitContainerNamed(MY_APP + "-server-db-population-job").on(entandoEngineDbPreparationPod);
         assertThat(theDatabasePopulationJob.getCommand(),

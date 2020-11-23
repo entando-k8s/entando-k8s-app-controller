@@ -18,9 +18,7 @@ package org.entando.kubernetes.controller.app;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
 import org.entando.kubernetes.controller.database.DatabaseServiceResult;
 import org.entando.kubernetes.controller.spi.DbAwareDeployable;
@@ -37,11 +35,12 @@ public class ComponentManagerDeployable extends AbstractEntandoAppDeployable imp
     public ComponentManagerDeployable(EntandoApp entandoApp,
             KeycloakConnectionConfig keycloakConnectionConfig,
             InfrastructureConfig infrastructureConfig,
-            DatabaseServiceResult databaseServiceResult) {
+            DatabaseServiceResult databaseServiceResult,
+            EntandoAppDeploymentResult entandoAppDeployment) {
         super(entandoApp, keycloakConnectionConfig);
         this.databaseServiceResult = databaseServiceResult;
         this.containers = Arrays.asList(
-                new ComponentManagerDeployableContainer(entandoApp, keycloakConnectionConfig, infrastructureConfig)
+                new ComponentManagerDeployableContainer(entandoApp, keycloakConnectionConfig, infrastructureConfig,entandoAppDeployment)
         );
     }
 

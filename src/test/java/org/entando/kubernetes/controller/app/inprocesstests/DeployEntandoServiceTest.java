@@ -60,7 +60,6 @@ import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgu
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
-import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.JeeServer;
@@ -360,7 +359,8 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
                 is(MY_APP + "-dedb-secret"));
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_PASSWORD").on(theComponentManagerContainer).getSecretKeyRef().getKey(),
                 is(KubeUtils.PASSSWORD_KEY));
-        assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer), is("http://localhost:8080/entando-de-app"));
+        assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer),
+                is("http://my-app-server-service.my-app-namespace.svc.cluster.local:8080/entando-de-app"));
         assertThat(theVariableNamed("DB_VENDOR").on(theComponentManagerContainer), is("mysql"));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theComponentManagerContainer), is(MARKER_VAR_VALUE));
         assertThat(theVariableNamed("GIT_SSH_COMMAND").on(theComponentManagerContainer),
