@@ -308,7 +308,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
                 is(MY_APP + "-dedb-secret"));
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_PASSWORD").on(theComponentManagerContainer).getSecretKeyRef().getKey(),
                 is(KubeUtils.PASSSWORD_KEY));
-        assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer), is("http://localhost:8080/entando-de-app"));
+        assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer), is("http://my-app-server-service:8080/entando-de-app"));
         assertThat(theVariableNamed("DB_VENDOR").on(theComponentManagerContainer), is("mysql"));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theComponentManagerContainer), is(MARKER_VAR_VALUE));
         assertThat(theVariableNamed("GIT_SSH_COMMAND").on(theComponentManagerContainer),
