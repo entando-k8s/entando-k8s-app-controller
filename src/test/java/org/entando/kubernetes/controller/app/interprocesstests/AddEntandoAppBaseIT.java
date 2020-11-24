@@ -159,9 +159,6 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
         assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-servdb-schema-creation-job")
                         .on(entandoServerDbPreparationPod).getImage(),
                 containsString("entando-k8s-dbjob"));
-        assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-dedb-schema-creation-job")
-                        .on(entandoServerDbPreparationPod).getImage(),
-                containsString("entando-k8s-dbjob"));
         assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-db-population-job")
                         .on(entandoServerDbPreparationPod).getImage(),
                 containsString("entando-de-app-wildfly"));
