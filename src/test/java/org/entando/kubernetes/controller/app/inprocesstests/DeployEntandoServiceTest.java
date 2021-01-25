@@ -79,6 +79,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
+//Because Sonar cannot detect custom matchers and captors
+@SuppressWarnings("java:S6073")
 class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelper, VariableReferenceAssertions {
 
     private static final String MY_APP_SERVER = MY_APP + "-server";
@@ -167,7 +169,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         assertThat(resultingPersistentVolumeClaim.getMetadata().getLabels().get(DEPLOYMENT_LABEL_NAME),
                 is(MY_APP_SERVER));
         //And the PersistentVolumeClaim state was reloaded from  K8S
-        verify(client.persistentVolumeClaims()).loadPersistentVolumeClaim(eq(newEntandoApp), eq(MY_APP_SERVER_PVC));
+        verify(client.persistentVolumeClaims()).loadPersistentVolumeClaim(newEntandoApp, MY_APP_SERVER_PVC);
         //And K8S was instructed to update the status of the EntandoApp with the status of the PVC
         verify(client.entandoResources(), atLeastOnce())
                 .updateStatus(eq(newEntandoApp), argThat(containsThePersistentVolumeClaimStatus(pvcStatus)));
@@ -221,7 +223,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         assertThat(thePortNamed(DE_PORT).on(componentManagerService).getProtocol(), is("TCP"));
         assertThat(thePortNamed(DE_PORT).on(componentManagerService).getTargetPort().getIntVal(), is(8083));
         //And the Service state was reloaded from K8S
-        verify(client.services()).loadService(eq(newEntandoApp), eq(MY_APP_SERVER_SERVICE));
+        verify(client.services()).loadService(newEntandoApp, MY_APP_SERVER_SERVICE);
 
         //And K8S was instructed to update the status of the EntandoApp with the status of the service
         verify(client.entandoResources(), atLeastOnce()).updateStatus(eq(newEntandoApp), argThat(matchesServiceStatus(appServiceStatus)));
@@ -259,7 +261,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
 
         //And the Ingress state was reloaded from K8S
         verify(client.ingresses(), atLeast(2))
-                .loadIngress(eq(newEntandoApp.getMetadata().getNamespace()), eq(MY_APP + "-" + KubeUtils.DEFAULT_INGRESS_SUFFIX));
+                .loadIngress(newEntandoApp.getMetadata().getNamespace(), MY_APP + "-" + KubeUtils.DEFAULT_INGRESS_SUFFIX);
         //And K8S was instructed to update the status of the EntandoApp with the status of the ingress
         verify(client.entandoResources(), atLeastOnce()).updateStatus(eq(newEntandoApp), argThat(matchesIngressStatus(ingressStatus)));
     }
@@ -325,8 +327,8 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
                 is(MY_APP_SERVER_PVC));
 
         //And the Deployment state was reloaded from K8S
-        verify(client.deployments()).loadDeployment(eq(newEntandoApp), eq(MY_APP_SERVER_DEPLOYMENT));
-        verify(client.entandoResources()).updatePhase(eq(newEntandoApp), eq(EntandoDeploymentPhase.SUCCESSFUL));
+        verify(client.deployments()).loadDeployment(newEntandoApp, MY_APP_SERVER_DEPLOYMENT);
+        verify(client.entandoResources()).updatePhase(newEntandoApp, EntandoDeploymentPhase.SUCCESSFUL);
         //And K8S was instructed to update the status of the EntandoApp with the status of the service
         verify(client.entandoResources(), atLeastOnce())
                 .updateStatus(eq(newEntandoApp), argThat(matchesDeploymentStatus(deploymentStatus)));
@@ -443,7 +445,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(theEntandoServerContainer), is("false"));
         //And Keycloak was configured to support OIDC Integration from the EntandoApp
         verify(keycloakClient, times(3))
-                .createPublicClient(eq(ENTANDO_KEYCLOAK_REALM), eq(ENTANDO_PUBLIC_CLIENT), eq("https://myapp.192.168.0.100.nip.io"));
+                .createPublicClient(ENTANDO_KEYCLOAK_REALM, ENTANDO_PUBLIC_CLIENT, "https://myapp.192.168.0.100.nip.io");
         //the controllers logged into Keycloak independently for the EntandoApp deployment
         verify(keycloakClient, atLeast(1))
                 .login(eq(MY_KEYCLOAK_BASE_URL), eq("entando_keycloak_admin"), anyString());

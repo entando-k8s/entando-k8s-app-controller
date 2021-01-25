@@ -62,6 +62,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
+//Because Sonar cannot detect custom matchers and captors
+@SuppressWarnings("java:S6073")
 class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversals, CommonLabels {
 
     private static final String MY_APP_SERVDB_SECRET = MY_APP + "-servdb-secret";

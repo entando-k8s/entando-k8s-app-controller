@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.entando.kubernetes.controller.IngressingDeployCommand;
+import org.entando.kubernetes.controller.DeployCommand;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
@@ -61,7 +61,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     private final EntandoApp entandoApp;
     private final KeycloakConnectionConfig keycloakConnectionConfig;
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
-    private DbmsVendor dbmsVendor;
+    private final DbmsVendor dbmsVendor;
 
     public EntandoAppDeployableContainer(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig,
             DatabaseServiceResult databaseServiceResult) {
@@ -69,7 +69,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.databaseSchemaConnectionInfo = Optional.ofNullable(databaseServiceResult)
-                .map((dsr) -> DbAware.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Arrays.asList(PORTDB, SERVDB)))
+                .map(dsr -> DbAware.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Arrays.asList(PORTDB, SERVDB)))
                 .orElse(Collections.emptyList());
 
     }
@@ -105,7 +105,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         List<EnvVar> vars = new ArrayList<>();
         vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", RandomStringUtils.randomAlphanumeric(10), null));
         vars.add(new EnvVar("JGROUPS_JOIN_TIMEOUT", "3000", null));
-        String labelExpression = IngressingDeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+        String labelExpression = DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
                 + KubeUtils.DEFAULT_SERVER_QUALIFIER;
         if (entandoApp.getSpec().getStandardServerImage().orElse(JeeServer.WILDFLY) == JeeServer.EAP) {
             vars.add(new EnvVar("JGROUPS_PING_PROTOCOL", "openshift.KUBE_PING", null));
@@ -175,13 +175,13 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         if (dbmsVendor == DbmsVendor.EMBEDDED) {
             vars.add(new EnvVar(varNamePrefix + "DRIVER", "derby", null));
         } else {
-            DatabaseSchemaConnectionInfo databaseSchemaConnectionInfo = this.databaseSchemaConnectionInfo.get(schemaIndex);
-            String jdbcUrl = databaseSchemaConnectionInfo.getJdbcUrl();
+            DatabaseSchemaConnectionInfo connectionInfo = this.databaseSchemaConnectionInfo.get(schemaIndex);
+            String jdbcUrl = connectionInfo.getJdbcUrl();
             vars.add(new EnvVar(varNamePrefix + "URL", jdbcUrl, null));
             vars.add(new EnvVar(varNamePrefix + "USERNAME", null,
-                    KubeUtils.secretKeyRef(databaseSchemaConnectionInfo.getSchemaSecretName(), KubeUtils.USERNAME_KEY)));
+                    KubeUtils.secretKeyRef(connectionInfo.getSchemaSecretName(), KubeUtils.USERNAME_KEY)));
             vars.add(new EnvVar(varNamePrefix + "PASSWORD", null,
-                    KubeUtils.secretKeyRef(databaseSchemaConnectionInfo.getSchemaSecretName(), KubeUtils.PASSSWORD_KEY)));
+                    KubeUtils.secretKeyRef(connectionInfo.getSchemaSecretName(), KubeUtils.PASSSWORD_KEY)));
 
             JbossDatasourceValidation jbossDatasourceValidation = JbossDatasourceValidation.getValidConnectionCheckerClass(this.dbmsVendor);
             vars.add(new EnvVar(varNamePrefix + "CONNECTION_CHECKER", jbossDatasourceValidation.getValidConnectionCheckerClassName(),

@@ -19,7 +19,6 @@ package org.entando.kubernetes.controller.app;
 import java.util.Arrays;
 import java.util.List;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.model.app.EntandoApp;
 

@@ -31,8 +31,7 @@ public abstract class AbstractEntandoAppDeployable implements PublicIngressingDe
     protected final EntandoApp entandoApp;
     protected final KeycloakConnectionConfig keycloakConnectionConfig;
 
-    public AbstractEntandoAppDeployable(
-            EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig) {
+    protected AbstractEntandoAppDeployable(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
     }

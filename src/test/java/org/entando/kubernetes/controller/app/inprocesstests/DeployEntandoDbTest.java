@@ -66,6 +66,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
+//Because Sonar cannot detect custom matchers and captors
+@SuppressWarnings("java:S6073")
 class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, CommonLabels {
 
     private static final String MY_APP_PORTDB_SECRET = MY_APP + "-portdb-secret";
@@ -154,8 +156,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, Common
         assertThat(resultingPersistentVolumeClaim.getMetadata().getLabels().get(ENTANDO_APP_LABEL_NAME), is(MY_APP));
         assertThat(resultingPersistentVolumeClaim.getMetadata().getLabels().get(DEPLOYMENT_LABEL_NAME), is(MY_APP_DB));
         //And the PersistentVolumeClaim state was reloaded from  K8S
-        verify(client.persistentVolumeClaims())
-                .loadPersistentVolumeClaim(eq(newEntandoApp), eq(MY_APP_DB_PVC));
+        verify(client.persistentVolumeClaims()).loadPersistentVolumeClaim(newEntandoApp, MY_APP_DB_PVC);
         //And K8S was instructed to update the status of the EntandoApp with the status of the PVC
         verify(client.entandoResources(), atLeastOnce())
                 .updateStatus(eq(newEntandoApp), argThat(containsThePersistentVolumeClaimStatus(pvcStatus)));
@@ -188,7 +189,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, Common
         assertThat(port.getProtocol(), is("TCP"));
         assertThat(port.getName(), is("db-port"));
         //And the Service state was reloaded from K8S
-        verify(client.services()).loadService(eq(newEntandoApp), eq(MY_APP_DB_SERVICE));
+        verify(client.services()).loadService(newEntandoApp, MY_APP_DB_SERVICE);
         //And K8S was instructed to update the status of the EntandoApp with the status of the service
         verify(client.entandoResources(), atLeastOnce()).updateStatus(eq(newEntandoApp), argThat(matchesServiceStatus(serviceStatus)));
     }
@@ -232,7 +233,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, Common
         //With the correct version in the configmap this will work as planned
         assertThat(thePrimaryContainerOn(resultingDeployment).getImage(), is("docker.io/centos/mysql-80-centos7:latest"));
         //And the Deployment state was reloaded from K8S
-        verify(client.deployments()).loadDeployment(eq(newEntandoApp), eq(MY_APP_DB_DEPLOYMENT));
+        verify(client.deployments()).loadDeployment(newEntandoApp, MY_APP_DB_DEPLOYMENT);
 
         //And K8S was instructed to update the status of the EntandoApp with the status of the service
         verify(client.entandoResources(), atLeastOnce())
