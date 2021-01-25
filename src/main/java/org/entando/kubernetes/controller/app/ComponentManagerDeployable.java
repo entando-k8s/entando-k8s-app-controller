@@ -16,7 +16,7 @@
 
 package org.entando.kubernetes.controller.app;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
@@ -30,7 +30,6 @@ public class ComponentManagerDeployable extends AbstractEntandoAppDeployable imp
         DbAwareDeployable {
 
     private final List<DeployableContainer> containers;
-    private final DatabaseServiceResult databaseServiceResult;
 
     public ComponentManagerDeployable(EntandoApp entandoApp,
             KeycloakConnectionConfig keycloakConnectionConfig,
@@ -38,9 +37,9 @@ public class ComponentManagerDeployable extends AbstractEntandoAppDeployable imp
             DatabaseServiceResult databaseServiceResult,
             EntandoAppDeploymentResult entandoAppDeployment) {
         super(entandoApp, keycloakConnectionConfig);
-        this.databaseServiceResult = databaseServiceResult;
-        this.containers = Arrays.asList(
-                new ComponentManagerDeployableContainer(entandoApp, keycloakConnectionConfig, infrastructureConfig,entandoAppDeployment)
+        this.containers = Collections.singletonList(
+                new ComponentManagerDeployableContainer(entandoApp, keycloakConnectionConfig, infrastructureConfig, entandoAppDeployment,
+                        databaseServiceResult)
         );
     }
 
@@ -52,11 +51,6 @@ public class ComponentManagerDeployable extends AbstractEntandoAppDeployable imp
     @Override
     public List<DeployableContainer> getContainers() {
         return containers;
-    }
-
-    @Override
-    public DatabaseServiceResult getDatabaseServiceResult() {
-        return databaseServiceResult;
     }
 
     @Override

@@ -58,7 +58,7 @@ class AddEntandoAppWithExternalOracleDatabaseIT extends AddEntandoAppBaseIT {
 
         entandoApp.getMetadata().setName(EntandoAppIntegrationTestHelper.TEST_APP_NAME);
         createAndWaitForApp(entandoApp, 0, false);
-        verifyAllExpectedResources();
+        verifyAllExpectedResources(entandoApp);
     }
 
     @Override

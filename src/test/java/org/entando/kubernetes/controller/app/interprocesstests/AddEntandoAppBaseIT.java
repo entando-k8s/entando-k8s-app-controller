@@ -41,6 +41,7 @@ import org.entando.kubernetes.controller.integrationtest.support.FluentIntegrati
 import org.entando.kubernetes.controller.integrationtest.support.HttpTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.K8SIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
+import org.entando.kubernetes.controller.test.support.CommonLabels;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
 import org.junit.jupiter.api.AfterEach;
@@ -48,7 +49,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 
-abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
+abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLabels {
 
     protected final K8SIntegrationTestHelper helper = new K8SIntegrationTestHelper();
     protected final DefaultKubernetesClient client = helper.getClient();
@@ -86,10 +87,10 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
         helper.afterTest();
     }
 
-    protected void verifyAllExpectedResources() {
+    protected void verifyAllExpectedResources(EntandoApp entandoApp) {
         verifyEntandoDbDeployment();
         verifyEntandoServerDeployment();
-        verifyEntandoDatabasePreparation();
+        verifyEntandoDatabasePreparation(entandoApp);
         verifyKeycloakClientsCreation();
     }
 
@@ -149,9 +150,9 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
                         + pathToTest);
     }
 
-    protected void verifyEntandoDatabasePreparation() {
+    protected void verifyEntandoDatabasePreparation(EntandoApp entandoApp) {
         Pod entandoServerDbPreparationPod = client.pods().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                .withLabel(KubeUtils.DB_JOB_LABEL_NAME, EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-server-db-preparation-job")
+                .withLabels(dbPreparationJobLabels(entandoApp, KubeUtils.DEFAULT_SERVER_QUALIFIER))
                 .list().getItems().get(0);
         assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-portdb-schema-creation-job")
                         .on(entandoServerDbPreparationPod).getImage(),
@@ -165,7 +166,7 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting {
         entandoServerDbPreparationPod.getStatus().getInitContainerStatuses()
                 .forEach(containerStatus -> assertThat(containerStatus.getState().getTerminated().getExitCode(), is(0)));
         Pod componentManagerDbPreparationPod = client.pods().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                .withLabel(KubeUtils.DB_JOB_LABEL_NAME, EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-cm-db-preparation-job")
+                .withLabels(dbPreparationJobLabels(entandoApp, "cm"))
                 .list().getItems().get(0);
         assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-dedb-schema-creation-job")
                         .on(componentManagerDbPreparationPod).getImage(),

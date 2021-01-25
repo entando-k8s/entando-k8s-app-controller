@@ -17,6 +17,7 @@
 package org.entando.kubernetes.controller.app;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
@@ -72,7 +73,9 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
 
     @Override
     public List<EnvVar> getEnvironmentVariables() {
-        List<EnvVar> vars=new ArrayList<>();        vars.add(new EnvVar("DOMAIN", entandoApp.getSpec().getIngressPath().orElse("/entando-de-app"), null));
+        List<EnvVar> vars = new ArrayList<>();
+        vars.add(new EnvVar("DOMAIN", entandoApp.getSpec().getIngressPath().orElse("/entando-de-app"), null));
+        return vars;
     }
 
     @Override

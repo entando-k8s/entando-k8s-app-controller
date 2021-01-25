@@ -16,23 +16,19 @@
 
 package org.entando.kubernetes.controller.app;
 
-import static java.lang.String.format;
-
 import io.fabric8.kubernetes.api.model.EnvVar;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.common.InfrastructureConfig;
-import org.entando.kubernetes.controller.database.DatabaseSchemaCreationResult;
+import org.entando.kubernetes.controller.database.DatabaseSchemaConnectionInfo;
+import org.entando.kubernetes.controller.database.DatabaseServiceResult;
 import org.entando.kubernetes.controller.database.DbmsVendorConfig;
-import org.entando.kubernetes.controller.spi.DatabasePopulator;
+import org.entando.kubernetes.controller.spi.DbAware;
 import org.entando.kubernetes.controller.spi.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
 import org.entando.kubernetes.controller.spi.SecretToMount;
@@ -53,7 +49,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     private final KeycloakConnectionConfig keycloakConnectionConfig;
     private final Optional<InfrastructureConfig> infrastructureConfig;
     private final EntandoAppDeploymentResult entandoAppDeployment;
-    private Map<String, DatabaseSchemaCreationResult> dbSchemas = new ConcurrentHashMap<>();
+    private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
 
     private static final DbmsVendorConfig DEFAULT_EMBEDDED_VENDOR = DbmsVendorConfig.H2;
 
@@ -61,11 +57,17 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
             EntandoApp entandoApp,
             KeycloakConnectionConfig keycloakConnectionConfig,
             InfrastructureConfig infrastructureConfig,
-            EntandoAppDeploymentResult entandoAppDeployment) {
+            EntandoAppDeploymentResult entandoAppDeployment,
+            DatabaseServiceResult databaseServiceResult) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.infrastructureConfig = Optional.ofNullable(infrastructureConfig);
         this.entandoAppDeployment = entandoAppDeployment;
+
+        this.databaseSchemaConnectionInfo = Optional.ofNullable(databaseServiceResult)
+                .map(dsr -> DbAware.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Collections.singletonList(DEDB)))
+                .orElse(Collections.emptyList());
+
     }
 
     @Override
@@ -86,7 +88,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     @Override
     public List<EnvVar> getEnvironmentVariables() {
         List<EnvVar> vars = new ArrayList<>();
-        String entandoUrl = format(entandoAppDeployment.getInternalBaseUrl());
+        String entandoUrl = entandoAppDeployment.getInternalBaseUrl();
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPrimaryPort()), null));
@@ -103,17 +105,22 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     @Override
     public List<EnvVar> getDatabaseConnectionVariables() {
         List<EnvVar> vars = SpringBootDeployableContainer.super.getDatabaseConnectionVariables();
-        if (getDatabaseSchema() == null) {
+        if (!getDatabaseSchema().isPresent()) {
             vars.add(new EnvVar(SpringProperty.SPRING_JPA_DATABASE_PLATFORM.name(), DEFAULT_EMBEDDED_VENDOR.getHibernateDialect(), null));
-            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_USERNAME.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultUser(), null));
-            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_PASSWORD.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultPassword(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_USERNAME.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultAdminUsername(), null));
+            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_PASSWORD.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultAdminPassword(), null));
             vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_URL.name(), DEFAULT_EMBEDDED_VENDOR.getConnectionStringBuilder()
-                    .toHost("/entando-data/databases/" + COMPONENT_MANAGER_QUALIFIER)
+                    .inFolder("/entando-data/databases/" + COMPONENT_MANAGER_QUALIFIER)
                     .usingDatabase(DEFAULT_EMBEDDED_VENDOR.toString().toLowerCase() + ".db")
                     .buildConnectionString(), null));
         }
         return vars;
 
+    }
+
+    @Override
+    public List<DatabaseSchemaConnectionInfo> getSchemaConnectionInfo() {
+        return this.databaseSchemaConnectionInfo;
     }
 
     @Override
@@ -129,8 +136,8 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     }
 
     @Override
-    public DatabaseSchemaCreationResult getDatabaseSchema() {
-        return dbSchemas.get(DEDB);
+    public Optional<DatabaseSchemaConnectionInfo> getDatabaseSchema() {
+        return databaseSchemaConnectionInfo.stream().findFirst();
     }
 
     @Override
@@ -167,17 +174,6 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     @Override
     public Optional<String> getHealthCheckPath() {
         return Optional.of(getWebContextPath() + "/actuator/health");
-    }
-
-    @Override
-    public List<String> getDbSchemaQualifiers() {
-        return Arrays.asList(DEDB);
-    }
-
-    @Override
-    public Optional<DatabasePopulator> useDatabaseSchemas(Map<String, DatabaseSchemaCreationResult> dbSchemas) {
-        this.dbSchemas = Optional.ofNullable(dbSchemas).orElse(new ConcurrentHashMap<>());
-        return Optional.empty();
     }
 
     @Override

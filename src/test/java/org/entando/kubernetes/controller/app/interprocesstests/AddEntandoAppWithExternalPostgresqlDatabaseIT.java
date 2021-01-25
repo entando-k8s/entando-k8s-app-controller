@@ -56,12 +56,12 @@ class AddEntandoAppWithExternalPostgresqlDatabaseIT extends AddEntandoAppBaseIT 
         //When I create the entando app
         createAndWaitForApp(entandoApp, 0, false);
         //I see all the expected deployments
-        verifyAllExpectedResources();
+        verifyAllExpectedResources(entandoApp);
         //And recreating the app still succeeds even though all the DB secrets were deleted
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_K8S_OPERATOR_FORCE_DB_PASSWORD_RESET.getJvmSystemProperty(), "true");
         helper.setTextFixture(deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
         createAndWaitForApp(entandoApp, 0, false);
-        verifyAllExpectedResources();
+        verifyAllExpectedResources(entandoApp);
 
     }
 

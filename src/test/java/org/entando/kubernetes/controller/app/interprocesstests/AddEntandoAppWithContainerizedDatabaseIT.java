@@ -61,7 +61,7 @@ class AddEntandoAppWithContainerizedDatabaseIT extends AddEntandoAppBaseIT {
 
         createAndWaitForApp(entandoApp, 100, true);
         //Then I expect to see
-        verifyAllExpectedResources();
+        verifyAllExpectedResources(entandoApp);
     }
 
     @Override

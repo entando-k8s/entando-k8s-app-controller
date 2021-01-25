@@ -41,6 +41,7 @@ import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgu
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
+import org.entando.kubernetes.controller.test.support.CommonLabels;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -61,7 +62,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
-class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversals {
+class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversals, CommonLabels {
 
     private static final String MY_APP_SERVDB_SECRET = MY_APP + "-servdb-secret";
     private static final String MY_APP_PORTDB_SECRET = MY_APP + "-portdb-secret";
@@ -148,16 +149,15 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(thePrimaryContainerOn(entandoDeployment)), is("false"));
 
         //And another pod was created for PORTDB using the credentials and connection settings of the ExternalDatabase
-        LabeledArgumentCaptor<Pod> entandoAppDbJobCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
-                .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-server-db-preparation-job");
+        LabeledArgumentCaptor<Pod> entandoAppDbJobCaptor = forResourceWithLabels(Pod.class,
+                dbPreparationJobLabels(newEntandoApp, KubeUtils.DEFAULT_SERVER_QUALIFIER));
         verify(client.pods()).runToCompletion(entandoAppDbJobCaptor.capture());
         Pod entandoPortJob = entandoAppDbJobCaptor.getValue();
         verifyStandardSchemaCreationVariables("my-secret", MY_APP_SERVDB_SECRET,
                 theInitContainerNamed(MY_APP + "-servdb-schema-creation-job").on(entandoPortJob), DbmsVendor.ORACLE);
         verifyStandardSchemaCreationVariables("my-secret", MY_APP_PORTDB_SECRET,
                 theInitContainerNamed(MY_APP + "-portdb-schema-creation-job").on(entandoPortJob), DbmsVendor.ORACLE);
-        LabeledArgumentCaptor<Pod> cmDbJobCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
-                .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-cm-db-preparation-job");
+        LabeledArgumentCaptor<Pod> cmDbJobCaptor = forResourceWithLabels(Pod.class, dbPreparationJobLabels(newEntandoApp, "cm"));
         verify(client.pods()).runToCompletion(cmDbJobCaptor.capture());
         Pod cmJob = cmDbJobCaptor.getValue();
         verifyStandardSchemaCreationVariables("my-secret", MY_APP + "-dedb-secret",

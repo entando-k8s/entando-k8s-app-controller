@@ -361,7 +361,6 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
                 is(KubeUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer),
                 is("http://my-app-server-service.my-app-namespace.svc.cluster.local:8080/entando-de-app"));
-        assertThat(theVariableNamed("DB_VENDOR").on(theComponentManagerContainer), is("mysql"));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theComponentManagerContainer), is(MARKER_VAR_VALUE));
         assertThat(theVariableNamed("GIT_SSH_COMMAND").on(theComponentManagerContainer),
                 is("ssh -o UserKnownHostsFile=/opt/.ssh/known_hosts -i /opt/.ssh/id_rsa -o IdentitiesOnly=yes"));

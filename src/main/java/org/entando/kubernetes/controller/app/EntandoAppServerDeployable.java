@@ -16,7 +16,7 @@
 
 package org.entando.kubernetes.controller.app;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
@@ -36,15 +36,13 @@ public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable imp
      */
     public static final long DEFAULT_USERID_IN_JBOSS_BASE_IMAGES = 185L;
     private final List<DeployableContainer> containers;
-    private final DatabaseServiceResult databaseServiceResult;
 
     public EntandoAppServerDeployable(EntandoApp entandoApp,
             KeycloakConnectionConfig keycloakConnectionConfig,
             DatabaseServiceResult databaseServiceResult) {
         super(entandoApp, keycloakConnectionConfig);
-        this.databaseServiceResult = databaseServiceResult;
-        this.containers = Arrays.asList(
-                new EntandoAppDeployableContainer(entandoApp, keycloakConnectionConfig)
+        this.containers = Collections.singletonList(
+                new EntandoAppDeployableContainer(entandoApp, keycloakConnectionConfig, databaseServiceResult)
         );
     }
 
@@ -61,11 +59,6 @@ public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable imp
     @Override
     public List<DeployableContainer> getContainers() {
         return containers;
-    }
-
-    @Override
-    public DatabaseServiceResult getDatabaseServiceResult() {
-        return databaseServiceResult;
     }
 
     @Override

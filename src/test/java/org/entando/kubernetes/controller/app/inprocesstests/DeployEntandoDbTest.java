@@ -51,6 +51,7 @@ import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgu
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
+import org.entando.kubernetes.controller.test.support.CommonLabels;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -65,7 +66,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
-class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
+class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, CommonLabels {
 
     private static final String MY_APP_PORTDB_SECRET = MY_APP + "-portdb-secret";
     private static final String MY_APP_SERVDB_SECRET = MY_APP + "-servdb-secret";
@@ -229,7 +230,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
         //Please note: the docker.io and 6.0.0 my seem counter-intuitive, but it indicates that we are
         //actually controlling the image as intended
         //With the correct version in the configmap this will work as planned
-        assertThat(thePrimaryContainerOn(resultingDeployment).getImage(), is("docker.io/entando/mysql-57-centos7:6.0.0"));
+        assertThat(thePrimaryContainerOn(resultingDeployment).getImage(), is("docker.io/centos/mysql-80-centos7:latest"));
         //And the Deployment state was reloaded from K8S
         verify(client.deployments()).loadDeployment(eq(newEntandoApp), eq(MY_APP_DB_DEPLOYMENT));
 
@@ -250,15 +251,15 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals {
         //When the DeployCommand processes the addition request
         entandoAppController.onStartup(new StartupEvent());
         //Then a Pod  is created that has labels linking it to the previously created EntandoApp
-        LabeledArgumentCaptor<Pod> entandoEngineDbPreparationPodCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
-                .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-server-db-preparation-job");
+        LabeledArgumentCaptor<Pod> entandoEngineDbPreparationPodCaptor = forResourceWithLabels(Pod.class,
+                dbPreparationJobLabels(newEntandoApp, KubeUtils.DEFAULT_SERVER_QUALIFIER));
         verify(client.pods()).runToCompletion(entandoEngineDbPreparationPodCaptor.capture());
         Pod entandoEngineDbPreparationPod = entandoEngineDbPreparationPodCaptor.getValue();
         verifySchemaCreationFor(MY_APP_PORTDB_SECRET, entandoEngineDbPreparationPod, MY_APP + "-portdb-schema-creation-job");
         verifySchemaCreationFor(MY_APP_SERVDB_SECRET, entandoEngineDbPreparationPod, MY_APP + "-servdb-schema-creation-job");
 
-        LabeledArgumentCaptor<Pod> componentManagerDbPreparationPodCaptor = forResourceWithLabel(Pod.class, ENTANDO_APP_LABEL_NAME, MY_APP)
-                .andWithLabel(KubeUtils.DB_JOB_LABEL_NAME, MY_APP + "-cm-db-preparation-job");
+        LabeledArgumentCaptor<Pod> componentManagerDbPreparationPodCaptor = forResourceWithLabels(Pod.class,
+                dbPreparationJobLabels(newEntandoApp, "cm"));
         verify(client.pods()).runToCompletion(componentManagerDbPreparationPodCaptor.capture());
         verifySchemaCreationFor(MY_APP_DEDB_SECRET, componentManagerDbPreparationPodCaptor.getValue(),
                 MY_APP + "-dedb-schema-creation-job");
