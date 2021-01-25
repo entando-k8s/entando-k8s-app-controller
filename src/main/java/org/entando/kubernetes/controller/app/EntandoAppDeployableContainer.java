@@ -17,6 +17,7 @@
 package org.entando.kubernetes.controller.app;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import org.entando.kubernetes.controller.IngressingDeployCommand;
 import org.entando.kubernetes.controller.KeycloakClientConfig;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
+import org.entando.kubernetes.controller.common.DockerImageInfo;
 import org.entando.kubernetes.controller.database.DatabaseSchemaCreationResult;
 import org.entando.kubernetes.controller.spi.ConfigurableResourceContainer;
 import org.entando.kubernetes.controller.spi.DatabasePopulator;
@@ -92,7 +94,8 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     }
 
     @Override
-    public void addEnvironmentVariables(List<EnvVar> vars) {
+    public List<EnvVar> getEnvironmentVariables() {
+        List<EnvVar> vars = new ArrayList<>();
         vars.add(new EnvVar("DB_STARTUP_CHECK", "false", null));
         addEntandoDbConnectionVars(vars, this.dbSchemas.get(PORTDB), PORTDB_PREFIX);
         addEntandoDbConnectionVars(vars, this.dbSchemas.get(SERVDB), SERVDB_PREFIX);
@@ -108,6 +111,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
             vars.add(new EnvVar("KUBERNETES_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
             vars.add(new EnvVar("KUBERNETES_LABELS", labelExpression, null));
         }
+        return vars;
     }
 
     @Override
@@ -199,6 +203,11 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         return Optional.of(buildDatabasePopulator());
     }
 
+    @Override
+    public List<EnvVar> getDatabaseConnectionVariables() {
+        return ???;
+    }
+
     /**
      * EntandoAppDatabasePopulator class.
      */
@@ -211,8 +220,8 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         }
 
         @Override
-        public String determineImageToUse() {
-            return entandoAppDeployableContainer.determineImageToUse();
+        public DockerImageInfo getDockerImageInfo() {
+            return entandoAppDeployableContainer.getDockerImageInfo();
         }
 
         @Override
@@ -221,8 +230,8 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         }
 
         @Override
-        public void addEnvironmentVariables(List<EnvVar> vars) {
-            entandoAppDeployableContainer.addEnvironmentVariables(vars);
+        public List<EnvVar> getEnvironmentVariables() {
+            return entandoAppDeployableContainer.getEnvironmentVariables();
         }
 
     }

@@ -84,7 +84,8 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     }
 
     @Override
-    public void addEnvironmentVariables(List<EnvVar> vars) {
+    public List<EnvVar> getEnvironmentVariables() {
+        List<EnvVar> vars = new ArrayList<>();
         String entandoUrl = format(entandoAppDeployment.getInternalBaseUrl());
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
@@ -96,12 +97,12 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
                 + "-o UserKnownHostsFile=/opt/.ssh/known_hosts "
                 + "-i /opt/.ssh/id_rsa "
                 + "-o IdentitiesOnly=yes", null)));
+        return vars;
     }
 
     @Override
-    public void addDatabaseConnectionVariables(List<EnvVar> vars) {
-        SpringBootDeployableContainer.super.addDatabaseConnectionVariables(vars);
-
+    public List<EnvVar> getDatabaseConnectionVariables() {
+        List<EnvVar> vars = SpringBootDeployableContainer.super.getDatabaseConnectionVariables();
         if (getDatabaseSchema() == null) {
             vars.add(new EnvVar(SpringProperty.SPRING_JPA_DATABASE_PLATFORM.name(), DEFAULT_EMBEDDED_VENDOR.getHibernateDialect(), null));
             vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_USERNAME.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultUser(), null));
@@ -111,6 +112,8 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
                     .usingDatabase(DEFAULT_EMBEDDED_VENDOR.toString().toLowerCase() + ".db")
                     .buildConnectionString(), null));
         }
+        return vars;
+
     }
 
     @Override
