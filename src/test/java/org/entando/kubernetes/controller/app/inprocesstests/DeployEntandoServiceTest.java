@@ -46,11 +46,6 @@ import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
 import java.util.Collections;
 import java.util.Map;
-import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
-import org.entando.kubernetes.controller.IngressingDeployCommand;
-import org.entando.kubernetes.controller.KeycloakClientConfig;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
 import org.entando.kubernetes.controller.app.EntandoAppDeployableContainer;
 import org.entando.kubernetes.controller.app.testutils.EnvVarAssertionHelper;
@@ -59,7 +54,13 @@ import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.KeycloakC
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
-import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.common.SecretUtils;
+import org.entando.kubernetes.controller.spi.container.KeycloakClientConfig;
+import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
+import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
+import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.JeeServer;
@@ -261,7 +262,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
 
         //And the Ingress state was reloaded from K8S
         verify(client.ingresses(), atLeast(2))
-                .loadIngress(newEntandoApp.getMetadata().getNamespace(), MY_APP + "-" + KubeUtils.DEFAULT_INGRESS_SUFFIX);
+                .loadIngress(newEntandoApp.getMetadata().getNamespace(), MY_APP + "-" + NameUtils.DEFAULT_INGRESS_SUFFIX);
         //And K8S was instructed to update the status of the EntandoApp with the status of the ingress
         verify(client.entandoResources(), atLeastOnce()).updateStatus(eq(newEntandoApp), argThat(matchesIngressStatus(ingressStatus)));
     }
@@ -354,13 +355,13 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_USERNAME").on(theComponentManagerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-dedb-secret"));
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_USERNAME").on(theComponentManagerContainer).getSecretKeyRef().getKey(),
-                is(KubeUtils.USERNAME_KEY));
+                is(SecretUtils.USERNAME_KEY));
         assertThat(theVariableNamed("SPRING_DATASOURCE_URL").on(theComponentManagerContainer),
                 is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_dedb"));
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_PASSWORD").on(theComponentManagerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-dedb-secret"));
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_PASSWORD").on(theComponentManagerContainer).getSecretKeyRef().getKey(),
-                is(KubeUtils.PASSSWORD_KEY));
+                is(SecretUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer),
                 is("http://my-app-server-service.my-app-namespace.svc.cluster.local:8080/entando-de-app"));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theComponentManagerContainer), is(MARKER_VAR_VALUE));
@@ -419,17 +420,17 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         assertThat(theVariableReferenceNamed("PORTDB_USERNAME").on(theEntandoServerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-portdb-secret"));
         assertThat(theVariableReferenceNamed("PORTDB_USERNAME").on(theEntandoServerContainer).getSecretKeyRef().getKey(),
-                is(KubeUtils.USERNAME_KEY));
+                is(SecretUtils.USERNAME_KEY));
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(theEntandoServerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-servdb-secret"));
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(theEntandoServerContainer).getSecretKeyRef().getKey(),
-                is(KubeUtils.PASSSWORD_KEY));
+                is(SecretUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theEntandoServerContainer), is(MARKER_VAR_VALUE));
         assertThat(theVariableNamed("JGROUPS_CLUSTER_PASSWORD").on(theEntandoServerContainer), is(notNullValue()));
         assertThat(theVariableNamed("OPENSHIFT_KUBE_PING_NAMESPACE").on(theEntandoServerContainer), is(MY_APP_NAMESPACE));
         assertThat(theVariableNamed("OPENSHIFT_KUBE_PING_LABELS").on(theEntandoServerContainer),
-                is(IngressingDeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
-                        + KubeUtils.DEFAULT_SERVER_QUALIFIER));
+                is(KubeUtils.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+                        + NameUtils.DEFAULT_SERVER_QUALIFIER));
 
         //And per schema env vars are injected
 

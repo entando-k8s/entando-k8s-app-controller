@@ -23,22 +23,23 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.entando.kubernetes.controller.DeployCommand;
-import org.entando.kubernetes.controller.KeycloakClientConfig;
-import org.entando.kubernetes.controller.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.common.DockerImageInfo;
-import org.entando.kubernetes.controller.database.DatabaseSchemaConnectionInfo;
-import org.entando.kubernetes.controller.database.DatabaseServiceResult;
-import org.entando.kubernetes.controller.spi.ConfigurableResourceContainer;
-import org.entando.kubernetes.controller.spi.DatabasePopulator;
-import org.entando.kubernetes.controller.spi.DbAware;
-import org.entando.kubernetes.controller.spi.IngressingContainer;
-import org.entando.kubernetes.controller.spi.KeycloakAware;
-import org.entando.kubernetes.controller.spi.ParameterizableContainer;
-import org.entando.kubernetes.controller.spi.PersistentVolumeAware;
-import org.entando.kubernetes.controller.spi.PortSpec;
-import org.entando.kubernetes.controller.spi.TlsAware;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.common.SecretUtils;
+import org.entando.kubernetes.controller.spi.container.ConfigurableResourceContainer;
+import org.entando.kubernetes.controller.spi.container.DatabasePopulator;
+import org.entando.kubernetes.controller.spi.container.DatabaseSchemaConnectionInfo;
+import org.entando.kubernetes.controller.spi.container.DbAware;
+import org.entando.kubernetes.controller.spi.container.DockerImageInfo;
+import org.entando.kubernetes.controller.spi.container.IngressingContainer;
+import org.entando.kubernetes.controller.spi.container.KeycloakAware;
+import org.entando.kubernetes.controller.spi.container.KeycloakClientConfig;
+import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
+import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
+import org.entando.kubernetes.controller.spi.container.PersistentVolumeAware;
+import org.entando.kubernetes.controller.spi.container.PortSpec;
+import org.entando.kubernetes.controller.spi.container.TlsAware;
+import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
+import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
 import org.entando.kubernetes.model.JeeServer;
@@ -76,7 +77,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
     public static String clientIdOf(EntandoApp entandoApp) {
         //TOOD may have to prefix namespace
-        return entandoApp.getMetadata().getName() + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER;
+        return entandoApp.getMetadata().getName() + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER;
     }
 
     @Override
@@ -97,7 +98,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
     @Override
     public String getNameQualifier() {
-        return KubeUtils.DEFAULT_SERVER_QUALIFIER;
+        return NameUtils.DEFAULT_SERVER_QUALIFIER;
     }
 
     @Override
@@ -105,8 +106,8 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         List<EnvVar> vars = new ArrayList<>();
         vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", RandomStringUtils.randomAlphanumeric(10), null));
         vars.add(new EnvVar("JGROUPS_JOIN_TIMEOUT", "3000", null));
-        String labelExpression = DeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
-                + KubeUtils.DEFAULT_SERVER_QUALIFIER;
+        String labelExpression = KubeUtils.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+                + NameUtils.DEFAULT_SERVER_QUALIFIER;
         if (entandoApp.getSpec().getStandardServerImage().orElse(JeeServer.WILDFLY) == JeeServer.EAP) {
             vars.add(new EnvVar("JGROUPS_PING_PROTOCOL", "openshift.KUBE_PING", null));
             vars.add(new EnvVar("OPENSHIFT_KUBE_PING_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
@@ -179,9 +180,9 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
             String jdbcUrl = connectionInfo.getJdbcUrl();
             vars.add(new EnvVar(varNamePrefix + "URL", jdbcUrl, null));
             vars.add(new EnvVar(varNamePrefix + "USERNAME", null,
-                    KubeUtils.secretKeyRef(connectionInfo.getSchemaSecretName(), KubeUtils.USERNAME_KEY)));
+                    SecretUtils.secretKeyRef(connectionInfo.getSchemaSecretName(), SecretUtils.USERNAME_KEY)));
             vars.add(new EnvVar(varNamePrefix + "PASSWORD", null,
-                    KubeUtils.secretKeyRef(connectionInfo.getSchemaSecretName(), KubeUtils.PASSSWORD_KEY)));
+                    SecretUtils.secretKeyRef(connectionInfo.getSchemaSecretName(), SecretUtils.PASSSWORD_KEY)));
 
             JbossDatasourceValidation jbossDatasourceValidation = JbossDatasourceValidation.getValidConnectionCheckerClass(this.dbmsVendor);
             vars.add(new EnvVar(varNamePrefix + "CONNECTION_CHECKER", jbossDatasourceValidation.getValidConnectionCheckerClassName(),

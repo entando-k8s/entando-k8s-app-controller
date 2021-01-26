@@ -41,16 +41,18 @@ import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
 import java.util.Arrays;
 import java.util.Map;
-import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.LabeledArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
-import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.common.SecretUtils;
+import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
+import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
+import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.test.support.CommonLabels;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.model.DbmsVendor;
@@ -109,23 +111,23 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, Common
         NamedArgumentCaptor<Secret> adminSecretCaptor = forResourceNamed(Secret.class, MY_APP_DB_ADMIN_SECRET);
         verify(client.secrets()).createSecretIfAbsent(eq(entandoApp), adminSecretCaptor.capture());
         Secret adminSecret = adminSecretCaptor.getValue();
-        assertThat(adminSecret.getStringData().get(KubeUtils.USERNAME_KEY), is("root"));
-        assertThat(adminSecret.getStringData().get(KubeUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
+        assertThat(adminSecret.getStringData().get(SecretUtils.USERNAME_KEY), is("root"));
+        assertThat(adminSecret.getStringData().get(SecretUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
         NamedArgumentCaptor<Secret> servSecretCaptor = forResourceNamed(Secret.class, MY_APP_SERVDB_SECRET);
         verify(client.secrets()).createSecretIfAbsent(eq(entandoApp), servSecretCaptor.capture());
         Secret servSecret = servSecretCaptor.getValue();
-        assertThat(servSecret.getStringData().get(KubeUtils.USERNAME_KEY), is("my_app_servdb"));
-        assertThat(servSecret.getStringData().get(KubeUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
+        assertThat(servSecret.getStringData().get(SecretUtils.USERNAME_KEY), is("my_app_servdb"));
+        assertThat(servSecret.getStringData().get(SecretUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
         NamedArgumentCaptor<Secret> portSecretCaptor = forResourceNamed(Secret.class, MY_APP_PORTDB_SECRET);
         verify(client.secrets()).createSecretIfAbsent(eq(entandoApp), portSecretCaptor.capture());
         Secret portSecret = portSecretCaptor.getValue();
-        assertThat(portSecret.getStringData().get(KubeUtils.USERNAME_KEY), is("my_app_portdb"));
-        assertThat(portSecret.getStringData().get(KubeUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
+        assertThat(portSecret.getStringData().get(SecretUtils.USERNAME_KEY), is("my_app_portdb"));
+        assertThat(portSecret.getStringData().get(SecretUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
         NamedArgumentCaptor<Secret> componentManagerSecretCaptor = forResourceNamed(Secret.class, MY_APP_DEDB_SECRET);
         verify(client.secrets()).createSecretIfAbsent(eq(entandoApp), componentManagerSecretCaptor.capture());
         Secret componentManagerSecret = componentManagerSecretCaptor.getValue();
-        assertThat(componentManagerSecret.getStringData().get(KubeUtils.USERNAME_KEY), is("my_app_dedb"));
-        assertThat(componentManagerSecret.getStringData().get(KubeUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
+        assertThat(componentManagerSecret.getStringData().get(SecretUtils.USERNAME_KEY), is("my_app_dedb"));
+        assertThat(componentManagerSecret.getStringData().get(SecretUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
     }
 
     @Test
@@ -253,7 +255,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, Common
         entandoAppController.onStartup(new StartupEvent());
         //Then a Pod  is created that has labels linking it to the previously created EntandoApp
         LabeledArgumentCaptor<Pod> entandoEngineDbPreparationPodCaptor = forResourceWithLabels(Pod.class,
-                dbPreparationJobLabels(newEntandoApp, KubeUtils.DEFAULT_SERVER_QUALIFIER));
+                dbPreparationJobLabels(newEntandoApp, NameUtils.DEFAULT_SERVER_QUALIFIER));
         verify(client.pods()).runToCompletion(entandoEngineDbPreparationPodCaptor.capture());
         Pod entandoEngineDbPreparationPod = entandoEngineDbPreparationPodCaptor.getValue();
         verifySchemaCreationFor(MY_APP_PORTDB_SECRET, entandoEngineDbPreparationPod, MY_APP + "-portdb-schema-creation-job");
@@ -275,9 +277,9 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, Common
         assertThat(theVariableReferenceNamed("PORTDB_PASSWORD").on(theDatabasePopulationJob).getSecretKeyRef().getName(),
                 is(MY_APP_PORTDB_SECRET));
         assertThat(theVariableReferenceNamed("PORTDB_USERNAME").on(theDatabasePopulationJob).getSecretKeyRef().getKey(),
-                is(KubeUtils.USERNAME_KEY));
+                is(SecretUtils.USERNAME_KEY));
         assertThat(theVariableReferenceNamed("PORTDB_PASSWORD").on(theDatabasePopulationJob).getSecretKeyRef().getKey(),
-                is(KubeUtils.PASSSWORD_KEY));
+                is(SecretUtils.PASSSWORD_KEY));
 
     }
 

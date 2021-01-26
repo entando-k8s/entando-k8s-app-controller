@@ -30,17 +30,19 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
-import org.entando.kubernetes.controller.KeycloakClientConfig;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
-import org.entando.kubernetes.controller.common.CreateExternalServiceCommand;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.LabeledArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
-import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.common.SecretUtils;
+import org.entando.kubernetes.controller.spi.container.KeycloakClientConfig;
+import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
+import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.support.command.CreateExternalServiceCommand;
+import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.test.support.CommonLabels;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.model.DbmsVendor;
@@ -104,13 +106,13 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
         NamedArgumentCaptor<Secret> servSecretCaptor = forResourceNamed(Secret.class, MY_APP_SERVDB_SECRET);
         verify(client.secrets()).createSecretIfAbsent(eq(entandoApp), servSecretCaptor.capture());
         Secret servSecret = servSecretCaptor.getValue();
-        assertThat(servSecret.getStringData().get(KubeUtils.USERNAME_KEY), is("my_app_servdb"));
-        assertThat(servSecret.getStringData().get(KubeUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
+        assertThat(servSecret.getStringData().get(SecretUtils.USERNAME_KEY), is("my_app_servdb"));
+        assertThat(servSecret.getStringData().get(SecretUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
         NamedArgumentCaptor<Secret> portSecretCaptor = forResourceNamed(Secret.class, MY_APP_PORTDB_SECRET);
         verify(client.secrets()).createSecretIfAbsent(eq(entandoApp), portSecretCaptor.capture());
         Secret portSecret = portSecretCaptor.getValue();
-        assertThat(portSecret.getStringData().get(KubeUtils.USERNAME_KEY), is("my_app_portdb"));
-        assertThat(portSecret.getStringData().get(KubeUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
+        assertThat(portSecret.getStringData().get(SecretUtils.USERNAME_KEY), is("my_app_portdb"));
+        assertThat(portSecret.getStringData().get(SecretUtils.PASSSWORD_KEY), is(not(emptyOrNullString())));
     }
 
     @Test
@@ -134,17 +136,17 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
         assertThat(theVariableReferenceNamed("PORTDB_USERNAME").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getName(),
                 is(MY_APP_PORTDB_SECRET));
         assertThat(theVariableReferenceNamed("PORTDB_USERNAME").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getKey(),
-                is(KubeUtils.USERNAME_KEY));
+                is(SecretUtils.USERNAME_KEY));
         assertThat(theVariableReferenceNamed("PORTDB_PASSWORD").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getKey(),
-                is(KubeUtils.PASSSWORD_KEY));
+                is(SecretUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed("PORTDB_URL").on(thePrimaryContainerOn(entandoDeployment)),
                 is("jdbc:oracle:thin:@//mydb-db-service." + MY_APP_NAMESPACE + ".svc.cluster.local:1521/my_db"));
         assertThat(theVariableReferenceNamed("SERVDB_USERNAME").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getName(),
                 is(MY_APP_SERVDB_SECRET));
         assertThat(theVariableReferenceNamed("SERVDB_USERNAME").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getKey(),
-                is(KubeUtils.USERNAME_KEY));
+                is(SecretUtils.USERNAME_KEY));
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(thePrimaryContainerOn(entandoDeployment)).getSecretKeyRef().getKey(),
-                is(KubeUtils.PASSSWORD_KEY));
+                is(SecretUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed("SERVDB_URL").on(thePrimaryContainerOn(entandoDeployment)),
                 is("jdbc:oracle:thin:@//mydb-db-service." + MY_APP_NAMESPACE + ".svc.cluster.local:1521/my_db"));
         //But the db check on startup is disabled
@@ -152,7 +154,7 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
 
         //And another pod was created for PORTDB using the credentials and connection settings of the ExternalDatabase
         LabeledArgumentCaptor<Pod> entandoAppDbJobCaptor = forResourceWithLabels(Pod.class,
-                dbPreparationJobLabels(newEntandoApp, KubeUtils.DEFAULT_SERVER_QUALIFIER));
+                dbPreparationJobLabels(newEntandoApp, NameUtils.DEFAULT_SERVER_QUALIFIER));
         verify(client.pods()).runToCompletion(entandoAppDbJobCaptor.capture());
         Pod entandoPortJob = entandoAppDbJobCaptor.getValue();
         verifyStandardSchemaCreationVariables("my-secret", MY_APP_SERVDB_SECRET,

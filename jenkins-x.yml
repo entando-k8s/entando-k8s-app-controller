@@ -9,6 +9,7 @@ pipelineConfig:
       value: "entando-docker-image-info-v6.1"
     - name: ENTANDO_K8S_OPERATOR_SECURITY_MODE
       value: "strict"
+
     - name: EXECUTABLE_TYPE
       valueFrom:
         secretKeyRef:

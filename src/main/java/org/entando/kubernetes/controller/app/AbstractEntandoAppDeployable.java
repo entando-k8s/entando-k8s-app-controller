@@ -20,9 +20,9 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
-import org.entando.kubernetes.controller.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.spi.PublicIngressingDeployable;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
+import org.entando.kubernetes.controller.spi.deployable.PublicIngressingDeployable;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppSpec;
 
@@ -53,7 +53,7 @@ public abstract class AbstractEntandoAppDeployable implements PublicIngressingDe
 
     @Override
     public String getIngressName() {
-        return KubeUtils.standardIngressName(entandoApp);
+        return NameUtils.standardIngressName(entandoApp);
     }
 
     @Override

@@ -19,11 +19,11 @@ package org.entando.kubernetes.controller.app;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.entando.kubernetes.controller.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.database.DatabaseServiceResult;
-import org.entando.kubernetes.controller.spi.DbAwareDeployable;
-import org.entando.kubernetes.controller.spi.DeployableContainer;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.container.DeployableContainer;
+import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
+import org.entando.kubernetes.controller.spi.deployable.DbAwareDeployable;
+import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 
@@ -63,7 +63,7 @@ public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable imp
 
     @Override
     public String getNameQualifier() {
-        return KubeUtils.DEFAULT_SERVER_QUALIFIER;
+        return NameUtils.DEFAULT_SERVER_QUALIFIER;
     }
 
 }

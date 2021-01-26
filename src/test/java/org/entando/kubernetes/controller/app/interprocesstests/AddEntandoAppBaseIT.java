@@ -30,7 +30,6 @@ import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.app.ComponentManagerDeployableContainer;
 import org.entando.kubernetes.controller.app.EntandoAppController;
 import org.entando.kubernetes.controller.integrationtest.support.ClusterInfrastructureIntegrationTestHelper;
@@ -41,6 +40,8 @@ import org.entando.kubernetes.controller.integrationtest.support.FluentIntegrati
 import org.entando.kubernetes.controller.integrationtest.support.HttpTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.K8SIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.test.support.CommonLabels;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
@@ -152,7 +153,7 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
 
     protected void verifyEntandoDatabasePreparation(EntandoApp entandoApp) {
         Pod entandoServerDbPreparationPod = client.pods().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                .withLabels(dbPreparationJobLabels(entandoApp, KubeUtils.DEFAULT_SERVER_QUALIFIER))
+                .withLabels(dbPreparationJobLabels(entandoApp, NameUtils.DEFAULT_SERVER_QUALIFIER))
                 .list().getItems().get(0);
         assertThat(theInitContainerNamed(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-portdb-schema-creation-job")
                         .on(entandoServerDbPreparationPod).getImage(),
@@ -178,7 +179,7 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
     protected void verifyKeycloakClientsCreation() {
         Optional<ClientRepresentation> serverClient = helper.keycloak()
                 .findClientById(KEYCLOAK_REALM,
-                        EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER);
+                        EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER);
         assertTrue(serverClient.isPresent());
         String componentManagerClientId = EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-"
                 + ComponentManagerDeployableContainer.COMPONENT_MANAGER_QUALIFIER;

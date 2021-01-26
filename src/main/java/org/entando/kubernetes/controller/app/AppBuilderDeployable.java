@@ -18,8 +18,8 @@ package org.entando.kubernetes.controller.app;
 
 import java.util.Arrays;
 import java.util.List;
-import org.entando.kubernetes.controller.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.spi.DeployableContainer;
+import org.entando.kubernetes.controller.spi.container.DeployableContainer;
+import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class AppBuilderDeployable extends AbstractEntandoAppDeployable {
