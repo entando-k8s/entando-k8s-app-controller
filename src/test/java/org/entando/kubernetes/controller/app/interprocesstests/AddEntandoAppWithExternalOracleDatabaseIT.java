@@ -16,7 +16,6 @@
 
 package org.entando.kubernetes.controller.app.interprocesstests;
 
-
 import static org.entando.kubernetes.controller.spi.common.NameUtils.snakeCaseOf;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;

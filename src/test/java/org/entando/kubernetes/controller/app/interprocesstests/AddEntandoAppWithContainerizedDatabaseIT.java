@@ -58,7 +58,6 @@ class AddEntandoAppWithContainerizedDatabaseIT extends AddEntandoAppBaseIT {
         entandoApp.getMetadata().setName(EntandoAppIntegrationTestHelper.TEST_APP_NAME);
         SampleWriter.writeSample(entandoApp, "app-with-embedded-postgresql-db");
 
-
         createAndWaitForApp(entandoApp, 100, true);
         //Then I expect to see
         verifyAllExpectedResources(entandoApp);

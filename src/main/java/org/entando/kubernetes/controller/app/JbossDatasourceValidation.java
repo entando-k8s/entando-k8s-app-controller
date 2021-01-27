@@ -34,7 +34,6 @@ public enum JbossDatasourceValidation {
     DEFAULT("org.jboss.jca.adapters.jdbc.extensions.novendor.NullValidConnectionChecker",
             "org.jboss.jca.adapters.jdbc.extensions.novendor.NullExceptionSorter");
 
-
     /**
      * contains full class name responsible to check for connection validity.
      */
@@ -44,7 +43,6 @@ public enum JbossDatasourceValidation {
      * contains full class name responsible to sort db connection exception.
      */
     private final String exceptionSorterClassName;
-
 
     JbossDatasourceValidation(String validConnectionCheckerClassName, String exceptionSorterClassName) {
         this.validConnectionCheckerClassName = validConnectionCheckerClassName;
@@ -61,6 +59,7 @@ public enum JbossDatasourceValidation {
 
     /**
      * receives a DbmsVendor and returns the corresponing JbossDatasourceValidation.
+     *
      * @param dbmsVendor the DbmsVendor on which switch
      * @return the corresponing JbossDatasourceValidation
      */
