@@ -22,6 +22,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMode;
+import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.common.SecretUtils;
 import org.entando.kubernetes.controller.spi.container.ConfigurableResourceContainer;
@@ -30,7 +32,6 @@ import org.entando.kubernetes.controller.spi.container.DatabaseSchemaConnectionI
 import org.entando.kubernetes.controller.spi.container.DbAware;
 import org.entando.kubernetes.controller.spi.container.DockerImageInfo;
 import org.entando.kubernetes.controller.spi.container.IngressingContainer;
-import org.entando.kubernetes.controller.spi.container.KeycloakAware;
 import org.entando.kubernetes.controller.spi.container.KeycloakClientConfig;
 import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
@@ -39,15 +40,16 @@ import org.entando.kubernetes.controller.spi.container.PortSpec;
 import org.entando.kubernetes.controller.spi.container.TlsAware;
 import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
 import org.entando.kubernetes.controller.support.common.KubeUtils;
+import org.entando.kubernetes.controller.support.spibase.KeycloakAwareContainerBase;
 import org.entando.kubernetes.model.DbmsVendor;
-import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
+import org.entando.kubernetes.model.EntandoResourceRequirements;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.KeycloakAwareSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
-import org.entando.kubernetes.model.app.EntandoAppSpec;
 
-public class EntandoAppDeployableContainer implements IngressingContainer, PersistentVolumeAware,
-        KeycloakAware, DbAware, TlsAware, ParameterizableContainer, ConfigurableResourceContainer {
+public class EntandoAppDeployableContainer
+        implements IngressingContainer, PersistentVolumeAware, KeycloakAwareContainerBase, DbAware, TlsAware, ParameterizableContainer,
+        ConfigurableResourceContainer {
 
     public static final String INGRESS_WEB_CONTEXT = "/entando-de-app";
     public static final int PORT = 8080;
@@ -81,8 +83,15 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
     @Override
     public String determineImageToUse() {
-        EntandoAppSpec spec = entandoApp.getSpec();
-        return spec.getCustomServerImage().orElse(spec.getStandardServerImage().orElse(JeeServer.WILDFLY).getImageName());
+        return entandoApp.getSpec().getCustomServerImage().orElse(determineStandardImage().getImageName());
+    }
+
+    private JeeServer determineStandardImage() {
+        if (EntandoOperatorSpiConfig.getComplianceMode() == EntandoOperatorComplianceMode.REDHAT) {
+            return JeeServer.EAP;
+        } else {
+            return entandoApp.getSpec().getStandardServerImage().orElse(JeeServer.WILDFLY);
+        }
     }
 
     @Override
@@ -107,7 +116,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         vars.add(new EnvVar("JGROUPS_JOIN_TIMEOUT", "3000", null));
         String labelExpression = KubeUtils.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
                 + NameUtils.DEFAULT_SERVER_QUALIFIER;
-        if (entandoApp.getSpec().getStandardServerImage().orElse(JeeServer.WILDFLY) == JeeServer.EAP) {
+        if (determineStandardImage() == JeeServer.EAP) {
             vars.add(new EnvVar("JGROUPS_PING_PROTOCOL", "openshift.KUBE_PING", null));
             vars.add(new EnvVar("OPENSHIFT_KUBE_PING_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
             vars.add(new EnvVar("OPENSHIFT_KUBE_PING_LABELS", labelExpression, null));
@@ -135,7 +144,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     @Override
     public KeycloakClientConfig getKeycloakClientConfig() {
         String clientId = clientIdOf(this.entandoApp);
-        return new KeycloakClientConfig(determineRealm(),
+        return new KeycloakClientConfig(getKeycloakRealmToUse(),
                 clientId,
                 clientId).withRole("superuser").withPermission("realm-management", "realm-admin");
     }
@@ -153,11 +162,6 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     @Override
     public String getVolumeMountPath() {
         return "/entando-data";
-    }
-
-    @Override
-    public EntandoIngressingDeploymentSpec getCustomResourceSpec() {
-        return getKeycloakAwareSpec();
     }
 
     @Override
@@ -206,6 +210,16 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         return this.databaseSchemaConnectionInfo;
     }
 
+    @Override
+    public Optional<EntandoResourceRequirements> getResourceRequirementsOverride() {
+        return getKeycloakAwareSpec().getResourceRequirements();
+    }
+
+    @Override
+    public List<EnvVar> getEnvironmentVariableOverrides() {
+        return getKeycloakAwareSpec().getEnvironmentVariables();
+    }
+
     /**
      * EntandoAppDatabasePopulator class.
      */
@@ -223,8 +237,8 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         }
 
         @Override
-        public String[] getCommand() {
-            return new String[]{"/bin/bash", "-c", "/entando-common/init-db-from-deployment.sh"};
+        public List<String> getCommand() {
+            return Arrays.asList("/bin/bash", "-c", "/entando-common/init-db-from-deployment.sh");
         }
 
         @Override

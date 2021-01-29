@@ -23,11 +23,9 @@ import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.spi.deployable.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
 import org.entando.kubernetes.controller.support.client.InfrastructureConfig;
-import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 
-public class ComponentManagerDeployable extends AbstractEntandoAppDeployable implements
-        DbAwareDeployable {
+public class ComponentManagerDeployable extends AbstractEntandoAppDeployable implements DbAwareDeployable<EntandoAppDeploymentResult> {
 
     private final List<DeployableContainer> containers;
 
@@ -41,11 +39,6 @@ public class ComponentManagerDeployable extends AbstractEntandoAppDeployable imp
                 new ComponentManagerDeployableContainer(entandoApp, keycloakConnectionConfig, infrastructureConfig, entandoAppDeployment,
                         databaseServiceResult)
         );
-    }
-
-    @Override
-    public boolean hasContainersExpectingSchemas() {
-        return entandoApp.getSpec().getDbms().map(v -> v != DbmsVendor.NONE && v != DbmsVendor.EMBEDDED).orElse(false);
     }
 
     @Override

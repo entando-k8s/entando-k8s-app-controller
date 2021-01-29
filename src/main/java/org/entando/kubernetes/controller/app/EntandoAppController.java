@@ -16,8 +16,6 @@
 
 package org.entando.kubernetes.controller.app;
 
-import static java.util.Optional.of;
-
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.runtime.StartupEvent;
 import javax.enterprise.event.Observes;
@@ -69,7 +67,7 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoAppSp
     }
 
     private EntandoAppDeploymentResult performDeployCommand(AbstractEntandoAppDeployable deployable) {
-        EntandoAppDeploymentResult result = new IngressingDeployCommand<>(deployable).execute(k8sClient, of(keycloakClient));
+        EntandoAppDeploymentResult result = new IngressingDeployCommand<>(deployable).execute(k8sClient, keycloakClient);
         k8sClient.entandoResources().updateStatus(deployable.getCustomResource(), result.getStatus());
         return result;
     }

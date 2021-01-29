@@ -153,7 +153,7 @@ class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, FluentTraver
                 is(""));
         assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_URL.name())
                         .on(theContainerNamed("de-container").on(componentManagerDeployment)),
-                is("jdbc:h2:file:/entando-data/databases/de/h2.db;DB_CLOSE_ON_EXIT=FALSE"));
+                is("jdbc:h2:file:/entando-data/databases/de.db;DB_CLOSE_ON_EXIT=FALSE"));
 
         // And a volume mount has been set up reflecting the correct location of the h2 database
         assertThat(theVolumeNamed(MY_APP + "-de-volume").on(componentManagerDeployment).getPersistentVolumeClaim().getClaimName(),

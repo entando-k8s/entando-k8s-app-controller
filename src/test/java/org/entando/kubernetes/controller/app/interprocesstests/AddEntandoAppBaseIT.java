@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.app.ComponentManagerDeployableContainer;
 import org.entando.kubernetes.controller.app.EntandoAppController;
-import org.entando.kubernetes.controller.integrationtest.support.ClusterInfrastructureIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoOperatorTestConfig;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoOperatorTestConfig.TestTarget;
@@ -41,8 +40,10 @@ import org.entando.kubernetes.controller.integrationtest.support.HttpTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.K8SIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.support.client.InfrastructureConfig;
 import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.test.support.CommonLabels;
+import org.entando.kubernetes.model.ResourceReference;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
 import org.junit.jupiter.api.AfterEach;
@@ -51,6 +52,10 @@ import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 
 abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLabels {
+
+    public static final String CLUSTER_INFRASTRUCTURE_NAMESPACE = EntandoOperatorTestConfig
+            .calculateNameSpace("entando-infra-namespace");
+    public static final String CLUSTER_INFRASTRUCTURE_NAME = EntandoOperatorTestConfig.calculateName("eti");
 
     protected final K8SIntegrationTestHelper helper = new K8SIntegrationTestHelper();
     protected final DefaultKubernetesClient client = helper.getClient();
@@ -73,11 +78,11 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
     }
 
     void createAndWaitForApp(EntandoApp entandoApp, int waitOffset, boolean deployingDbContainers) {
-        this.helper.clusterInfrastructure().ensureInfrastructureConnectionConfig();
+        this.ensureInfrastructureConnectionConfig();
         this.helper.keycloak()
                 .deleteKeycloakClients(entandoApp, "entando-web", EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-de",
                         EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + "server");
-        String k8sSvcClientId = ClusterInfrastructureIntegrationTestHelper.CLUSTER_INFRASTRUCTURE_NAME + "-k8s-svc";
+        String k8sSvcClientId = CLUSTER_INFRASTRUCTURE_NAME + "-k8s-svc";
         this.helper.keycloak()
                 .ensureKeycloakClient(entandoApp.getSpec(), k8sSvcClientId, Collections.singletonList(KubeUtils.ENTANDO_APP_ROLE));
         this.helper.entandoApps().createAndWaitForApp(entandoApp, waitOffset, deployingDbContainers);
@@ -183,11 +188,35 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
         assertTrue(serverClient.isPresent());
         String componentManagerClientId = EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-"
                 + ComponentManagerDeployableContainer.COMPONENT_MANAGER_QUALIFIER;
-        String k8sSvcClientId = ClusterInfrastructureIntegrationTestHelper.CLUSTER_INFRASTRUCTURE_NAME + "-k8s-svc";
+        String k8sSvcClientId = CLUSTER_INFRASTRUCTURE_NAME + "-k8s-svc";
         List<RoleRepresentation> roles = helper.keycloak()
                 .retrieveServiceAccountRoles(KEYCLOAK_REALM, componentManagerClientId, k8sSvcClientId);
         assertTrue(roles.stream().anyMatch(role -> role.getName().equals(KubeUtils.ENTANDO_APP_ROLE)));
 
+    }
+
+    //TODO get rid of this once we deploy K8S with the operator
+    public void ensureInfrastructureConnectionConfig() {
+        helper.entandoPlugins().loadDefaultOperatorConfigMap()
+                .addToData(InfrastructureConfig.DEFAULT_CLUSTER_INFRASTRUCTURE_NAMESPACE_KEY, CLUSTER_INFRASTRUCTURE_NAMESPACE)
+                .addToData(InfrastructureConfig.DEFAULT_CLUSTER_INFRASTRUCTURE_NAME_KEY, CLUSTER_INFRASTRUCTURE_NAME)
+                .done();
+        ResourceReference infrastructureToUse = new ResourceReference(CLUSTER_INFRASTRUCTURE_NAMESPACE, CLUSTER_INFRASTRUCTURE_NAME);
+        delete(helper.getClient().configMaps())
+                .named(InfrastructureConfig.connectionConfigMapNameFor(infrastructureToUse))
+                .fromNamespace(CLUSTER_INFRASTRUCTURE_NAMESPACE)
+                .waitingAtMost(20, SECONDS);
+        String hostName = "http://" + CLUSTER_INFRASTRUCTURE_NAME + "." + helper.getDomainSuffix();
+        helper.getClient().configMaps()
+                .inNamespace(CLUSTER_INFRASTRUCTURE_NAMESPACE)
+                .createNew()
+                .withNewMetadata()
+                .withName(InfrastructureConfig.connectionConfigMapNameFor(infrastructureToUse))
+                .endMetadata()
+                .addToData(InfrastructureConfig.ENTANDO_K8S_SERVICE_CLIENT_ID_KEY, CLUSTER_INFRASTRUCTURE_NAME + "-k8s-svc")
+                .addToData(InfrastructureConfig.ENTANDO_K8S_SERVICE_INTERNAL_URL_KEY, hostName + "/k8s")
+                .addToData(InfrastructureConfig.ENTANDO_K8S_SERVICE_EXTERNAL_URL_KEY, hostName + "/k8s")
+                .done();
     }
 
 }

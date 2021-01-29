@@ -24,7 +24,6 @@ import org.entando.kubernetes.controller.spi.container.DeployableContainer;
 import org.entando.kubernetes.controller.spi.container.IngressingContainer;
 import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.container.TlsAware;
-import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class AppBuilderDeployableContainer implements DeployableContainer, IngressingContainer, TlsAware, ParameterizableContainer {
@@ -79,7 +78,7 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
     }
 
     @Override
-    public EntandoIngressingDeploymentSpec getCustomResourceSpec() {
-        return this.entandoApp.getSpec();
+    public List<EnvVar> getEnvironmentVariableOverrides() {
+        return entandoApp.getSpec().getEnvironmentVariables();
     }
 }

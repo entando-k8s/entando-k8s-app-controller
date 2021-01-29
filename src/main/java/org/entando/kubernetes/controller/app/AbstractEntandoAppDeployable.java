@@ -23,10 +23,11 @@ import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.spi.deployable.PublicIngressingDeployable;
+import org.entando.kubernetes.controller.support.spibase.PublicIngressingDeployableBase;
 import org.entando.kubernetes.model.app.EntandoApp;
-import org.entando.kubernetes.model.app.EntandoAppSpec;
 
-public abstract class AbstractEntandoAppDeployable implements PublicIngressingDeployable<EntandoAppDeploymentResult, EntandoAppSpec> {
+public abstract class AbstractEntandoAppDeployable
+        implements PublicIngressingDeployable<EntandoAppDeploymentResult>, PublicIngressingDeployableBase<EntandoAppDeploymentResult> {
 
     protected final EntandoApp entandoApp;
     protected final KeycloakConnectionConfig keycloakConnectionConfig;
@@ -62,7 +63,12 @@ public abstract class AbstractEntandoAppDeployable implements PublicIngressingDe
     }
 
     @Override
-    public KeycloakConnectionConfig getKeycloakDeploymentResult() {
+    public KeycloakConnectionConfig getKeycloakConnectionConfig() {
         return keycloakConnectionConfig;
+    }
+
+    @Override
+    public String getServiceAccountToUse() {
+        return getCustomResource().getSpec().getServiceAccountToUse().orElse(getDefaultServiceAccountName());
     }
 }

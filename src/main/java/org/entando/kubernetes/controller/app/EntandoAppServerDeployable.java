@@ -24,11 +24,9 @@ import org.entando.kubernetes.controller.spi.container.DeployableContainer;
 import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.spi.deployable.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
-import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 
-public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable implements
-        DbAwareDeployable {
+public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable implements DbAwareDeployable<EntandoAppDeploymentResult> {
 
     /**
      * The operating system level id of the default user in the EAP and Wildfly base images. Was determined to be 185 running the 'id'
@@ -49,11 +47,6 @@ public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable imp
     @Override
     public Optional<Long> getFileSystemUserAndGroupId() {
         return Optional.of(DEFAULT_USERID_IN_JBOSS_BASE_IMAGES);
-    }
-
-    @Override
-    public boolean hasContainersExpectingSchemas() {
-        return entandoApp.getSpec().getDbms().map(v -> v != DbmsVendor.NONE && v != DbmsVendor.EMBEDDED).orElse(false);
     }
 
     @Override

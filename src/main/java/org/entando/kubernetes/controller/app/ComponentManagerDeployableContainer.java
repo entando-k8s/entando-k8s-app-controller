@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.entando.kubernetes.controller.spi.common.DbmsVendorConfig;
 import org.entando.kubernetes.controller.spi.container.DatabaseSchemaConnectionInfo;
 import org.entando.kubernetes.controller.spi.container.DbAware;
 import org.entando.kubernetes.controller.spi.container.KeycloakClientConfig;
@@ -33,12 +32,14 @@ import org.entando.kubernetes.controller.spi.container.SpringBootDeployableConta
 import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
 import org.entando.kubernetes.controller.support.client.InfrastructureConfig;
 import org.entando.kubernetes.controller.support.common.KubeUtils;
-import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
+import org.entando.kubernetes.controller.support.spibase.KeycloakAwareContainerBase;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.KeycloakAwareSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.Permission;
 
-public class ComponentManagerDeployableContainer implements SpringBootDeployableContainer, PersistentVolumeAware, ParameterizableContainer {
+public class ComponentManagerDeployableContainer
+        implements SpringBootDeployableContainer, PersistentVolumeAware, ParameterizableContainer, KeycloakAwareContainerBase {
 
     public static final String COMPONENT_MANAGER_QUALIFIER = "de";
     public static final String COMPONENT_MANAGER_IMAGE_NAME = "entando/entando-component-manager";
@@ -47,11 +48,9 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     public static final String ECR_GIT_CONFIG_DIR = "/etc/ecr-git-config";
     private final EntandoApp entandoApp;
     private final KeycloakConnectionConfig keycloakConnectionConfig;
-    private final Optional<InfrastructureConfig> infrastructureConfig;
+    private final InfrastructureConfig infrastructureConfig;
     private final EntandoAppDeploymentResult entandoAppDeployment;
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
-
-    private static final DbmsVendorConfig DEFAULT_EMBEDDED_VENDOR = DbmsVendorConfig.H2;
 
     public ComponentManagerDeployableContainer(
             EntandoApp entandoApp,
@@ -61,7 +60,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
             DatabaseServiceResult databaseServiceResult) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
-        this.infrastructureConfig = Optional.ofNullable(infrastructureConfig);
+        this.infrastructureConfig = infrastructureConfig;
         this.entandoAppDeployment = entandoAppDeployment;
 
         this.databaseSchemaConnectionInfo = Optional.ofNullable(databaseServiceResult)
@@ -92,7 +91,7 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPrimaryPort()), null));
-        infrastructureConfig.ifPresent(c -> vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", c.getK8SExternalServiceUrl(), null)));
+        getInfrastructureConfig().ifPresent(c -> vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", c.getK8SExternalServiceUrl(), null)));
         //The ssh files will be copied to /opt/.ssh and chmod to 400. This can only happen at runtime because Openshift generates a
         // random userid
         entandoApp.getSpec().getEcrGitSshSecretName().ifPresent(s -> vars.add(new EnvVar("GIT_SSH_COMMAND", "ssh "
@@ -103,19 +102,8 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
     }
 
     @Override
-    public List<EnvVar> getDatabaseConnectionVariables() {
-        List<EnvVar> vars = SpringBootDeployableContainer.super.getDatabaseConnectionVariables();
-        if (!getDatabaseSchema().isPresent()) {
-            vars.add(new EnvVar(SpringProperty.SPRING_JPA_DATABASE_PLATFORM.name(), DEFAULT_EMBEDDED_VENDOR.getHibernateDialect(), null));
-            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_USERNAME.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultAdminUsername(), null));
-            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_PASSWORD.name(), DEFAULT_EMBEDDED_VENDOR.getDefaultAdminPassword(), null));
-            vars.add(new EnvVar(SpringProperty.SPRING_DATASOURCE_URL.name(), DEFAULT_EMBEDDED_VENDOR.getConnectionStringBuilder()
-                    .inFolder("/entando-data/databases/" + COMPONENT_MANAGER_QUALIFIER)
-                    .usingDatabase(DEFAULT_EMBEDDED_VENDOR.toString().toLowerCase() + ".db")
-                    .buildConnectionString(), null));
-        }
-        return vars;
-
+    public Optional<DbmsVendor> getDbms() {
+        return Optional.of(entandoApp.getSpec().getDbms().orElse(DbmsVendor.EMBEDDED));
     }
 
     @Override
@@ -155,15 +143,11 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
         String clientId = entandoApp.getMetadata().getName() + "-" + getNameQualifier();
         List<Permission> permissions = new ArrayList<>();
         permissions.add(new Permission(entandoAppClientId, "superuser"));
-        this.infrastructureConfig.ifPresent(c -> permissions.add(new Permission(c.getK8sServiceClientId(), KubeUtils.ENTANDO_APP_ROLE)));
-        return new KeycloakClientConfig(determineRealm(), clientId, clientId,
+        this.getInfrastructureConfig()
+                .ifPresent(c -> permissions.add(new Permission(c.getK8sServiceClientId(), KubeUtils.ENTANDO_APP_ROLE)));
+        return new KeycloakClientConfig(getKeycloakRealmToUse(), clientId, clientId,
                 Collections.emptyList(),
                 permissions);
-    }
-
-    @Override
-    public KeycloakAwareSpec getKeycloakAwareSpec() {
-        return entandoApp.getSpec();
     }
 
     @Override
@@ -181,8 +165,17 @@ public class ComponentManagerDeployableContainer implements SpringBootDeployable
         return "/entando-data";
     }
 
+    private Optional<InfrastructureConfig> getInfrastructureConfig() {
+        return Optional.ofNullable(infrastructureConfig);
+    }
+
     @Override
-    public EntandoIngressingDeploymentSpec getCustomResourceSpec() {
-        return getKeycloakAwareSpec();
+    public List<EnvVar> getEnvironmentVariableOverrides() {
+        return entandoApp.getSpec().getEnvironmentVariables();
+    }
+
+    @Override
+    public KeycloakAwareSpec getKeycloakAwareSpec() {
+        return entandoApp.getSpec();
     }
 }

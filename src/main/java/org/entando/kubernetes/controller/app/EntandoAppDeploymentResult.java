@@ -23,8 +23,7 @@ import org.entando.kubernetes.controller.spi.result.ExposedDeploymentResult;
 
 public class EntandoAppDeploymentResult extends ExposedDeploymentResult<EntandoAppDeploymentResult> {
 
-    public EntandoAppDeploymentResult(Pod pod, Service service,
-            Ingress ingress) {
+    public EntandoAppDeploymentResult(Pod pod, Service service, Ingress ingress) {
         super(pod, service, ingress);
     }
 }
