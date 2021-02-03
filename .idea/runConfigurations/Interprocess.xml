@@ -1,12 +1,13 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Interprocess" type="JUnit" factoryName="JUnit">
+    <useClassPathOnly />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="ALTERNATIVE_JRE_PATH" value="11" />
     <option name="PACKAGE_NAME" value="" />
     <option name="MAIN_CLASS_NAME" value="" />
     <option name="METHOD_NAME" value="" />
     <option name="TEST_OBJECT" value="tags" />
-    <option name="VM_PARAMETERS" value="-ea -Dentando.default.routing.suffix=apps.serv.run -Dentando.test.namespace.override=e6k8s-app-controller -Dentando.test.name.suffix=999 -Dentando.docker.image.version.default=6.0.0 -Dentando.oracle.internal.host=10.128.0.105 -Dentando.oracle.external.host=localhost" />
+    <option name="VM_PARAMETERS" value="-ea -Dentando.default.routing.suffix=apps.serv.run -Dentando.test.namespace.override=e6k8s-app-controller -Dentando.test.name.suffix=999 -Dentando.oracle.internal.host=10.128.0.105 -Dentando.oracle.external.host=localhost -Dentando.test.keycloak.admin.user=admin -Dentando.test.keycloak.admin.password=P@ssword01 -Dentando.test.keycloak.base.url=http://keycloak.apps.serv.run/auth -Dentando.k8s.operator.configmap.namespace=entando -Dentando.docker.image.info.configmap=entando-docker-image-info-v6.1" />
     <option name="PARAMETERS" value="" />
     <option name="TEST_SEARCH_SCOPE">
       <value defaultName="wholeProject" />

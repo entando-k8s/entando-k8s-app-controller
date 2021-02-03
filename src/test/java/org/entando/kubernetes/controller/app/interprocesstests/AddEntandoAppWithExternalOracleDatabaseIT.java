@@ -16,7 +16,7 @@
 
 package org.entando.kubernetes.controller.app.interprocesstests;
 
-import static org.entando.kubernetes.controller.KubeUtils.snakeCaseOf;
+import static org.entando.kubernetes.controller.spi.common.NameUtils.snakeCaseOf;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
@@ -58,7 +58,7 @@ class AddEntandoAppWithExternalOracleDatabaseIT extends AddEntandoAppBaseIT {
 
         entandoApp.getMetadata().setName(EntandoAppIntegrationTestHelper.TEST_APP_NAME);
         createAndWaitForApp(entandoApp, 0, false);
-        verifyAllExpectedResources();
+        verifyAllExpectedResources(entandoApp);
     }
 
     @Override

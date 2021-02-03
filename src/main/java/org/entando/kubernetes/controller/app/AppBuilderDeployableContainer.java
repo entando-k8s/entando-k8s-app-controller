@@ -17,13 +17,13 @@
 package org.entando.kubernetes.controller.app;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.entando.kubernetes.controller.spi.DeployableContainer;
-import org.entando.kubernetes.controller.spi.IngressingContainer;
-import org.entando.kubernetes.controller.spi.ParameterizableContainer;
-import org.entando.kubernetes.controller.spi.TlsAware;
-import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
+import org.entando.kubernetes.controller.spi.container.DeployableContainer;
+import org.entando.kubernetes.controller.spi.container.IngressingContainer;
+import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
+import org.entando.kubernetes.controller.spi.container.TlsAware;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class AppBuilderDeployableContainer implements DeployableContainer, IngressingContainer, TlsAware, ParameterizableContainer {
@@ -71,12 +71,14 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
     }
 
     @Override
-    public void addEnvironmentVariables(List<EnvVar> vars) {
+    public List<EnvVar> getEnvironmentVariables() {
+        List<EnvVar> vars = new ArrayList<>();
         vars.add(new EnvVar("DOMAIN", entandoApp.getSpec().getIngressPath().orElse("/entando-de-app"), null));
+        return vars;
     }
 
     @Override
-    public EntandoIngressingDeploymentSpec getCustomResourceSpec() {
-        return this.entandoApp.getSpec();
+    public List<EnvVar> getEnvironmentVariableOverrides() {
+        return entandoApp.getSpec().getEnvironmentVariables();
     }
 }

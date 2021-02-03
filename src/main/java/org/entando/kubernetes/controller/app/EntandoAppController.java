@@ -16,23 +16,22 @@
 
 package org.entando.kubernetes.controller.app;
 
-import static java.util.Optional.of;
-
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.runtime.StartupEvent;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import org.entando.kubernetes.controller.AbstractDbAwareController;
-import org.entando.kubernetes.controller.IngressingDeployCommand;
-import org.entando.kubernetes.controller.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.SimpleKeycloakClient;
-import org.entando.kubernetes.controller.common.InfrastructureConfig;
-import org.entando.kubernetes.controller.database.DatabaseServiceResult;
-import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
+import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
+import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
+import org.entando.kubernetes.controller.support.client.InfrastructureConfig;
+import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
+import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.support.command.IngressingDeployCommand;
+import org.entando.kubernetes.controller.support.controller.AbstractDbAwareController;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.app.EntandoAppSpec;
 
-public class EntandoAppController extends AbstractDbAwareController<EntandoApp> {
+public class EntandoAppController extends AbstractDbAwareController<EntandoAppSpec, EntandoApp> {
 
     @Inject
     public EntandoAppController(KubernetesClient kubernetesClient) {
@@ -53,25 +52,25 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoApp> 
 
     @Override
     protected void synchronizeDeploymentState(EntandoApp entandoApp) {
-        EntandoAppServerDeployable deployable = buildEntandoAppServerDeployable(entandoApp);
-        performDeployCommand(deployable);
-    }
-
-    private void performDeployCommand(EntandoAppServerDeployable deployable) {
-        EntandoAppDeploymentResult result = new IngressingDeployCommand<>(deployable).execute(k8sClient, of(keycloakClient));
-        k8sClient.entandoResources().updateStatus(deployable.getCustomResource(), result.getStatus());
-    }
-
-    private EntandoAppServerDeployable buildEntandoAppServerDeployable(EntandoApp entandoApp) {
-        KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources().findKeycloak(entandoApp);
-        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp).orElse(null);
+        KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources()
+                .findKeycloak(entandoApp, entandoApp.getSpec()::getKeycloakToUse);
         DatabaseServiceResult databaseServiceResult = prepareDatabaseService(entandoApp, entandoApp.getSpec().getDbms().orElse(
-                DbmsVendor.EMBEDDED), "db");
-        return new EntandoAppServerDeployable(
-                entandoApp,
-                keycloakConnectionConfig,
-                infrastructureConfig,
-                databaseServiceResult);
+                DbmsVendor.EMBEDDED));
+        EntandoAppDeploymentResult entandoAppDeployment = performDeployCommand(
+                new EntandoAppServerDeployable(entandoApp, keycloakConnectionConfig, databaseServiceResult)
+        );
+        performDeployCommand(new AppBuilderDeployable(entandoApp, keycloakConnectionConfig));
+        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp).orElse(null);
+        performDeployCommand(
+                new ComponentManagerDeployable(entandoApp, keycloakConnectionConfig, infrastructureConfig, databaseServiceResult,
+                        entandoAppDeployment)
+        );
+    }
+
+    private EntandoAppDeploymentResult performDeployCommand(AbstractEntandoAppDeployable deployable) {
+        EntandoAppDeploymentResult result = new IngressingDeployCommand<>(deployable).execute(k8sClient, keycloakClient);
+        k8sClient.entandoResources().updateStatus(deployable.getCustomResource(), result.getStatus());
+        return result;
     }
 
 }

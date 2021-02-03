@@ -17,16 +17,14 @@
 package org.entando.kubernetes.controller.app.interprocesstests;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
-import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.SampleWriter;
+import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
-import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
-import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Tags;
@@ -56,12 +54,12 @@ class AddEntandoAppWithExternalPostgresqlDatabaseIT extends AddEntandoAppBaseIT 
         //When I create the entando app
         createAndWaitForApp(entandoApp, 0, false);
         //I see all the expected deployments
-        verifyAllExpectedResources();
+        verifyAllExpectedResources(entandoApp);
         //And recreating the app still succeeds even though all the DB secrets were deleted
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_K8S_OPERATOR_FORCE_DB_PASSWORD_RESET.getJvmSystemProperty(), "true");
         helper.setTextFixture(deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
         createAndWaitForApp(entandoApp, 0, false);
-        verifyAllExpectedResources();
+        verifyAllExpectedResources(entandoApp);
 
     }
 

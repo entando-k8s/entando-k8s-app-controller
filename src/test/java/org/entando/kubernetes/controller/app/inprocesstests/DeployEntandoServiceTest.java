@@ -26,6 +26,7 @@ import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,11 +46,6 @@ import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
 import java.util.Collections;
 import java.util.Map;
-import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
-import org.entando.kubernetes.controller.IngressingDeployCommand;
-import org.entando.kubernetes.controller.KeycloakClientConfig;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.app.EntandoAppController;
 import org.entando.kubernetes.controller.app.EntandoAppDeployableContainer;
 import org.entando.kubernetes.controller.app.testutils.EnvVarAssertionHelper;
@@ -58,8 +54,13 @@ import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.KeycloakC
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
-import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
-import org.entando.kubernetes.controller.test.support.FluentTraversals;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.common.SecretUtils;
+import org.entando.kubernetes.controller.spi.container.KeycloakClientConfig;
+import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
+import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
+import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.JeeServer;
@@ -79,7 +80,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
-class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, VariableReferenceAssertions {
+//Because Sonar cannot detect custom matchers and captors
+@SuppressWarnings("java:S6073")
+class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelper, VariableReferenceAssertions {
 
     private static final String MY_APP_SERVER = MY_APP + "-server";
     private static final String MY_APP_SERVER_SERVICE = MY_APP_SERVER + "-service";
@@ -91,6 +94,12 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
     private static final String DIGITAL_EXCHANGE = "/digital-exchange";
     private static final String APP_BUILDER = "/app-builder/";
     private static final String MY_APP_SERVER_DEPLOYMENT = MY_APP_SERVER + "-deployment";
+    private static final String MY_APP_APP_BUILDER = MY_APP + "-ab";
+    private static final String MY_APP_APP_BUILDER_SERVICE = MY_APP_APP_BUILDER + "-service";
+    private static final String MY_APP_APP_BUILDER_DEPLOYMENT = MY_APP_APP_BUILDER + "-deployment";
+    private static final String MY_APP_COMPONENT_MANAGER = MY_APP + "-cm";
+    private static final String MY_APP_COMPONENT_MANAGER_SERVICE = MY_APP_COMPONENT_MANAGER + "-service";
+    private static final String MY_APP_COMPONENT_MANAGER_DEPLOYMENT = MY_APP_COMPONENT_MANAGER + "-deployment";
     private static final String APPBUILDER_PORT = "appbuilder-port";
     private static final String MY_APP_DB_SERVICE = MY_APP + "-db-service";
     static final String MARKER_VAR_VALUE = "myvalue";
@@ -161,7 +170,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         assertThat(resultingPersistentVolumeClaim.getMetadata().getLabels().get(DEPLOYMENT_LABEL_NAME),
                 is(MY_APP_SERVER));
         //And the PersistentVolumeClaim state was reloaded from  K8S
-        verify(client.persistentVolumeClaims()).loadPersistentVolumeClaim(eq(newEntandoApp), eq(MY_APP_SERVER_PVC));
+        verify(client.persistentVolumeClaims()).loadPersistentVolumeClaim(newEntandoApp, MY_APP_SERVER_PVC);
         //And K8S was instructed to update the status of the EntandoApp with the status of the PVC
         verify(client.entandoResources(), atLeastOnce())
                 .updateStatus(eq(newEntandoApp), argThat(containsThePersistentVolumeClaimStatus(pvcStatus)));
@@ -172,33 +181,53 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         //Given I have an Entando App with a JBoss EAP server
         EntandoApp newEntandoApp = entandoApp;
         //And that K8S is up and receiving Service requests
-        ServiceStatus serviceStatus = new ServiceStatus();
+        ServiceStatus appServiceStatus = new ServiceStatus();
         lenient().when(client.services().loadService(eq(newEntandoApp), eq(MY_APP_SERVER_SERVICE)))
-                .then(respondWithServiceStatus(serviceStatus));
+                .then(respondWithServiceStatus(appServiceStatus));
 
         //When the the EntandoAppController is notified that a new EntandoApp has been added
         entandoAppController.onStartup(new StartupEvent());
-        //Then a K8S Service was created with a name that reflects the EntandoApp and the fact that it is a JEE service
-        NamedArgumentCaptor<Service> serviceCaptor = forResourceNamed(Service.class, MY_APP_SERVER_SERVICE);
-        verify(client.services()).createOrReplaceService(eq(newEntandoApp), serviceCaptor.capture());
-        Service resultingService = serviceCaptor.getValue();
+        //Then a K8S Service was created with a name that reflects the EntandoApp and the fact that it is the EntandoApp server
+        NamedArgumentCaptor<Service> appServiceCaptor = forResourceNamed(Service.class, MY_APP_SERVER_SERVICE);
+        verify(client.services()).createOrReplaceService(eq(newEntandoApp), appServiceCaptor.capture());
+        Service appServerService = appServiceCaptor.getValue();
         //And a selector that matches the EntandoApp and the EntandoAppJeeServer pods
-        Map<String, String> selector = resultingService.getSpec().getSelector();
+        Map<String, String> selector = appServerService.getSpec().getSelector();
         assertThat(selector.get(DEPLOYMENT_LABEL_NAME), is(MY_APP_SERVER));
         assertThat(selector.get(ENTANDO_APP_LABEL_NAME), is(MY_APP));
         //And the TCP port 8080 named 'server-port'
-        assertThat(thePortNamed(SERVER_PORT).on(resultingService).getPort(), is(8080));
-        assertThat(thePortNamed(SERVER_PORT).on(resultingService).getProtocol(), is("TCP"));
-        assertThat(thePortNamed(SERVER_PORT).on(resultingService).getTargetPort().getIntVal(), is(8080));
+        assertThat(thePortNamed(SERVER_PORT).on(appServerService).getPort(), is(8080));
+        assertThat(thePortNamed(SERVER_PORT).on(appServerService).getProtocol(), is("TCP"));
+        assertThat(thePortNamed(SERVER_PORT).on(appServerService).getTargetPort().getIntVal(), is(8080));
+        //Then a K8S Service was created with a name that reflects the EntandoApp and the fact that it is the AppBuilder service
+        NamedArgumentCaptor<Service> appBuilderServiceCaptor = forResourceNamed(Service.class, MY_APP_APP_BUILDER_SERVICE);
+        verify(client.services()).createOrReplaceService(eq(newEntandoApp), appBuilderServiceCaptor.capture());
+        Service appBuilderService = appBuilderServiceCaptor.getValue();
+        //And a selector that matches the EntandoApp and the AppBuilder pods
+        Map<String, String> appBuilderSelector = appBuilderService.getSpec().getSelector();
+        assertThat(appBuilderSelector.get(DEPLOYMENT_LABEL_NAME), is(MY_APP_APP_BUILDER));
+        assertThat(appBuilderSelector.get(ENTANDO_APP_LABEL_NAME), is(MY_APP));
+        //And the TCP port 8083 named 'ab-port'
+        assertThat(thePortNamed(APPBUILDER_PORT).on(appBuilderService).getPort(), is(8081));
+        assertThat(thePortNamed(APPBUILDER_PORT).on(appBuilderService).getProtocol(), is("TCP"));
+        assertThat(thePortNamed(APPBUILDER_PORT).on(appBuilderService).getTargetPort().getIntVal(), is(8081));
+        //Then a K8S Service was created with a name that reflects the EntandoApp and the fact that it is the ComponentManager service
+        NamedArgumentCaptor<Service> componentManagerServiceCaptor = forResourceNamed(Service.class, MY_APP_COMPONENT_MANAGER_SERVICE);
+        verify(client.services()).createOrReplaceService(eq(newEntandoApp), componentManagerServiceCaptor.capture());
+        Service componentManagerService = componentManagerServiceCaptor.getValue();
+        //And a selector that matches the EntandoApp and the ComponentManager pods
+        Map<String, String> componentManagerSelector = componentManagerService.getSpec().getSelector();
+        assertThat(componentManagerSelector.get(DEPLOYMENT_LABEL_NAME), is(MY_APP_COMPONENT_MANAGER));
+        assertThat(componentManagerSelector.get(ENTANDO_APP_LABEL_NAME), is(MY_APP));
         //And the TCP port 8083 named 'de-port'
-        assertThat(thePortNamed(DE_PORT).on(resultingService).getPort(), is(8083));
-        assertThat(thePortNamed(DE_PORT).on(resultingService).getProtocol(), is("TCP"));
-        assertThat(thePortNamed(DE_PORT).on(resultingService).getTargetPort().getIntVal(), is(8083));
+        assertThat(thePortNamed(DE_PORT).on(componentManagerService).getPort(), is(8083));
+        assertThat(thePortNamed(DE_PORT).on(componentManagerService).getProtocol(), is("TCP"));
+        assertThat(thePortNamed(DE_PORT).on(componentManagerService).getTargetPort().getIntVal(), is(8083));
         //And the Service state was reloaded from K8S
-        verify(client.services()).loadService(eq(newEntandoApp), eq(MY_APP_SERVER_SERVICE));
+        verify(client.services()).loadService(newEntandoApp, MY_APP_SERVER_SERVICE);
 
         //And K8S was instructed to update the status of the EntandoApp with the status of the service
-        verify(client.entandoResources(), atLeastOnce()).updateStatus(eq(newEntandoApp), argThat(matchesServiceStatus(serviceStatus)));
+        verify(client.entandoResources(), atLeastOnce()).updateStatus(eq(newEntandoApp), argThat(matchesServiceStatus(appServiceStatus)));
     }
 
     @Test
@@ -215,7 +244,8 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         //Then a K8S Ingress was created with the hostname specified in the Entando App
         ArgumentCaptor<Ingress> ingressArgumentCaptor = ArgumentCaptor.forClass(Ingress.class);
         verify(client.ingresses()).createIngress(eq(newEntandoApp), ingressArgumentCaptor.capture());
-        Ingress theIngress = ingressArgumentCaptor.getValue();
+        Ingress theIngress = client.ingresses().loadIngress(ingressArgumentCaptor.getValue().getMetadata().getNamespace(),
+                ingressArgumentCaptor.getValue().getMetadata().getName());
         assertThat(theIngress.getSpec().getRules().get(0).getHost(), is("myapp.192.168.0.100.nip.io"));
         // Then a K8S Ingress Path was created that reflects the webcontext of the entando-de-app
         assertThat(theHttpPath(ENTANDO_DE_APP).on(theIngress).getBackend().getServicePort().getIntVal(), is(8080));
@@ -223,16 +253,16 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
 
         // And a K8S Ingress Path was created that reflects the webcontext of the component-manager
         assertThat(theHttpPath(DIGITAL_EXCHANGE).on(theIngress).getBackend().getServicePort().getIntVal(), is(8083));
-        assertThat(theHttpPath(DIGITAL_EXCHANGE).on(theIngress).getBackend().getServiceName(), is(MY_APP_SERVER_SERVICE));
+        assertThat(theHttpPath(DIGITAL_EXCHANGE).on(theIngress).getBackend().getServiceName(), is(MY_APP_COMPONENT_MANAGER_SERVICE));
 
         // And a K8S Ingress Path was created that reflects the webcontext of the appbuilder
         assertThat(theHttpPath(APP_BUILDER).on(theIngress).getBackend().getServicePort().getIntVal(), is(8081));
-        assertThat(theHttpPath(APP_BUILDER).on(theIngress).getBackend().getServiceName(), is(MY_APP_SERVER_SERVICE));
+        assertThat(theHttpPath(APP_BUILDER).on(theIngress).getBackend().getServiceName(), is(MY_APP_APP_BUILDER_SERVICE));
         assertThat(theIngress.getMetadata().getAnnotations().get("nginx.ingress.kubernetes.io/proxy-body-size"), is("500m"));
 
         //And the Ingress state was reloaded from K8S
         verify(client.ingresses(), atLeast(2))
-                .loadIngress(eq(newEntandoApp.getMetadata().getNamespace()), eq(MY_APP + "-" + KubeUtils.DEFAULT_INGRESS_SUFFIX));
+                .loadIngress(newEntandoApp.getMetadata().getNamespace(), MY_APP + "-" + NameUtils.DEFAULT_INGRESS_SUFFIX);
         //And K8S was instructed to update the status of the EntandoApp with the status of the ingress
         verify(client.entandoResources(), atLeastOnce()).updateStatus(eq(newEntandoApp), argThat(matchesIngressStatus(ingressStatus)));
     }
@@ -265,17 +295,41 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         assertThat(selector.get(DEPLOYMENT_LABEL_NAME), is(MY_APP_SERVER));
         assertThat(selector.get(ENTANDO_APP_LABEL_NAME), is(MY_APP));
 
-        verifyTheAppBuilderContainer(theServerDeployment);
         verifyTheEntandoServerContainer(theServerDeployment);
-        verifyTheComponentManagerContainer(theServerDeployment);
+
+        // Then a K8S deployment is created with a name that reflects the EntandoApp name and
+        // the fact that it is an AppBuilder deployment
+        NamedArgumentCaptor<Deployment> appBuilderDeploymentCaptor = forResourceNamed(Deployment.class, MY_APP_APP_BUILDER_DEPLOYMENT);
+        verify(client.deployments()).createOrPatchDeployment(eq(newEntandoApp), appBuilderDeploymentCaptor.capture());
+        Deployment appBuilderDeployment = appBuilderDeploymentCaptor.getValue();
+
+        //With a Pod Template that has labels linking it to the previously created K8S Service
+        Map<String, String> appBuilderSelector = appBuilderDeployment.getSpec().getTemplate().getMetadata().getLabels();
+        assertThat(appBuilderSelector.get(DEPLOYMENT_LABEL_NAME), is(MY_APP_APP_BUILDER));
+        assertThat(appBuilderSelector.get(ENTANDO_APP_LABEL_NAME), is(MY_APP));
+        verifyTheAppBuilderContainer(appBuilderDeployment);
+
+        // Then a K8S deployment is created with a name that reflects the EntandoApp name and
+        // the fact that it is a ComponentManager  deployment
+        NamedArgumentCaptor<Deployment> componentManagerDeploymentCaptor = forResourceNamed(Deployment.class,
+                MY_APP_COMPONENT_MANAGER_DEPLOYMENT);
+        verify(client.deployments()).createOrPatchDeployment(eq(newEntandoApp), componentManagerDeploymentCaptor.capture());
+        Deployment componentManagerDeployment = componentManagerDeploymentCaptor.getValue();
+
+        //With a Pod Template that has labels linking it to the previously created K8S Service
+        Map<String, String> componentManagerSelector = componentManagerDeployment.getSpec().getTemplate().getMetadata().getLabels();
+        assertThat(componentManagerSelector.get(DEPLOYMENT_LABEL_NAME), is(MY_APP_COMPONENT_MANAGER));
+        assertThat(componentManagerSelector.get(ENTANDO_APP_LABEL_NAME), is(MY_APP));
+
+        verifyTheComponentManagerContainer(componentManagerDeployment);
 
         //And mapping a persistent volume with a name that reflects the EntandoApp and the fact that this is a DB Volume
         assertThat(theVolumeNamed(MY_APP_SERVER_VOLUME).on(theServerDeployment).getPersistentVolumeClaim().getClaimName(),
                 is(MY_APP_SERVER_PVC));
 
         //And the Deployment state was reloaded from K8S
-        verify(client.deployments()).loadDeployment(eq(newEntandoApp), eq(MY_APP_SERVER_DEPLOYMENT));
-        verify(client.entandoResources()).updatePhase(eq(newEntandoApp), eq(EntandoDeploymentPhase.SUCCESSFUL));
+        verify(client.deployments()).loadDeployment(newEntandoApp, MY_APP_SERVER_DEPLOYMENT);
+        verify(client.entandoResources()).updatePhase(newEntandoApp, EntandoDeploymentPhase.SUCCESSFUL);
         //And K8S was instructed to update the status of the EntandoApp with the status of the service
         verify(client.entandoResources(), atLeastOnce())
                 .updateStatus(eq(newEntandoApp), argThat(matchesDeploymentStatus(deploymentStatus)));
@@ -301,15 +355,15 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_USERNAME").on(theComponentManagerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-dedb-secret"));
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_USERNAME").on(theComponentManagerContainer).getSecretKeyRef().getKey(),
-                is(KubeUtils.USERNAME_KEY));
+                is(SecretUtils.USERNAME_KEY));
         assertThat(theVariableNamed("SPRING_DATASOURCE_URL").on(theComponentManagerContainer),
                 is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_dedb"));
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_PASSWORD").on(theComponentManagerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-dedb-secret"));
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_PASSWORD").on(theComponentManagerContainer).getSecretKeyRef().getKey(),
-                is(KubeUtils.PASSSWORD_KEY));
-        assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer), is("http://my-app-server-service:8080/entando-de-app"));
-        assertThat(theVariableNamed("DB_VENDOR").on(theComponentManagerContainer), is("mysql"));
+                is(SecretUtils.PASSSWORD_KEY));
+        assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer),
+                is("http://my-app-server-service.my-app-namespace.svc.cluster.local:8080/entando-de-app"));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theComponentManagerContainer), is(MARKER_VAR_VALUE));
         assertThat(theVariableNamed("GIT_SSH_COMMAND").on(theComponentManagerContainer),
                 is("ssh -o UserKnownHostsFile=/opt/.ssh/known_hosts -i /opt/.ssh/id_rsa -o IdentitiesOnly=yes"));
@@ -366,31 +420,33 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         assertThat(theVariableReferenceNamed("PORTDB_USERNAME").on(theEntandoServerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-portdb-secret"));
         assertThat(theVariableReferenceNamed("PORTDB_USERNAME").on(theEntandoServerContainer).getSecretKeyRef().getKey(),
-                is(KubeUtils.USERNAME_KEY));
+                is(SecretUtils.USERNAME_KEY));
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(theEntandoServerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-servdb-secret"));
         assertThat(theVariableReferenceNamed("SERVDB_PASSWORD").on(theEntandoServerContainer).getSecretKeyRef().getKey(),
-                is(KubeUtils.PASSSWORD_KEY));
+                is(SecretUtils.PASSSWORD_KEY));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theEntandoServerContainer), is(MARKER_VAR_VALUE));
         assertThat(theVariableNamed("JGROUPS_CLUSTER_PASSWORD").on(theEntandoServerContainer), is(notNullValue()));
         assertThat(theVariableNamed("OPENSHIFT_KUBE_PING_NAMESPACE").on(theEntandoServerContainer), is(MY_APP_NAMESPACE));
         assertThat(theVariableNamed("OPENSHIFT_KUBE_PING_LABELS").on(theEntandoServerContainer),
-                is(IngressingDeployCommand.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
-                        + KubeUtils.DEFAULT_SERVER_QUALIFIER));
+                is(KubeUtils.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+                        + NameUtils.DEFAULT_SERVER_QUALIFIER));
 
         //And per schema env vars are injected
-        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "PORTDB_",
-                this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
-                "mysql", "3306", "my_app_portdb");
-        EnvVarAssertionHelper.assertSchemaEnvironmentVariables(theEntandoServerContainer, "SERVDB_",
-                this, MY_APP_DB_SERVICE, MY_APP_NAMESPACE,
-                "mysql", "3306", "my_app_servdb");
+
+        assertThat(theVariableNamed("PORTDB_URL").on(theEntandoServerContainer),
+                is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_portdb"));
+        assertConnectionValidation(theEntandoServerContainer, "PORTDB_");
+
+        assertThat(theVariableNamed("SERVDB_URL").on(theEntandoServerContainer),
+                is("jdbc:mysql://" + MY_APP_DB_SERVICE + "." + MY_APP_NAMESPACE + ".svc.cluster.local:3306/my_app_servdb"));
+        assertConnectionValidation(theEntandoServerContainer, "SERVDB_");
 
         //But the db check on startup is disabled
         assertThat(theVariableNamed("DB_STARTUP_CHECK").on(theEntandoServerContainer), is("false"));
         //And Keycloak was configured to support OIDC Integration from the EntandoApp
-        verify(keycloakClient)
-                .createPublicClient(eq(ENTANDO_KEYCLOAK_REALM), eq(ENTANDO_PUBLIC_CLIENT), eq("https://myapp.192.168.0.100.nip.io"));
+        verify(keycloakClient, times(3))
+                .createPublicClient(ENTANDO_KEYCLOAK_REALM, ENTANDO_PUBLIC_CLIENT, "https://myapp.192.168.0.100.nip.io");
         //the controllers logged into Keycloak independently for the EntandoApp deployment
         verify(keycloakClient, atLeast(1))
                 .login(eq(MY_KEYCLOAK_BASE_URL), eq("entando_keycloak_admin"), anyString());
@@ -415,6 +471,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, FluentTraversals, V
         assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPath(),
                 is(ENTANDO_DE_APP + EntandoAppDeployableContainer.HEALTH_CHECK));
         assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPort().getIntVal(), is(8080));
+        //And the correct resource requests and limits have been applied
         Quantity memoryRequest = theEntandoServerContainer.getResources().getRequests().get("memory");
         assertThat(memoryRequest.getAmount(), is("0.3"));
         assertThat(memoryRequest.getFormat(), is("Gi"));
