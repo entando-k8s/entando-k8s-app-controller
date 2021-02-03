@@ -52,7 +52,8 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoAppSp
 
     @Override
     protected void synchronizeDeploymentState(EntandoApp entandoApp) {
-        KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources().findKeycloak(entandoApp);
+        KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources()
+                .findKeycloak(entandoApp, entandoApp.getSpec()::getKeycloakToUse);
         DatabaseServiceResult databaseServiceResult = prepareDatabaseService(entandoApp, entandoApp.getSpec().getDbms().orElse(
                 DbmsVendor.EMBEDDED));
         EntandoAppDeploymentResult entandoAppDeployment = performDeployCommand(
