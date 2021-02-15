@@ -17,14 +17,14 @@
 package org.entando.kubernetes.controller.app.interprocesstests;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
-import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
-import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
-import org.entando.kubernetes.controller.integrationtest.support.SampleWriter;
 import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
+import org.entando.kubernetes.test.e2etest.common.SampleWriter;
+import org.entando.kubernetes.test.e2etest.helpers.EntandoAppE2ETestHelper;
+import org.entando.kubernetes.test.e2etest.helpers.KeycloakE2ETestHelper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Tags;
@@ -35,29 +35,29 @@ class AddEntandoAppWithExternalPostgresqlDatabaseIT extends AddEntandoAppBaseIT 
 
     @Test
     void create() {
-        helper.externalDatabases().prepareExternalPostgresqlDatabase(EntandoAppIntegrationTestHelper.TEST_NAMESPACE, "EntandoApp");
+        helper.externalDatabases().prepareExternalPostgresqlDatabase(EntandoAppE2ETestHelper.TEST_NAMESPACE, "EntandoApp");
         EntandoApp entandoApp = new EntandoAppBuilder().withNewSpec()
                 .withStandardServerImage(JeeServer.WILDFLY)
                 .withDbms(DbmsVendor.POSTGRESQL)
-                .withIngressHostName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
+                .withIngressHostName(EntandoAppE2ETestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
                 .withNewKeycloakToUse()
-                .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
+                .withRealm(KeycloakE2ETestHelper.KEYCLOAK_REALM)
                 .endKeycloakToUse()
                 .withReplicas(1)
                 .withTlsSecretName(null)
                 .endSpec()
                 .build();
         entandoApp.setMetadata(new ObjectMeta());
-        entandoApp.getMetadata().setNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
+        entandoApp.getMetadata().setNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE);
         SampleWriter.writeSample(entandoApp, "app-with-external-postgresql-db");
-        entandoApp.getMetadata().setName(EntandoAppIntegrationTestHelper.TEST_APP_NAME);
+        entandoApp.getMetadata().setName(EntandoAppE2ETestHelper.TEST_APP_NAME);
         //When I create the entando app
         createAndWaitForApp(entandoApp, 0, false);
         //I see all the expected deployments
         verifyAllExpectedResources(entandoApp);
         //And recreating the app still succeeds even though all the DB secrets were deleted
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_K8S_OPERATOR_FORCE_DB_PASSWORD_RESET.getJvmSystemProperty(), "true");
-        helper.setTextFixture(deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
+        helper.setTextFixture(deleteAll(EntandoApp.class).fromNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE));
         createAndWaitForApp(entandoApp, 0, false);
         verifyAllExpectedResources(entandoApp);
 

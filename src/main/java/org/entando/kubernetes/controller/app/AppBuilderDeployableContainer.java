@@ -67,7 +67,7 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
 
     @Override
     public Optional<String> getHealthCheckPath() {
-        return Optional.of("/app-builder/index.html");
+        return Optional.of("/app-builder/favicon-entando.png");
     }
 
     @Override

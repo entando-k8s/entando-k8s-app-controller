@@ -23,13 +23,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
-import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
-import org.entando.kubernetes.controller.integrationtest.support.SampleWriter;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
+import org.entando.kubernetes.test.e2etest.common.SampleWriter;
+import org.entando.kubernetes.test.e2etest.helpers.EntandoAppE2ETestHelper;
+import org.entando.kubernetes.test.e2etest.helpers.KeycloakE2ETestHelper;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
@@ -47,15 +47,15 @@ class AddEntandoAppWithContainerizedDatabaseIT extends AddEntandoAppBaseIT {
                 .withStandardServerImage(JeeServer.WILDFLY)
                 .withDbms(DbmsVendor.POSTGRESQL)
                 .withNewKeycloakToUse()
-                .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
+                .withRealm(KeycloakE2ETestHelper.KEYCLOAK_REALM)
                 .endKeycloakToUse()
-                .withIngressHostName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
+                .withIngressHostName(EntandoAppE2ETestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
                 .withReplicas(1)
                 .endSpec()
                 .build();
         entandoApp.setMetadata(new ObjectMeta());
-        entandoApp.getMetadata().setNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
-        entandoApp.getMetadata().setName(EntandoAppIntegrationTestHelper.TEST_APP_NAME);
+        entandoApp.getMetadata().setNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE);
+        entandoApp.getMetadata().setName(EntandoAppE2ETestHelper.TEST_APP_NAME);
         SampleWriter.writeSample(entandoApp, "app-with-embedded-postgresql-db");
 
         createAndWaitForApp(entandoApp, 100, true);
@@ -65,20 +65,20 @@ class AddEntandoAppWithContainerizedDatabaseIT extends AddEntandoAppBaseIT {
 
     @Override
     protected void verifyEntandoDbDeployment() {
-        Deployment deployment = client.apps().deployments().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-db-deployment").get();
+        Deployment deployment = client.apps().deployments().inNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE)
+                .withName(EntandoAppE2ETestHelper.TEST_APP_NAME + "-db-deployment").get();
         assertThat(
                 deployment
                         .getSpec().getTemplate().getSpec().getContainers().get(0).getPorts().get(0).getContainerPort(),
                 is(ENTANDO_DB_PORT));
-        Service service = client.services().inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-db-service").get();
+        Service service = client.services().inNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE)
+                .withName(EntandoAppE2ETestHelper.TEST_APP_NAME + "-db-service").get();
         assertThat(service.getSpec()
                 .getPorts().get(0).getPort(), is(ENTANDO_DB_PORT));
         assertTrue(deployment.getStatus().getReadyReplicas() >= 1);
         assertTrue(helper.entandoApps().getOperations()
-                .inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME).fromServer()
+                .inNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE)
+                .withName(EntandoAppE2ETestHelper.TEST_APP_NAME).fromServer()
                 .get().getStatus().forDbQualifiedBy("db").isPresent());
     }
 

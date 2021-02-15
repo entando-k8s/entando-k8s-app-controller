@@ -19,13 +19,13 @@ package org.entando.kubernetes.controller.app.interprocesstests;
 import static org.entando.kubernetes.controller.spi.common.NameUtils.snakeCaseOf;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
-import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
-import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
-import org.entando.kubernetes.controller.integrationtest.support.SampleWriter;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
+import org.entando.kubernetes.test.e2etest.common.SampleWriter;
+import org.entando.kubernetes.test.e2etest.helpers.EntandoAppE2ETestHelper;
+import org.entando.kubernetes.test.e2etest.helpers.KeycloakE2ETestHelper;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -36,16 +36,16 @@ class AddEntandoAppWithExternalOracleDatabaseIT extends AddEntandoAppBaseIT {
     void create() {
         //Given I have an external Oracle database
         helper.externalDatabases()
-                .prepareExternalOracleDatabase(EntandoAppIntegrationTestHelper.TEST_NAMESPACE,
-                        snakeCaseOf(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "_dedb"),
-                        snakeCaseOf(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "_portdb"),
-                        snakeCaseOf(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "_servdb"));
+                .prepareExternalOracleDatabase(EntandoAppE2ETestHelper.TEST_NAMESPACE,
+                        snakeCaseOf(EntandoAppE2ETestHelper.TEST_APP_NAME + "_dedb"),
+                        snakeCaseOf(EntandoAppE2ETestHelper.TEST_APP_NAME + "_portdb"),
+                        snakeCaseOf(EntandoAppE2ETestHelper.TEST_APP_NAME + "_servdb"));
         EntandoApp entandoApp = new EntandoAppBuilder().withNewSpec()
                 .withStandardServerImage(JeeServer.WILDFLY)
                 .withDbms(DbmsVendor.ORACLE)
-                .withIngressHostName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
+                .withIngressHostName(EntandoAppE2ETestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix())
                 .withNewKeycloakToUse()
-                .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
+                .withRealm(KeycloakE2ETestHelper.KEYCLOAK_REALM)
                 .endKeycloakToUse()
                 .withReplicas(1)
                 .withTlsSecretName(null)
@@ -53,10 +53,10 @@ class AddEntandoAppWithExternalOracleDatabaseIT extends AddEntandoAppBaseIT {
                 .build();
 
         entandoApp.setMetadata(new ObjectMeta());
-        entandoApp.getMetadata().setNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
+        entandoApp.getMetadata().setNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE);
         SampleWriter.writeSample(entandoApp, "app-with-external-oracle-db");
 
-        entandoApp.getMetadata().setName(EntandoAppIntegrationTestHelper.TEST_APP_NAME);
+        entandoApp.getMetadata().setName(EntandoAppE2ETestHelper.TEST_APP_NAME);
         createAndWaitForApp(entandoApp, 0, false);
         verifyAllExpectedResources(entandoApp);
     }

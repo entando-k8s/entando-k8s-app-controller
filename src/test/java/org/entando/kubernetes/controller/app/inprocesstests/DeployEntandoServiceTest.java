@@ -49,23 +49,24 @@ import java.util.Map;
 import org.entando.kubernetes.controller.app.EntandoAppController;
 import org.entando.kubernetes.controller.app.EntandoAppDeployableContainer;
 import org.entando.kubernetes.controller.app.testutils.EnvVarAssertionHelper;
-import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
-import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.KeycloakClientConfigArgumentCaptor;
-import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
-import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
-import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.common.SecretUtils;
 import org.entando.kubernetes.controller.spi.container.KeycloakClientConfig;
 import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.support.client.doubles.EntandoResourceClientDouble;
+import org.entando.kubernetes.controller.support.client.doubles.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.controller.support.common.KubeUtils;
-import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
+import org.entando.kubernetes.test.common.FluentTraversals;
+import org.entando.kubernetes.test.common.VariableReferenceAssertions;
+import org.entando.kubernetes.test.componenttest.InProcessTestUtil;
+import org.entando.kubernetes.test.componenttest.argumentcaptors.KeycloakClientConfigArgumentCaptor;
+import org.entando.kubernetes.test.componenttest.argumentcaptors.NamedArgumentCaptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -82,7 +83,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tags({@Tag("in-process"), @Tag("pre-deployment"), @Tag("component")})
 //Because Sonar cannot detect custom matchers and captors
 @SuppressWarnings("java:S6073")
-class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelper, VariableReferenceAssertions {
+class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelper, VariableReferenceAssertions, FluentTraversals {
 
     private static final String MY_APP_SERVER = MY_APP + "-server";
     private static final String MY_APP_SERVER_SERVICE = MY_APP_SERVER + "-service";
@@ -449,7 +450,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
                 .createPublicClient(ENTANDO_KEYCLOAK_REALM, ENTANDO_PUBLIC_CLIENT, "https://myapp.192.168.0.100.nip.io");
         //the controllers logged into Keycloak independently for the EntandoApp deployment
         verify(keycloakClient, atLeast(1))
-                .login(eq(MY_KEYCLOAK_BASE_URL), eq("entando_keycloak_admin"), anyString());
+                .login(eq(InProcessTestUtil.MY_KEYCLOAK_BASE_URL), eq("entando_keycloak_admin"), anyString());
         KeycloakClientConfigArgumentCaptor keycloakClientConfigCaptor = forClientId(MY_APP_SERVER);
         verify(keycloakClient).prepareClientAndReturnSecret(keycloakClientConfigCaptor.capture());
         assertThat(keycloakClientConfigCaptor.getValue().getClientId(), is(MY_APP_SERVER));
