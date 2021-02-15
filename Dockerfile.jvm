@@ -1,5 +1,4 @@
 #FROM entando/entando-ubi8-java11-base:6.3.0
-FROMtar
 ARG VERSION
 LABEL name="Entando K8S App Controller" \
       vendor="Entando" \
