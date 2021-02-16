@@ -1,5 +1,5 @@
 #FROM entando/entando-ubi8-java11-base:6.3.0
-FROM entando/entando-k8s-operator-common:0.0.0-SNAPSHOT-PR-54-18
+FROM entando/entando-k8s-operator-common:0.0.0-SNAPSHOT-PR-54-24
 ARG VERSION
 LABEL name="Entando K8S App Controller" \
       vendor="Entando" \
