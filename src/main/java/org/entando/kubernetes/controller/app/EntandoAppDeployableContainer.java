@@ -178,7 +178,7 @@ public class EntandoAppDeployableContainer
 
         if (dbmsVendor == DbmsVendor.EMBEDDED) {
             vars.add(new EnvVar(varNamePrefix + "DRIVER", "derby", null));
-        } else {
+        } else if (dbmsVendor != DbmsVendor.NONE) {
             DatabaseSchemaConnectionInfo connectionInfo = this.databaseSchemaConnectionInfo.get(schemaIndex);
             String jdbcUrl = connectionInfo.getJdbcUrl();
             vars.add(new EnvVar(varNamePrefix + "URL", jdbcUrl, null));

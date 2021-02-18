@@ -20,7 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 import io.fabric8.kubernetes.api.model.Container;
-import org.entando.kubernetes.controller.test.support.FluentTraversals;
+import org.entando.kubernetes.test.common.FluentTraversals;
 
 public interface EnvVarAssertionHelper extends FluentTraversals {
 
