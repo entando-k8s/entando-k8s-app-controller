@@ -67,6 +67,7 @@ import org.entando.kubernetes.test.common.VariableReferenceAssertions;
 import org.entando.kubernetes.test.componenttest.InProcessTestUtil;
 import org.entando.kubernetes.test.componenttest.argumentcaptors.KeycloakClientConfigArgumentCaptor;
 import org.entando.kubernetes.test.componenttest.argumentcaptors.NamedArgumentCaptor;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -270,8 +271,6 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
 
     @Test
     void testDeployment() {
-        //Given I use the 6.0.0 image version by default
-        System.setProperty(EntandoOperatorConfigProperty.ENTANDO_DOCKER_IMAGE_VERSION_FALLBACK.getJvmSystemProperty(), "6.0.0");
         //Given I have an Entando App with a JBoss EAP server
         EntandoApp newEntandoApp = entandoApp;
         //And K8S is receiving Deployment requests
@@ -351,7 +350,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         assertThat(thePortNamed(DE_PORT).on(theComponentManagerContainer).getContainerPort(), is(8083));
         assertThat(thePortNamed(DE_PORT).on(theComponentManagerContainer).getProtocol(), is(TCP));
         //That points to the correct Docker image
-        assertThat(theComponentManagerContainer.getImage(), is("docker.io/entando/entando-component-manager:6.0.0"));
+        assertThat(theComponentManagerContainer.getImage(), Matchers.containsString("entando/entando-component-manager"));
         //And that is configured to point to the DB Service
         assertThat(theVariableReferenceNamed("SPRING_DATASOURCE_USERNAME").on(theComponentManagerContainer).getSecretKeyRef().getName(),
                 is(MY_APP + "-dedb-secret"));
@@ -391,7 +390,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         assertThat(theVariableNamed("DOMAIN").on(theAppBuilderContainer), is("/entando-de-app"));
         assertThat(theVariableNamed(MARKER_VAR_NAME).on(theAppBuilderContainer), is(MARKER_VAR_VALUE));
         //That points to the correct Docker image
-        assertThat(theAppBuilderContainer.getImage(), is("docker.io/entando/app-builder:6.0.0"));
+        assertThat(theAppBuilderContainer.getImage(), Matchers.containsString("entando/app-builder"));
         Quantity memoryRequest = theAppBuilderContainer.getResources().getRequests().get("memory");
         assertThat(memoryRequest.getAmount(), is("128"));
         assertThat(memoryRequest.getFormat(), is("Mi"));
@@ -412,7 +411,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         // container
         Container theEntandoServerContainer = theContainerNamed("server-container").on(theServerDeployment);
         //That points to the correct Docker image
-        assertThat(theEntandoServerContainer.getImage(), is("docker.io/entando/entando-de-app-eap:6.0.0"));
+        assertThat(theEntandoServerContainer.getImage(), Matchers.containsString("entando/entando-de-app-eap"));
         //Exposing a port named 'server-port' on 8080
         assertThat(thePortNamed(SERVER_PORT).on(theEntandoServerContainer).getContainerPort(), is(8080));
         assertThat(thePortNamed(SERVER_PORT).on(theEntandoServerContainer).getProtocol(), is(TCP));
