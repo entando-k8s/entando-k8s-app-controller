@@ -393,10 +393,10 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         //That points to the correct Docker image
         assertThat(theAppBuilderContainer.getImage(), is("docker.io/entando/app-builder:6.0.0"));
         Quantity memoryRequest = theAppBuilderContainer.getResources().getRequests().get("memory");
-        assertThat(memoryRequest.getAmount(), is("51.2"));
+        assertThat(memoryRequest.getAmount(), is("128"));
         assertThat(memoryRequest.getFormat(), is("Mi"));
         Quantity cpuRequest = theAppBuilderContainer.getResources().getRequests().get("cpu");
-        assertThat(cpuRequest.getAmount(), is("50"));
+        assertThat(cpuRequest.getAmount(), is("125"));
         assertThat(cpuRequest.getFormat(), is("m"));
         Quantity memoryLimit = theAppBuilderContainer.getResources().getLimits().get("memory");
         assertThat(memoryLimit.getAmount(), is("512"));
@@ -474,10 +474,10 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         assertThat(theEntandoServerContainer.getReadinessProbe().getHttpGet().getPort().getIntVal(), is(8080));
         //And the correct resource requests and limits have been applied
         Quantity memoryRequest = theEntandoServerContainer.getResources().getRequests().get("memory");
-        assertThat(memoryRequest.getAmount(), is("0.3"));
-        assertThat(memoryRequest.getFormat(), is("Gi"));
+        assertThat(memoryRequest.getAmount(), is("750"));
+        assertThat(memoryRequest.getFormat(), is("Mi"));
         Quantity cpuRequest = theEntandoServerContainer.getResources().getRequests().get("cpu");
-        assertThat(cpuRequest.getAmount(), is("200"));
+        assertThat(cpuRequest.getAmount(), is("500"));
         assertThat(cpuRequest.getFormat(), is("m"));
         Quantity memoryLimit = theEntandoServerContainer.getResources().getLimits().get("memory");
         assertThat(memoryLimit.getAmount(), is("3"));
