@@ -10,9 +10,9 @@ pipelineConfig:
     - name: ENTANDO_K8S_OPERATOR_SECURITY_MODE
       value: "strict"
     - name: RELATED_IMAGE_ENTANDO_DE_APP_WILDFLY
-      value: entando/entando-de-app-wildfly:6.4.42
+      value: entando/entando-de-app-wildfly:6.3.42
     - name: RELATED_IMAGE_ENTANDO_DE_APP_EAP
-      value: entando/entando-de-app-eap:6.4.42
+      value: entando/entando-de-app-eap:6.3.42
     - name: EXECUTABLE_TYPE
       valueFrom:
         secretKeyRef:
