@@ -16,6 +16,7 @@
 
 package org.entando.kubernetes.controller.app.inprocesstests;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -151,7 +152,7 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, Common
         assertThat(resultingPersistentVolumeClaim.getSpec().getAccessModes().get(0), is("ReadWriteOnce"));
         //With a default size of 2Gi
         assertThat(resultingPersistentVolumeClaim.getSpec().getResources().getRequests().get("storage").getAmount(),
-                is("204.8"));
+                is("512"));
         assertThat(resultingPersistentVolumeClaim.getSpec().getResources().getRequests().get("storage").getFormat(),
                 is("Mi"));
         //And labels that link this PVC to the EntandoAppd DB deployment
@@ -198,9 +199,6 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, Common
 
     @Test
     void testDeployment() {
-        //Given I use the 6.0.0 image version by default
-        System.setProperty(EntandoOperatorConfigProperty.ENTANDO_DOCKER_IMAGE_VERSION_FALLBACK.getJvmSystemProperty(), "6.0.0");
-
         //Given I have a fully deployed KeycloakServer
         emulateKeycloakDeployment(this.client);
         //and I have an Entando App with a Wildfly server
@@ -230,10 +228,8 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, Common
         assertThat(theVolumeMountNamed(MY_APP_DB_VOLUME).on(thePrimaryContainerOn(resultingDeployment)).getMountPath(),
                 is("/var/lib/mysql/data"));
         //That is linked to the previously created PersistentVolumeClaim
-        //Please note: the docker.io and 6.0.0 my seem counter-intuitive, but it indicates that we are
-        //actually controlling the image as intended
         //With the correct version in the configmap this will work as planned
-        assertThat(thePrimaryContainerOn(resultingDeployment).getImage(), is("docker.io/centos/mysql-80-centos7:latest"));
+        assertThat(thePrimaryContainerOn(resultingDeployment).getImage(), containsString("centos/mysql-80-centos7:latest"));
         //And the Deployment state was reloaded from K8S
         verify(client.deployments()).loadDeployment(newEntandoApp, MY_APP_DB_DEPLOYMENT);
 
