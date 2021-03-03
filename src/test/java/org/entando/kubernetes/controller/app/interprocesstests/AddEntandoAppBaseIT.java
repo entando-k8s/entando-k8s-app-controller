@@ -37,7 +37,9 @@ import org.entando.kubernetes.client.integrationtesthelpers.HttpTestHelper;
 import org.entando.kubernetes.controller.app.ComponentManagerDeployableContainer;
 import org.entando.kubernetes.controller.app.EntandoAppController;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.support.common.EntandoOperatorConfig;
 import org.entando.kubernetes.controller.support.common.KubeUtils;
+import org.entando.kubernetes.controller.support.common.TlsHelper;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
 import org.entando.kubernetes.test.common.CommonLabels;
@@ -52,6 +54,12 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
 
     protected final K8SIntegrationTestHelper helper = new K8SIntegrationTestHelper();
     protected final DefaultKubernetesClient client = helper.getClient();
+
+    protected AddEntandoAppBaseIT() {
+        EntandoOperatorConfig.getCertificateAuthoritySecretName()
+                .ifPresent(s -> TlsHelper.trustCertificateAuthoritiesIn(helper.getClient().secrets().withName(s).get()));
+
+    }
 
     @BeforeEach
     void cleanup() {

@@ -37,7 +37,7 @@ import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.container.PersistentVolumeAware;
 import org.entando.kubernetes.controller.spi.container.PortSpec;
-import org.entando.kubernetes.controller.spi.container.TlsAware;
+import org.entando.kubernetes.controller.spi.container.TrustStoreAware;
 import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
 import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.support.spibase.KeycloakAwareContainerBase;
@@ -48,7 +48,8 @@ import org.entando.kubernetes.model.KeycloakAwareSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class EntandoAppDeployableContainer
-        implements IngressingContainer, PersistentVolumeAware, KeycloakAwareContainerBase, DbAware, TlsAware, ParameterizableContainer,
+        implements IngressingContainer, PersistentVolumeAware, KeycloakAwareContainerBase, DbAware, TrustStoreAware,
+        ParameterizableContainer,
         ConfigurableResourceContainer {
 
     public static final String INGRESS_WEB_CONTEXT = "/entando-de-app";
