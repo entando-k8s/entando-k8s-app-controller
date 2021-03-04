@@ -23,10 +23,9 @@ import java.util.Optional;
 import org.entando.kubernetes.controller.spi.container.DeployableContainer;
 import org.entando.kubernetes.controller.spi.container.IngressingContainer;
 import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
-import org.entando.kubernetes.controller.spi.container.TlsAware;
 import org.entando.kubernetes.model.app.EntandoApp;
 
-public class AppBuilderDeployableContainer implements DeployableContainer, IngressingContainer, TlsAware, ParameterizableContainer {
+public class AppBuilderDeployableContainer implements DeployableContainer, IngressingContainer, ParameterizableContainer {
 
     private static final String ENTANDO_APP_BUILDER_IMAGE_NAME = "entando/app-builder";
     private final EntandoApp entandoApp;
