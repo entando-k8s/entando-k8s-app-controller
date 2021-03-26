@@ -83,6 +83,11 @@ public class EntandoAppDeployableContainer
     }
 
     @Override
+    public Optional<Integer> getMaximumStartupTimeSeconds() {
+        return Optional.of(240);
+    }
+
+    @Override
     public String determineImageToUse() {
         return entandoApp.getSpec().getCustomServerImage().orElse(determineStandardImage().getImageName());
     }
