@@ -83,6 +83,12 @@ public class EntandoAppDeployableContainer
     }
 
     @Override
+    public Optional<String> getStorageClass() {
+        return Optional
+                .ofNullable(entandoApp.getSpec().getStorageClass().orElse(PersistentVolumeAware.super.getStorageClass().orElse(null)));
+    }
+
+    @Override
     public Optional<Integer> getMaximumStartupTimeSeconds() {
         return Optional.of(240);
     }
