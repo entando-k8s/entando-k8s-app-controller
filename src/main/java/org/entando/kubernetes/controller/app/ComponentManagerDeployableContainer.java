@@ -62,11 +62,15 @@ public class ComponentManagerDeployableContainer
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.infrastructureConfig = infrastructureConfig;
         this.entandoAppDeployment = entandoAppDeployment;
-
         this.databaseSchemaConnectionInfo = Optional.ofNullable(databaseServiceResult)
                 .map(dsr -> DbAware.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Collections.singletonList(DEDB)))
                 .orElse(Collections.emptyList());
+    }
 
+    @Override
+    public Optional<String> getStorageClass() {
+        return Optional
+                .ofNullable(entandoApp.getSpec().getStorageClass().orElse(PersistentVolumeAware.super.getStorageClass().orElse(null)));
     }
 
     @Override
