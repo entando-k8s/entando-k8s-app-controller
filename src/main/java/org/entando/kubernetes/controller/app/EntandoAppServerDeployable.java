@@ -27,12 +27,6 @@ import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable implements DbAwareDeployable<EntandoAppDeploymentResult> {
-
-    /**
-     * The operating system level id of the default user in the EAP and Wildfly base images. Was determined to be 185 running the 'id'
-     * command in the entando/entando-eap72-clusted-base image or entando/entando-wildfly17-base image
-     */
-    public static final long DEFAULT_USERID_IN_JBOSS_BASE_IMAGES = 185L;
     private final List<DeployableContainer> containers;
 
     public EntandoAppServerDeployable(EntandoApp entandoApp,
@@ -44,10 +38,6 @@ public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable imp
         );
     }
 
-    @Override
-    public Optional<Long> getFileSystemUserAndGroupId() {
-        return Optional.of(DEFAULT_USERID_IN_JBOSS_BASE_IMAGES);
-    }
 
     @Override
     public List<DeployableContainer> getContainers() {

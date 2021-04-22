@@ -20,6 +20,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
+import java.util.Optional;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.spi.deployable.PublicIngressingDeployable;
@@ -29,12 +30,23 @@ import org.entando.kubernetes.model.app.EntandoApp;
 public abstract class AbstractEntandoAppDeployable
         implements PublicIngressingDeployable<EntandoAppDeploymentResult>, PublicIngressingDeployableBase<EntandoAppDeploymentResult> {
 
+    /**
+     * The operating system level id of the default user in the Red Hat base images. Was determined to be 185 running the 'id' command in
+     * the entando/entando-eap72-clusted-base image or entando/entando-wildfly17-base image or entando-component-manager image
+     */
+    public static final long DEFAULT_USERID_IN_JBOSS_BASE_IMAGES = 185L;
+
     protected final EntandoApp entandoApp;
     protected final KeycloakConnectionConfig keycloakConnectionConfig;
 
     protected AbstractEntandoAppDeployable(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
+    }
+
+    @Override
+    public Optional<Long> getFileSystemUserAndGroupId() {
+        return Optional.of(DEFAULT_USERID_IN_JBOSS_BASE_IMAGES);
     }
 
     @Override
