@@ -31,6 +31,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
+import org.entando.kubernetes.controller.app.AbstractEntandoAppDeployable;
 import org.entando.kubernetes.controller.app.EntandoAppController;
 import org.entando.kubernetes.controller.spi.common.DbmsVendorConfig;
 import org.entando.kubernetes.controller.spi.container.SpringBootDeployableContainer.SpringProperty;
@@ -154,7 +155,6 @@ class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, FluentTraver
         assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_URL.name())
                         .on(theContainerNamed("de-container").on(componentManagerDeployment)),
                 is("jdbc:h2:file:/entando-data/databases/de.db;DB_CLOSE_ON_EXIT=FALSE"));
-
         // And a volume mount has been set up reflecting the correct location of the h2 database
         assertThat(theVolumeNamed(MY_APP + "-de-volume").on(componentManagerDeployment).getPersistentVolumeClaim().getClaimName(),
                 is(MY_APP + "-de-pvc"));
@@ -163,7 +163,10 @@ class DeployEntandoWithEmbeddedDbTest implements InProcessTestUtil, FluentTraver
                 is("/entando-data"));
         // And a PersistentVolumeClaim has been created for the derby database
         assertThat(this.client.persistentVolumeClaims().loadPersistentVolumeClaim(entandoApp, MY_APP + "-de-pvc"), not(nullValue()));
-        assertThat(appServerDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(), is(185L));
+        assertThat(appServerDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(),
+                is(AbstractEntandoAppDeployable.DEFAULT_USERID_IN_JBOSS_BASE_IMAGES));
+        assertThat(componentManagerDeployment.getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup(),
+                is(AbstractEntandoAppDeployable.DEFAULT_USERID_IN_JBOSS_BASE_IMAGES));
         verifyThatAllVolumesAreMapped(entandoApp, client, appServerDeployment);
     }
 

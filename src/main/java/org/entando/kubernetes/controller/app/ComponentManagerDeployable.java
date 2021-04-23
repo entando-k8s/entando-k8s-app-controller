@@ -18,6 +18,7 @@ package org.entando.kubernetes.controller.app;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.entando.kubernetes.controller.spi.container.DeployableContainer;
 import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.spi.deployable.DbAwareDeployable;
@@ -27,6 +28,7 @@ import org.entando.kubernetes.model.app.EntandoApp;
 
 public class ComponentManagerDeployable extends AbstractEntandoAppDeployable implements DbAwareDeployable<EntandoAppDeploymentResult> {
 
+    public static final long COMPONENT_MANAGER_CURRENT_USER = 185L;
     private final List<DeployableContainer> containers;
 
     public ComponentManagerDeployable(EntandoApp entandoApp,
@@ -39,6 +41,11 @@ public class ComponentManagerDeployable extends AbstractEntandoAppDeployable imp
                 new ComponentManagerDeployableContainer(entandoApp, keycloakConnectionConfig, infrastructureConfig, entandoAppDeployment,
                         databaseServiceResult)
         );
+    }
+
+    @Override
+    public Optional<Long> getFileSystemUserAndGroupId() {
+        return Optional.of(COMPONENT_MANAGER_CURRENT_USER);
     }
 
     @Override
