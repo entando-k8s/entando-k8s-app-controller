@@ -79,7 +79,6 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
     }
 
     void createAndWaitForApp(EntandoApp entandoApp, int waitOffset, boolean deployingDbContainers) {
-        this.helper.entandoApps().ensureInfrastructureConnectionConfig();
         this.helper.keycloak()
                 .deleteKeycloakClients(entandoApp, "entando-web", EntandoAppE2ETestHelper.TEST_APP_NAME + "-de",
                         EntandoAppE2ETestHelper.TEST_APP_NAME + "-" + "server");

@@ -22,7 +22,6 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
-import org.entando.kubernetes.controller.support.client.InfrastructureConfig;
 import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.support.command.IngressingDeployCommand;
@@ -32,6 +31,8 @@ import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppSpec;
 
 public class EntandoAppController extends AbstractDbAwareController<EntandoAppSpec, EntandoApp> {
+
+    public static final String ENTANDO_K8S_SERVICE = "entando-k8s-service";
 
     @Inject
     public EntandoAppController(KubernetesClient kubernetesClient) {
@@ -60,9 +61,10 @@ public class EntandoAppController extends AbstractDbAwareController<EntandoAppSp
                 new EntandoAppServerDeployable(entandoApp, keycloakConnectionConfig, databaseServiceResult)
         );
         performDeployCommand(new AppBuilderDeployable(entandoApp, keycloakConnectionConfig));
-        InfrastructureConfig infrastructureConfig = k8sClient.entandoResources().findInfrastructureConfig(entandoApp).orElse(null);
+        EntandoK8SService k8sService = new EntandoK8SService(
+                this.k8sClient.services().loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE));
         performDeployCommand(
-                new ComponentManagerDeployable(entandoApp, keycloakConnectionConfig, infrastructureConfig, databaseServiceResult,
+                new ComponentManagerDeployable(entandoApp, keycloakConnectionConfig, k8sService, databaseServiceResult,
                         entandoAppDeployment)
         );
     }

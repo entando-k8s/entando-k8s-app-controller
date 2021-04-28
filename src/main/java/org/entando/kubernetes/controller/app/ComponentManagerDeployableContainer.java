@@ -30,8 +30,6 @@ import org.entando.kubernetes.controller.spi.container.PersistentVolumeAware;
 import org.entando.kubernetes.controller.spi.container.SecretToMount;
 import org.entando.kubernetes.controller.spi.container.SpringBootDeployableContainer;
 import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
-import org.entando.kubernetes.controller.support.client.InfrastructureConfig;
-import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.support.spibase.KeycloakAwareContainerBase;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.KeycloakAwareSpec;
@@ -48,14 +46,14 @@ public class ComponentManagerDeployableContainer
     public static final String ECR_GIT_CONFIG_DIR = "/etc/ecr-git-config";
     private final EntandoApp entandoApp;
     private final KeycloakConnectionConfig keycloakConnectionConfig;
-    private final InfrastructureConfig infrastructureConfig;
+    private final EntandoK8SService infrastructureConfig;
     private final EntandoAppDeploymentResult entandoAppDeployment;
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
 
     public ComponentManagerDeployableContainer(
             EntandoApp entandoApp,
             KeycloakConnectionConfig keycloakConnectionConfig,
-            InfrastructureConfig infrastructureConfig,
+            EntandoK8SService infrastructureConfig,
             EntandoAppDeploymentResult entandoAppDeployment,
             DatabaseServiceResult databaseServiceResult) {
         this.entandoApp = entandoApp;
@@ -95,7 +93,7 @@ public class ComponentManagerDeployableContainer
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPrimaryPort()), null));
-        getInfrastructureConfig().ifPresent(c -> vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", c.getK8SExternalServiceUrl(), null)));
+        vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", "http://" + infrastructureConfig.getInternalServiceHostname() + "/k8s", null));
         //The ssh files will be copied to /opt/.ssh and chmod to 400. This can only happen at runtime because Openshift generates a
         // random userid
         entandoApp.getSpec().getEcrGitSshSecretName().ifPresent(s -> vars.add(new EnvVar("GIT_SSH_COMMAND", "ssh "
@@ -147,8 +145,6 @@ public class ComponentManagerDeployableContainer
         String clientId = entandoApp.getMetadata().getName() + "-" + getNameQualifier();
         List<Permission> permissions = new ArrayList<>();
         permissions.add(new Permission(entandoAppClientId, "superuser"));
-        this.getInfrastructureConfig()
-                .ifPresent(c -> permissions.add(new Permission(c.getK8sServiceClientId(), KubeUtils.ENTANDO_APP_ROLE)));
         return new KeycloakClientConfig(getKeycloakRealmToUse(), clientId, clientId,
                 Collections.emptyList(),
                 permissions);
@@ -167,10 +163,6 @@ public class ComponentManagerDeployableContainer
     @Override
     public String getVolumeMountPath() {
         return "/entando-data";
-    }
-
-    private Optional<InfrastructureConfig> getInfrastructureConfig() {
-        return Optional.ofNullable(infrastructureConfig);
     }
 
     @Override

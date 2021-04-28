@@ -86,7 +86,6 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
     void createCustomResources() {
         client.entandoResources().createOrPatchEntandoResource(externalDatabase);
         emulateKeycloakDeployment(client);
-        emulateClusterInfrastuctureDeployment(client);
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());

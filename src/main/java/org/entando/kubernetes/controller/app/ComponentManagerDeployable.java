@@ -23,7 +23,6 @@ import org.entando.kubernetes.controller.spi.container.DeployableContainer;
 import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.spi.deployable.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
-import org.entando.kubernetes.controller.support.client.InfrastructureConfig;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class ComponentManagerDeployable extends AbstractEntandoAppDeployable implements DbAwareDeployable<EntandoAppDeploymentResult> {
@@ -33,7 +32,7 @@ public class ComponentManagerDeployable extends AbstractEntandoAppDeployable imp
 
     public ComponentManagerDeployable(EntandoApp entandoApp,
             KeycloakConnectionConfig keycloakConnectionConfig,
-            InfrastructureConfig infrastructureConfig,
+            EntandoK8SService infrastructureConfig,
             DatabaseServiceResult databaseServiceResult,
             EntandoAppDeploymentResult entandoAppDeployment) {
         super(entandoApp, keycloakConnectionConfig);

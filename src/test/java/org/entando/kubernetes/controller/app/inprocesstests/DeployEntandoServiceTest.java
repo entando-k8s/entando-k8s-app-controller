@@ -126,7 +126,6 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
 
     @BeforeEach
     void createReusedSecrets() {
-        emulateClusterInfrastuctureDeployment(client);
         emulateKeycloakDeployment(client);
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);

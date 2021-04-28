@@ -91,7 +91,6 @@ class DeployEntandoDbTest implements InProcessTestUtil, FluentTraversals, Common
 
     @BeforeEach
     void createReusedSecrets() {
-        emulateClusterInfrastuctureDeployment(client);
         emulateKeycloakDeployment(client);
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);
