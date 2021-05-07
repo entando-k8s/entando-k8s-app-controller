@@ -31,6 +31,7 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
 import org.entando.kubernetes.controller.app.EntandoAppController;
+import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfigProperty;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.common.SecretUtils;
 import org.entando.kubernetes.controller.spi.container.KeycloakClientConfig;
@@ -40,14 +41,13 @@ import org.entando.kubernetes.controller.support.client.doubles.EntandoResourceC
 import org.entando.kubernetes.controller.support.client.doubles.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.support.command.CreateExternalServiceCommand;
 import org.entando.kubernetes.controller.support.common.KubeUtils;
-import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
+import org.entando.kubernetes.model.common.DbmsVendor;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseServiceBuilder;
-import org.entando.kubernetes.model.infrastructure.EntandoClusterInfrastructure;
-import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
 import org.entando.kubernetes.test.common.CommonLabels;
+import org.entando.kubernetes.test.common.ExternalDatabaseService;
 import org.entando.kubernetes.test.common.FluentTraversals;
 import org.entando.kubernetes.test.componenttest.InProcessTestUtil;
 import org.entando.kubernetes.test.componenttest.argumentcaptors.LabeledArgumentCaptor;
@@ -73,8 +73,6 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
     private final EntandoApp entandoApp = new EntandoAppBuilder(newTestEntandoApp()).editSpec().withDbms(DbmsVendor.ORACLE).endSpec()
             .build();
     private final EntandoDatabaseService externalDatabase = buildExternalDatabase();
-    private final EntandoKeycloakServer keycloakServer = newEntandoKeycloakServer();
-    private final EntandoClusterInfrastructure entandoClusterInfrastructure = newEntandoClusterInfrastructure();
     @Spy
     private final SimpleK8SClient<EntandoResourceClientDouble> client = new SimpleK8SClientDouble();
     @Mock
@@ -89,14 +87,16 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
         entandoAppController = new EntandoAppController(client, keycloakClient);
         client.entandoResources().createOrPatchEntandoResource(entandoApp);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
-        System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAMESPACE, entandoApp.getMetadata().getNamespace());
-        System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAME, entandoApp.getMetadata().getName());
+        System.setProperty(EntandoOperatorSpiConfigProperty.ENTANDO_RESOURCE_NAMESPACE.getJvmSystemProperty(),
+                entandoApp.getMetadata().getNamespace());
+        System.setProperty(EntandoOperatorSpiConfigProperty.ENTANDO_RESOURCE_NAME.getJvmSystemProperty(),
+                entandoApp.getMetadata().getName());
     }
 
     @Test
     void testSecrets() {
         //Given I have created an ExternalDatabase custom resource
-        new CreateExternalServiceCommand(externalDatabase).execute(client);
+        new CreateExternalServiceCommand(new ExternalDatabaseService(externalDatabase), externalDatabase).execute(client);
         //and I have an Entando App with a Wildfly server
         EntandoApp newEntandoApp = entandoApp;
         //When the DeployCommand processes the addition request
@@ -117,7 +117,7 @@ class DeployEntandoOnExternalDbTest implements InProcessTestUtil, FluentTraversa
     @Test
     void testDeployment() {
         //Given I have created an ExternalDatabase custom resource
-        new CreateExternalServiceCommand(externalDatabase).execute(client);
+        new CreateExternalServiceCommand(new ExternalDatabaseService(externalDatabase), externalDatabase).execute(client);
         //and I have an Entando App with a Wildfly server
         EntandoApp newEntandoApp = entandoApp;
         //And Keycloak is receiving requests

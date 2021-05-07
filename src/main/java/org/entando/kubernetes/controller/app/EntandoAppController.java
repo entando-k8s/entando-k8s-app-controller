@@ -26,9 +26,9 @@ import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.support.command.IngressingDeployCommand;
 import org.entando.kubernetes.controller.support.controller.AbstractDbAwareController;
-import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppSpec;
+import org.entando.kubernetes.model.common.DbmsVendor;
 
 public class EntandoAppController extends AbstractDbAwareController<EntandoAppSpec, EntandoApp> {
 

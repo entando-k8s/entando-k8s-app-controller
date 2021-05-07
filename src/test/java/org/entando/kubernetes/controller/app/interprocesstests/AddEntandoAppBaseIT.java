@@ -27,19 +27,15 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
-import org.entando.kubernetes.client.EntandoOperatorTestConfig;
-import org.entando.kubernetes.client.EntandoOperatorTestConfig.TestTarget;
-import org.entando.kubernetes.client.integrationtesthelpers.FluentIntegrationTesting;
-import org.entando.kubernetes.client.integrationtesthelpers.HttpTestHelper;
-import org.entando.kubernetes.controller.app.ComponentManagerDeployableContainer;
 import org.entando.kubernetes.controller.app.EntandoAppController;
+import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
-import org.entando.kubernetes.controller.support.common.EntandoOperatorConfig;
-import org.entando.kubernetes.controller.support.common.KubeUtils;
-import org.entando.kubernetes.controller.support.common.TlsHelper;
+import org.entando.kubernetes.controller.spi.common.TrustStoreHelper;
+import org.entando.kubernetes.controller.support.client.impl.EntandoOperatorTestConfig;
+import org.entando.kubernetes.controller.support.client.impl.EntandoOperatorTestConfig.TestTarget;
+import org.entando.kubernetes.controller.support.client.impl.integrationtesthelpers.FluentIntegrationTesting;
+import org.entando.kubernetes.controller.support.client.impl.integrationtesthelpers.HttpTestHelper;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
 import org.entando.kubernetes.test.common.CommonLabels;
@@ -48,7 +44,6 @@ import org.entando.kubernetes.test.e2etest.helpers.K8SIntegrationTestHelper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.keycloak.representations.idm.ClientRepresentation;
-import org.keycloak.representations.idm.RoleRepresentation;
 
 abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLabels {
 
@@ -56,8 +51,8 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
     protected final DefaultKubernetesClient client = helper.getClient();
 
     protected AddEntandoAppBaseIT() {
-        EntandoOperatorConfig.getCertificateAuthoritySecretName()
-                .ifPresent(s -> TlsHelper.trustCertificateAuthoritiesIn(helper.getClient().secrets().withName(s).get()));
+        EntandoOperatorSpiConfig.getCertificateAuthoritySecretName()
+                .ifPresent(s -> TrustStoreHelper.trustCertificateAuthoritiesIn(helper.getClient().secrets().withName(s).get()));
 
     }
 
@@ -82,9 +77,6 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
         this.helper.keycloak()
                 .deleteKeycloakClients(entandoApp, "entando-web", EntandoAppE2ETestHelper.TEST_APP_NAME + "-de",
                         EntandoAppE2ETestHelper.TEST_APP_NAME + "-" + "server");
-        this.helper.keycloak()
-                .ensureKeycloakClient(entandoApp.getSpec(), EntandoAppE2ETestHelper.K8S_SVC_CLIENT_ID,
-                        Collections.singletonList(KubeUtils.ENTANDO_APP_ROLE));
         this.helper.entandoApps().createAndWaitForApp(entandoApp, waitOffset, deployingDbContainers);
     }
 
@@ -186,11 +178,6 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
                 .findClientById(KEYCLOAK_REALM,
                         EntandoAppE2ETestHelper.TEST_APP_NAME + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER);
         assertTrue(serverClient.isPresent());
-        String componentManagerClientId = EntandoAppE2ETestHelper.TEST_APP_NAME + "-"
-                + ComponentManagerDeployableContainer.COMPONENT_MANAGER_QUALIFIER;
-        List<RoleRepresentation> roles = helper.keycloak()
-                .retrieveServiceAccountRoles(KEYCLOAK_REALM, componentManagerClientId, EntandoAppE2ETestHelper.K8S_SVC_CLIENT_ID);
-        assertTrue(roles.stream().anyMatch(role -> role.getName().equals(KubeUtils.ENTANDO_APP_ROLE)));
 
     }
 

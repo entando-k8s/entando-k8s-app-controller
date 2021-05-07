@@ -19,10 +19,10 @@ package org.entando.kubernetes.controller.app.interprocesstests;
 import static org.entando.kubernetes.controller.spi.common.NameUtils.snakeCaseOf;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
-import org.entando.kubernetes.model.DbmsVendor;
-import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
+import org.entando.kubernetes.model.common.DbmsVendor;
+import org.entando.kubernetes.model.common.JeeServer;
 import org.entando.kubernetes.test.e2etest.common.SampleWriter;
 import org.entando.kubernetes.test.e2etest.helpers.EntandoAppE2ETestHelper;
 import org.entando.kubernetes.test.e2etest.helpers.KeycloakE2ETestHelper;
