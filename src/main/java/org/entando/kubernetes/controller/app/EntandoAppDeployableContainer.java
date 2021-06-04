@@ -16,6 +16,8 @@
 
 package org.entando.kubernetes.controller.app;
 
+import static java.lang.String.format;
+
 import io.fabric8.kubernetes.api.model.EnvVar;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,33 +26,33 @@ import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMode;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
+import org.entando.kubernetes.controller.spi.common.KeycloakPreference;
+import org.entando.kubernetes.controller.spi.common.LabelNames;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.common.SecretUtils;
 import org.entando.kubernetes.controller.spi.container.ConfigurableResourceContainer;
 import org.entando.kubernetes.controller.spi.container.DatabasePopulator;
 import org.entando.kubernetes.controller.spi.container.DatabaseSchemaConnectionInfo;
-import org.entando.kubernetes.controller.spi.container.DbAware;
+import org.entando.kubernetes.controller.spi.container.DbAwareContainer;
 import org.entando.kubernetes.controller.spi.container.DockerImageInfo;
 import org.entando.kubernetes.controller.spi.container.IngressingContainer;
-import org.entando.kubernetes.controller.spi.container.KeycloakClientConfig;
-import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
+import org.entando.kubernetes.controller.spi.container.KeycloakName;
 import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
-import org.entando.kubernetes.controller.spi.container.PersistentVolumeAware;
+import org.entando.kubernetes.controller.spi.container.PersistentVolumeAwareContainer;
 import org.entando.kubernetes.controller.spi.container.PortSpec;
-import org.entando.kubernetes.controller.spi.container.TrustStoreAware;
-import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
-import org.entando.kubernetes.controller.support.common.KubeUtils;
-import org.entando.kubernetes.controller.support.spibase.KeycloakAwareContainerBase;
+import org.entando.kubernetes.controller.spi.container.SsoAwareContainer;
+import org.entando.kubernetes.controller.spi.container.SsoClientConfig;
+import org.entando.kubernetes.controller.spi.container.SsoConnectionInfo;
+import org.entando.kubernetes.controller.spi.container.TrustStoreAwareContainer;
+import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.DbmsVendor;
 import org.entando.kubernetes.model.common.EntandoResourceRequirements;
 import org.entando.kubernetes.model.common.JeeServer;
-import org.entando.kubernetes.model.common.KeycloakAwareSpec;
+import org.entando.kubernetes.model.common.KeycloakToUse;
 
-public class EntandoAppDeployableContainer
-        implements IngressingContainer, PersistentVolumeAware, KeycloakAwareContainerBase, DbAware, TrustStoreAware,
-        ParameterizableContainer,
-        ConfigurableResourceContainer {
+public class EntandoAppDeployableContainer implements IngressingContainer, PersistentVolumeAwareContainer, DbAwareContainer,
+        TrustStoreAwareContainer, SsoAwareContainer, KeycloakPreference, ParameterizableContainer, ConfigurableResourceContainer {
 
     public static final String INGRESS_WEB_CONTEXT = "/entando-de-app";
     public static final int PORT = 8080;
@@ -62,30 +64,36 @@ public class EntandoAppDeployableContainer
     private static final String PORTDB_PREFIX = "PORTDB_";
     private static final String SERVDB_PREFIX = "SERVDB_";
     private final EntandoApp entandoApp;
-    private final KeycloakConnectionConfig keycloakConnectionConfig;
+    private final SsoConnectionInfo keycloakConnectionConfig;
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
     private final DbmsVendor dbmsVendor;
 
-    public EntandoAppDeployableContainer(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig,
-            DatabaseServiceResult databaseServiceResult) {
-        this.dbmsVendor = entandoApp.getSpec().getDbms().orElse(DbmsVendor.EMBEDDED);
+    public EntandoAppDeployableContainer(EntandoApp entandoApp, SsoConnectionInfo keycloakConnectionConfig,
+            DatabaseConnectionInfo databaseServiceResult) {
+        this.dbmsVendor = EntandoAppHelper.determineDbmsVendor(entandoApp);
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.databaseSchemaConnectionInfo = Optional.ofNullable(databaseServiceResult)
-                .map(dsr -> DbAware.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Arrays.asList(PORTDB, SERVDB)))
+                .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Arrays.asList(PORTDB, SERVDB)))
                 .orElse(Collections.emptyList());
 
     }
 
     public static String clientIdOf(EntandoApp entandoApp) {
-        //TOOD may have to prefix namespace
-        return entandoApp.getMetadata().getName() + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER;
+        return entandoApp.getMetadata().getName();
+    }
+
+    public static String determineEntandoServiceBaseUrl(EntandoApp entandoApp) {
+        return format("http://%s.%s.svc.cluster.local:%s/%s",
+                NameUtils.standardServiceName(entandoApp),
+                entandoApp.getMetadata().getNamespace(),
+                PORT,
+                entandoApp.getSpec().getIngressPath().orElse(INGRESS_WEB_CONTEXT));
     }
 
     @Override
     public Optional<String> getStorageClass() {
-        return Optional
-                .ofNullable(entandoApp.getSpec().getStorageClass().orElse(PersistentVolumeAware.super.getStorageClass().orElse(null)));
+        return entandoApp.getSpec().getStorageClass().or(PersistentVolumeAwareContainer.super::getStorageClass);
     }
 
     @Override
@@ -126,7 +134,7 @@ public class EntandoAppDeployableContainer
         List<EnvVar> vars = new ArrayList<>();
         vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", SecretUtils.randomAlphanumeric(10), null));
         vars.add(new EnvVar("JGROUPS_JOIN_TIMEOUT", "3000", null));
-        String labelExpression = KubeUtils.DEPLOYMENT_LABEL_NAME + "=" + entandoApp.getMetadata().getName() + "-"
+        String labelExpression = LabelNames.DEPLOYMENT.getName() + "=" + entandoApp.getMetadata().getName() + "-"
                 + NameUtils.DEFAULT_SERVER_QUALIFIER;
         if (determineStandardImage() == JeeServer.EAP) {
             vars.add(new EnvVar("JGROUPS_PING_PROTOCOL", "openshift.KUBE_PING", null));
@@ -149,14 +157,19 @@ public class EntandoAppDeployableContainer
         return Arrays.asList(new PortSpec("ping", 8888), new PortSpec("ping2", 7600));
     }
 
-    public KeycloakConnectionConfig getKeycloakConnectionConfig() {
+    public SsoConnectionInfo getSsoConnectionInfo() {
         return keycloakConnectionConfig;
     }
 
     @Override
-    public KeycloakClientConfig getKeycloakClientConfig() {
+    public Optional<KeycloakToUse> getPreferredKeycloakToUse() {
+        return entandoApp.getSpec().getKeycloakToUse();
+    }
+
+    @Override
+    public SsoClientConfig getSsoClientConfig() {
         String clientId = clientIdOf(this.entandoApp);
-        return new KeycloakClientConfig(getKeycloakRealmToUse(),
+        return new SsoClientConfig(KeycloakName.ofTheRealm(this),
                 clientId,
                 clientId).withRole("superuser").withPermission("realm-management", "realm-admin");
     }
@@ -174,11 +187,6 @@ public class EntandoAppDeployableContainer
     @Override
     public String getVolumeMountPath() {
         return "/entando-data";
-    }
-
-    @Override
-    public KeycloakAwareSpec getKeycloakAwareSpec() {
-        return this.entandoApp.getSpec();
     }
 
     @Override
@@ -224,12 +232,12 @@ public class EntandoAppDeployableContainer
 
     @Override
     public Optional<EntandoResourceRequirements> getResourceRequirementsOverride() {
-        return getKeycloakAwareSpec().getResourceRequirements();
+        return entandoApp.getSpec().getResourceRequirements();
     }
 
     @Override
     public List<EnvVar> getEnvironmentVariableOverrides() {
-        return getKeycloakAwareSpec().getEnvironmentVariables();
+        return entandoApp.getSpec().getEnvironmentVariables();
     }
 
     /**

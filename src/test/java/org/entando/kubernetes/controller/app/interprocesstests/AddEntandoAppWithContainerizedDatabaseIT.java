@@ -79,7 +79,7 @@ class AddEntandoAppWithContainerizedDatabaseIT extends AddEntandoAppBaseIT {
         assertTrue(helper.entandoApps().getOperations()
                 .inNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE)
                 .withName(EntandoAppE2ETestHelper.TEST_APP_NAME).fromServer()
-                .get().getStatus().forDbQualifiedBy("db").isPresent());
+                .get().getStatus().getServerStatus("db").isPresent());
     }
 
 }

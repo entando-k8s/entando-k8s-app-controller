@@ -19,25 +19,24 @@ package org.entando.kubernetes.controller.app;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.container.DeployableContainer;
-import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
+import org.entando.kubernetes.controller.spi.container.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.deployable.DbAwareDeployable;
-import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
+import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable implements DbAwareDeployable<EntandoAppDeploymentResult> {
+
     private final List<DeployableContainer> containers;
 
     public EntandoAppServerDeployable(EntandoApp entandoApp,
-            KeycloakConnectionConfig keycloakConnectionConfig,
-            DatabaseServiceResult databaseServiceResult) {
+            SsoConnectionInfo keycloakConnectionConfig,
+            DatabaseConnectionInfo databaseServiceResult) {
         super(entandoApp, keycloakConnectionConfig);
         this.containers = Collections.singletonList(
                 new EntandoAppDeployableContainer(entandoApp, keycloakConnectionConfig, databaseServiceResult)
         );
     }
-
 
     @Override
     public List<DeployableContainer> getContainers() {
@@ -45,8 +44,8 @@ public class EntandoAppServerDeployable extends AbstractEntandoAppDeployable imp
     }
 
     @Override
-    public String getNameQualifier() {
-        return NameUtils.DEFAULT_SERVER_QUALIFIER;
+    public Optional<String> getQualifier() {
+        return Optional.empty();
     }
 
 }

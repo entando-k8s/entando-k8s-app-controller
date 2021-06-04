@@ -72,7 +72,8 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
     @Override
     public List<EnvVar> getEnvironmentVariables() {
         List<EnvVar> vars = new ArrayList<>();
-        vars.add(new EnvVar("DOMAIN", entandoApp.getSpec().getIngressPath().orElse("/entando-de-app"), null));
+        vars.add(new EnvVar("DOMAIN", entandoApp.getSpec().getIngressPath().orElse(EntandoAppDeployableContainer.INGRESS_WEB_CONTEXT),
+                null));
         return vars;
     }
 

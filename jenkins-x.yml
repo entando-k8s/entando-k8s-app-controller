@@ -6,15 +6,11 @@ pipelineConfig:
     - name: TEST_DEPLOYMENT
       value: "true"
     - name: SKIP_OWASP
-      value: "false"
+      value: "true"
     - name: ENTANDO_DOCKER_IMAGE_INFO_CONFIGMAP
       value: "entando-docker-image-info-v6.3"
     - name: ENTANDO_K8S_OPERATOR_SECURITY_MODE
       value: "strict"
-    - name: RELATED_IMAGE_ENTANDO_DE_APP_WILDFLY
-      value: entando/entando-de-app-wildfly:6.3.42
-    - name: RELATED_IMAGE_ENTANDO_DE_APP_EAP
-      value: entando/entando-de-app-eap:6.3.42
     - name: EXECUTABLE_TYPE
       valueFrom:
         secretKeyRef:

@@ -5,6 +5,7 @@
 !.idea/sonarlint.xml
 
 target/
+allure-results
 *.iml
 .classpath
 .project

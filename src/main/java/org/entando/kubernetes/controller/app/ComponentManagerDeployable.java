@@ -20,9 +20,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.spi.container.DeployableContainer;
-import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
+import org.entando.kubernetes.controller.spi.container.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.deployable.DbAwareDeployable;
-import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
+import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class ComponentManagerDeployable extends AbstractEntandoAppDeployable implements DbAwareDeployable<EntandoAppDeploymentResult> {
@@ -31,14 +31,12 @@ public class ComponentManagerDeployable extends AbstractEntandoAppDeployable imp
     private final List<DeployableContainer> containers;
 
     public ComponentManagerDeployable(EntandoApp entandoApp,
-            KeycloakConnectionConfig keycloakConnectionConfig,
-            EntandoK8SService infrastructureConfig,
-            DatabaseServiceResult databaseServiceResult,
-            EntandoAppDeploymentResult entandoAppDeployment) {
-        super(entandoApp, keycloakConnectionConfig);
+            SsoConnectionInfo ssoConnectionInfo,
+            EntandoK8SService entandoK8SService,
+            DatabaseConnectionInfo databaseServiceResult) {
+        super(entandoApp, ssoConnectionInfo);
         this.containers = Collections.singletonList(
-                new ComponentManagerDeployableContainer(entandoApp, keycloakConnectionConfig, infrastructureConfig, entandoAppDeployment,
-                        databaseServiceResult)
+                new ComponentManagerDeployableContainer(entandoApp, ssoConnectionInfo, entandoK8SService, databaseServiceResult)
         );
     }
 
@@ -53,8 +51,8 @@ public class ComponentManagerDeployable extends AbstractEntandoAppDeployable imp
     }
 
     @Override
-    public String getNameQualifier() {
-        return "cm";
+    public Optional<String> getQualifier() {
+        return Optional.of("cm");
     }
 
 }

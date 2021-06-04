@@ -29,13 +29,18 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import java.util.Optional;
 import org.entando.kubernetes.controller.app.EntandoAppController;
+import org.entando.kubernetes.controller.spi.capability.SerializingCapabilityProvider;
+import org.entando.kubernetes.controller.spi.command.SerializingDeploymentProcessor;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.common.TrustStoreHelper;
+import org.entando.kubernetes.controller.support.client.impl.DefaultKeycloakClient;
+import org.entando.kubernetes.controller.support.client.impl.DefaultSimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.impl.EntandoOperatorTestConfig;
 import org.entando.kubernetes.controller.support.client.impl.EntandoOperatorTestConfig.TestTarget;
 import org.entando.kubernetes.controller.support.client.impl.integrationtesthelpers.FluentIntegrationTesting;
 import org.entando.kubernetes.controller.support.client.impl.integrationtesthelpers.HttpTestHelper;
+import org.entando.kubernetes.controller.support.command.InProcessCommandStream;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.externaldatabase.EntandoDatabaseService;
 import org.entando.kubernetes.test.common.CommonLabels;
@@ -67,9 +72,15 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
         if (EntandoOperatorTestConfig.getTestTarget() == TestTarget.K8S) {
             helper.entandoApps().listenAndRespondWithImageVersionUnderTest(EntandoAppE2ETestHelper.TEST_NAMESPACE);
         } else {
-            EntandoAppController controller = new EntandoAppController(helper.getClient(), false);
+            final DefaultSimpleK8SClient simpleK8SClient = new DefaultSimpleK8SClient(helper.getClient());
+            final InProcessCommandStream commandStream = new InProcessCommandStream(simpleK8SClient, new DefaultKeycloakClient());
+            EntandoAppController controller = new EntandoAppController(
+                    simpleK8SClient.entandoResources(),
+                    new SerializingDeploymentProcessor(simpleK8SClient.entandoResources(), commandStream),
+                    new SerializingCapabilityProvider(simpleK8SClient.entandoResources(), commandStream)
+            );
             helper.entandoApps()
-                    .listenAndRespondWithStartupEvent(EntandoAppE2ETestHelper.TEST_NAMESPACE, controller::onStartup);
+                    .listenAndRun(EntandoAppE2ETestHelper.TEST_NAMESPACE, controller);
         }
     }
 
@@ -128,7 +139,7 @@ abstract class AddEntandoAppBaseIT implements FluentIntegrationTesting, CommonLa
         assertTrue(helper.entandoApps().getOperations()
                 .inNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE)
                 .withName(EntandoAppE2ETestHelper.TEST_APP_NAME).fromServer()
-                .get().getStatus().forServerQualifiedBy("server").isPresent());
+                .get().getStatus().getServerStatus("server").isPresent());
         await().atMost(30, SECONDS).ignoreExceptions().until(() -> readPath("/app-builder/index.html").contains("App Builder"));
         await().atMost(30, SECONDS).ignoreExceptions().until(() -> readPath("/entando-de-app/index.jsp").contains("Entando - Welcome"));
         await().atMost(30, SECONDS).ignoreExceptions().until(() -> pathOk("/digital-exchange/actuator/health"));

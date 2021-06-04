@@ -21,23 +21,25 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.entando.kubernetes.controller.spi.common.KeycloakPreference;
 import org.entando.kubernetes.controller.spi.container.DatabaseSchemaConnectionInfo;
-import org.entando.kubernetes.controller.spi.container.DbAware;
-import org.entando.kubernetes.controller.spi.container.KeycloakClientConfig;
-import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
+import org.entando.kubernetes.controller.spi.container.DbAwareContainer;
 import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
-import org.entando.kubernetes.controller.spi.container.PersistentVolumeAware;
+import org.entando.kubernetes.controller.spi.container.PersistentVolumeAwareContainer;
 import org.entando.kubernetes.controller.spi.container.SecretToMount;
 import org.entando.kubernetes.controller.spi.container.SpringBootDeployableContainer;
-import org.entando.kubernetes.controller.spi.result.DatabaseServiceResult;
-import org.entando.kubernetes.controller.support.spibase.KeycloakAwareContainerBase;
+import org.entando.kubernetes.controller.spi.container.SsoAwareContainer;
+import org.entando.kubernetes.controller.spi.container.SsoClientConfig;
+import org.entando.kubernetes.controller.spi.container.SsoConnectionInfo;
+import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.DbmsVendor;
-import org.entando.kubernetes.model.common.KeycloakAwareSpec;
+import org.entando.kubernetes.model.common.KeycloakToUse;
 import org.entando.kubernetes.model.plugin.Permission;
 
 public class ComponentManagerDeployableContainer
-        implements SpringBootDeployableContainer, PersistentVolumeAware, ParameterizableContainer, KeycloakAwareContainerBase {
+        implements SpringBootDeployableContainer, PersistentVolumeAwareContainer, ParameterizableContainer, SsoAwareContainer,
+        KeycloakPreference {
 
     public static final String COMPONENT_MANAGER_QUALIFIER = "de";
     public static final String COMPONENT_MANAGER_IMAGE_NAME = "entando/entando-component-manager";
@@ -45,30 +47,28 @@ public class ComponentManagerDeployableContainer
     private static final String DEDB = "dedb";
     public static final String ECR_GIT_CONFIG_DIR = "/etc/ecr-git-config";
     private final EntandoApp entandoApp;
-    private final KeycloakConnectionConfig keycloakConnectionConfig;
+    private final SsoConnectionInfo keycloakConnectionConfig;
     private final EntandoK8SService infrastructureConfig;
-    private final EntandoAppDeploymentResult entandoAppDeployment;
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
 
     public ComponentManagerDeployableContainer(
             EntandoApp entandoApp,
-            KeycloakConnectionConfig keycloakConnectionConfig,
+            SsoConnectionInfo keycloakConnectionConfig,
             EntandoK8SService infrastructureConfig,
-            EntandoAppDeploymentResult entandoAppDeployment,
-            DatabaseServiceResult databaseServiceResult) {
+            DatabaseConnectionInfo databaseServiceResult) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.infrastructureConfig = infrastructureConfig;
-        this.entandoAppDeployment = entandoAppDeployment;
         this.databaseSchemaConnectionInfo = Optional.ofNullable(databaseServiceResult)
-                .map(dsr -> DbAware.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Collections.singletonList(DEDB)))
+                .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Collections.singletonList(DEDB)))
                 .orElse(Collections.emptyList());
     }
 
     @Override
     public Optional<String> getStorageClass() {
         return Optional
-                .ofNullable(entandoApp.getSpec().getStorageClass().orElse(PersistentVolumeAware.super.getStorageClass().orElse(null)));
+                .ofNullable(
+                        entandoApp.getSpec().getStorageClass().orElse(PersistentVolumeAwareContainer.super.getStorageClass().orElse(null)));
     }
 
     @Override
@@ -89,7 +89,7 @@ public class ComponentManagerDeployableContainer
     @Override
     public List<EnvVar> getEnvironmentVariables() {
         List<EnvVar> vars = new ArrayList<>();
-        String entandoUrl = entandoAppDeployment.getInternalBaseUrl();
+        String entandoUrl = EntandoAppDeployableContainer.determineEntandoServiceBaseUrl(this.entandoApp);
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPrimaryPort()), null));
@@ -135,17 +135,23 @@ public class ComponentManagerDeployableContainer
         return 750;
     }
 
-    public KeycloakConnectionConfig getKeycloakConnectionConfig() {
+    @Override
+    public SsoConnectionInfo getSsoConnectionInfo() {
         return keycloakConnectionConfig;
     }
 
     @Override
-    public KeycloakClientConfig getKeycloakClientConfig() {
+    public Optional<KeycloakToUse> getPreferredKeycloakToUse() {
+        return entandoApp.getSpec().getKeycloakToUse();
+    }
+
+    @Override
+    public SsoClientConfig getSsoClientConfig() {
         String entandoAppClientId = EntandoAppDeployableContainer.clientIdOf(entandoApp);
         String clientId = entandoApp.getMetadata().getName() + "-" + getNameQualifier();
         List<Permission> permissions = new ArrayList<>();
         permissions.add(new Permission(entandoAppClientId, "superuser"));
-        return new KeycloakClientConfig(getKeycloakRealmToUse(), clientId, clientId,
+        return new SsoClientConfig(getRealmToUse(), clientId, clientId,
                 Collections.emptyList(),
                 permissions);
     }
@@ -170,8 +176,4 @@ public class ComponentManagerDeployableContainer
         return entandoApp.getSpec().getEnvironmentVariables();
     }
 
-    @Override
-    public KeycloakAwareSpec getKeycloakAwareSpec() {
-        return entandoApp.getSpec();
-    }
 }
