@@ -296,7 +296,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             attachKubernetesResource("Ingress", ingress);
             step("With a hostname derived from the Capability name, namespace and the routing suffix", () ->
                     assertThat(ingress.getSpec().getRules().get(0).getHost())
-                            .isEqualTo(MY_APP + "-" + MY_NAMESPACE + ".entando.org"));
+                            .isEqualTo(MY_APP + "-" + MY_NAMESPACE + "." + ROUTING_SUFFIX));
             step("And the path '/entando-de-app' is mapped to the servce 'my-app-service'", () ->
                     assertThat(theHttpPath("/entando-de-app").on(ingress).getBackend().getServiceName()).isEqualTo("my-app-service"));
             step("And the path '/app-builder/' is mapped to the servce 'my-app-ab-service'", () ->
@@ -306,7 +306,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                             .isEqualTo("my-app-cm-service"));
             step("And with TLS configured to use the default TLS secret", () -> {
                 assertThat(ingress.getSpec().getTls().get(0).getHosts())
-                        .contains(MY_APP + "-" + MY_NAMESPACE + ".entando.org");
+                        .contains(MY_APP + "-" + MY_NAMESPACE + "." + ROUTING_SUFFIX);
                 assertThat(ingress.getSpec().getTls().get(0).getSecretName()).isEqualTo(DEFAULT_TLS_SECRET);
             });
         });

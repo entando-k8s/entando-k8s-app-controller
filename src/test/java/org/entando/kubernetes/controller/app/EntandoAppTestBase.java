@@ -28,6 +28,7 @@ import org.entando.kubernetes.controller.spi.command.DeploymentProcessor;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfigProperty;
 import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.support.client.doubles.SimpleK8SClientDouble;
+import org.entando.kubernetes.controller.support.common.EntandoOperatorConfig;
 import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.test.common.ControllerTestHelper;
 import org.entando.kubernetes.test.common.FluentTraversals;
@@ -38,6 +39,7 @@ import org.mockito.Mock;
 
 abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHelper {
 
+    protected static final String ROUTING_SUFFIX = EntandoOperatorConfig.getDefaultRoutingSuffix().orElse("entando.org");
     protected final SimpleK8SClientDouble client = new SimpleK8SClientDouble();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(5);
     protected final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
