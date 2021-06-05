@@ -28,6 +28,8 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Issue;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -88,7 +90,7 @@ class FailureTests extends EntandoAppTestBase {
 
     @Test
     @Description("Should log a timeout exception if the entire deployment did not complete on time")
-    void shouldDeployEntandoEapImageWithDefaultValues() {
+    void shouldLogTimeoutException() {
         this.app = new EntandoAppBuilder()
                 .withNewMetadata()
                 .withName(MY_APP)
@@ -175,15 +177,14 @@ class FailureTests extends EntandoAppTestBase {
                     .contains("Test Exception");
             attachKubernetesResource("Failed EntandoApp", entandoApp);
         });
-        step("And the original message 'Test Exception' was logged in the EntandoAppController as SEVERE, but the wrapping "
-                        + "EntandoControllerException was ignored",
+        step("And the original exception with the message 'Test Exception' was logged in the EntandoAppController as SEVERE.",
                 () -> {
-                    assertThat(LogInterceptor.getLogRecords())
-                            .anyMatch(r -> r.getMessage().contains("Test Exception"));
-                    final LogRecord logRecord = LogInterceptor.getLogRecords().stream()
-                            .filter(r -> r.getMessage().contains("Test Exception")).findFirst().get();
-                    assertThat(logRecord.getLevel()).isEqualTo(Level.SEVERE);
-                    assertThat(logRecord.getThrown()).isNull();
+                    final List<LogRecord> logRecords = LogInterceptor.getLogRecords();
+                    final Optional<LogRecord> exception = logRecords.stream()
+                            .filter(r -> r.getMessage().contains("Test Exception"))
+                            .findFirst();
+                    assertThat(exception).isPresent();
+                    assertThat(exception.get().getLevel()).isEqualTo(Level.SEVERE);
                 });
         step("And a PicoCLI exception was thrown at the top level", () -> {
             assertThat(throwable.get()).isInstanceOf(CommandLine.ExecutionException.class);
