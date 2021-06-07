@@ -88,10 +88,10 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
         theDefaultTlsSecretWasCreatedAndConfiguredAsDefault();
         step("And there is a controller to process requests for the DBMS capability",
                 () -> doAnswer(withADatabaseCapabilityStatus(DbmsVendor.POSTGRESQL, "my_db")).when(client.capabilities())
-                        .createAndWaitForCapability(argThat(matchesCapability(StandardCapability.DBMS)), anyInt()));
+                        .waitForCapabilityCompletion(argThat(matchesCapability(StandardCapability.DBMS)), anyInt()));
         step("And there is a controller to process requests for the SSO capability",
                 () -> doAnswer(withAnSsoCapabilityStatus("mykeycloak.apps.serv.run", "my-realm")).when(client.capabilities())
-                        .createAndWaitForCapability(argThat(matchesCapability(StandardCapability.SSO)), anyInt()));
+                        .waitForCapabilityCompletion(argThat(matchesCapability(StandardCapability.SSO)), anyInt()));
         step("When I create an EntandoApp with minimal configuration",
                 () -> {
                     if (this.app.getMetadata().getResourceVersion() != null) {
