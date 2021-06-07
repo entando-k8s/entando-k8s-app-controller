@@ -35,7 +35,7 @@ import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.DbmsVendor;
 import org.entando.kubernetes.model.common.KeycloakToUse;
-import org.entando.kubernetes.model.plugin.Permission;
+import org.entando.kubernetes.model.common.Permission;
 
 public class ComponentManagerDeployableContainer
         implements SpringBootDeployableContainer, PersistentVolumeAwareContainer, ParameterizableContainer, SsoAwareContainer,

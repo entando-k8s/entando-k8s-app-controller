@@ -37,6 +37,7 @@ import org.entando.kubernetes.controller.spi.capability.CapabilityProvider;
 import org.entando.kubernetes.controller.spi.client.KubernetesClientForControllers;
 import org.entando.kubernetes.controller.spi.command.DeploymentProcessor;
 import org.entando.kubernetes.controller.spi.common.EntandoControllerException;
+import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfigProperty;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.deployable.Deployable;
 import org.entando.kubernetes.controller.spi.result.ServiceDeploymentResult;
@@ -108,8 +109,8 @@ class FailureTests extends EntandoAppTestBase {
         step("And the pod completion and pod readiness timeouts are set to 1  giving the total deployment 3 seconds "
                         + "only",
                 () -> {
-                    System.setProperty(EntandoOperatorConfigProperty.ENTANDO_POD_READINESS_TIMEOUT_SECONDS.getJvmSystemProperty(), "1");
-                    System.setProperty(EntandoOperatorConfigProperty.ENTANDO_POD_COMPLETION_TIMEOUT_SECONDS.getJvmSystemProperty(), "1");
+                    System.setProperty(EntandoOperatorSpiConfigProperty.ENTANDO_POD_READINESS_TIMEOUT_SECONDS.getJvmSystemProperty(), "1");
+                    System.setProperty(EntandoOperatorSpiConfigProperty.ENTANDO_POD_COMPLETION_TIMEOUT_SECONDS.getJvmSystemProperty(), "1");
                 });
         step("But the deployment duration is 10 seconds", () -> this.deploymentDuration = 10000L);
         ValueHolder<Throwable> throwable = new ValueHolder<>();
