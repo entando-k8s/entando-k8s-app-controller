@@ -39,12 +39,13 @@ import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.capability.ProvidedCapability;
 import org.entando.kubernetes.model.common.DbmsVendor;
 import org.entando.kubernetes.model.common.JeeServer;
+import org.entando.kubernetes.test.common.KeycloakTestCapabilityProvider;
 import org.entando.kubernetes.test.e2etest.ControllerExecutor;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
 
-@Tags({@Tag("smoke")})
+@Tags({@Tag("smoke"), @Tag("allure"), @Tag("post-deployment"), @Tag("inter-process")})
 @Feature("As an Entando Operator users, I want to use a Docker container to process an EntandoApp so that I don't need to "
         + "know any of its implementation details to use it.")
 class EntandoAppSmokeTest implements FluentIntegrationTesting {
