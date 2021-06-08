@@ -120,7 +120,7 @@ public class EntandoAppController implements Runnable {
 
     private void attachControllerFailure(Exception e, Class<?> theClass, String qualifier) {
         entandoApp.updateAndGet(current -> k8sClient.deploymentFailed(current, e, qualifier));
-        LOGGER.log(Level.SEVERE, e, () -> format("Processing the class %s failed.: \n%s", theClass.getSimpleName(),
+        LOGGER.log(Level.SEVERE, e, () -> format("Processing the class %s failed.: %n%s", theClass.getSimpleName(),
                 entandoApp.get().getStatus().getServerStatus(qualifier).orElseThrow(IllegalStateException::new)
                         .getEntandoControllerFailure().getDetailMessage()));
     }
@@ -135,7 +135,7 @@ public class EntandoAppController implements Runnable {
                             .withResolutionScopePreference(CapabilityScope.NAMESPACE, CapabilityScope.DEDICATED, CapabilityScope.CLUSTER)
                             .build(), 180);
             capabilityResult.getControllerFailure().ifPresent(f -> {
-                throw new EntandoControllerException(format("Could not prepare database for EntandoApp %s/%s\n%s", entandoApp.get()
+                throw new EntandoControllerException(format("Could not prepare database for EntandoApp %s/%%\n%s", entandoApp.get()
                                 .getMetadata().getNamespace(), entandoApp.get()
                                 .getMetadata().getName(),
                         f.getDetailMessage()));
@@ -160,7 +160,7 @@ public class EntandoAppController implements Runnable {
                         .withResolutionScopePreference(CapabilityScope.NAMESPACE, CapabilityScope.CLUSTER)
                         .build(), 240);
         capabilityResult.getControllerFailure().ifPresent(f -> {
-            throw new EntandoControllerException(format("Could not prepare SSO for EntandoApp %s/%s\n%s", entandoApp.get()
+            throw new EntandoControllerException(format("Could not prepare SSO for EntandoApp %s/%s%n%s", entandoApp.get()
                             .getMetadata().getNamespace(), entandoApp.get()
                             .getMetadata().getName(),
                     f.getDetailMessage()));
