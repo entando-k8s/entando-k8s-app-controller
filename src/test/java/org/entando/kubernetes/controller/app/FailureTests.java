@@ -62,7 +62,7 @@ import picocli.CommandLine;
 @Feature("As a deployer, I would like to deploy an EntandoApp directly so that I have more granular control over the "
         + "configuration settings")
 @Issue("ENG-2284")
-@SourceLink("DeployedKeycloakServerTest.java")
+@SourceLink("FailureTests.java")
 @SuppressWarnings({"java:S5961"})//because this test is intended to generate documentation and should read like the generated document
 class FailureTests extends EntandoAppTestBase {
 

@@ -123,10 +123,10 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             assertThat(mainDbPreprationJob).isNotNull();
             final Container portDbInitContainer = theInitContainerNamed("my-app-portdb-schema-creation-job").on(mainDbPreprationJob);
             verifyDbJobAdminVariables(entandoApp, portDbInitContainer);
-            verifyDbJobUserVariables(entandoApp, portDbSecret, portDbInitContainer);
+            verifyDbJobSchemaCredentials(portDbSecret, portDbInitContainer);
             final Container servDbInitContainer = theInitContainerNamed("my-app-servdb-schema-creation-job").on(mainDbPreprationJob);
             verifyDbJobAdminVariables(entandoApp, servDbInitContainer);
-            verifyDbJobUserVariables(entandoApp, servDbSecret, servDbInitContainer);
+            verifyDbJobSchemaCredentials(servDbSecret, servDbInitContainer);
             final Container populator = theInitContainerNamed("my-app-server-db-population-job").on(mainDbPreprationJob);
             verifyEntandoDbVariables(entandoApp, portDbSecret, "PORTDB", populator);
             verifyEntandoDbVariables(entandoApp, servDbSecret, "SERVDB", populator);
@@ -178,7 +178,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             assertThat(cmDbPreprationJob).isNotNull();
             final Container cmDbInitContainer = theInitContainerNamed("my-app-dedb-schema-creation-job").on(cmDbPreprationJob);
             verifyDbJobAdminVariables(entandoApp, cmDbInitContainer);
-            verifyDbJobUserVariables(entandoApp, cmDbSecret, cmDbInitContainer);
+            verifyDbJobSchemaCredentials(cmDbSecret, cmDbInitContainer);
         });
         step("And a Kubernetes Deployment was created reflecting the requirements of the Entando Component Manager image:", () -> {
             final Deployment componentManagerDeployment = client.deployments()
@@ -199,15 +199,8 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                         "my-app-de-pvc");
             });
             step("And all the variables required to connect to Red Hat SSO have been configured", () -> {
-                assertThat(theVariableNamed(SpringProperty.SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_OIDC_ISSUER_URI.name())
-                        .on(theComponentManagerContainer)).isEqualTo("https://mykeycloak.apps.serv.run/auth/realms/my-realm");
-
-                assertThat(theVariableReferenceNamed(SpringProperty.SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_OIDC_CLIENT_SECRET.name())
-                        .on(theComponentManagerContainer))
-                        .matches(theSecretKey("my-app-de-secret", KeycloakName.CLIENT_SECRET_KEY));
-                assertThat(theVariableReferenceNamed(SpringProperty.SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_OIDC_CLIENT_ID.name())
-                        .on(theComponentManagerContainer))
-                        .matches(theSecretKey("my-app-de-secret", KeycloakName.CLIENT_ID_KEY));
+                verifySpringSecurityVariables(theComponentManagerContainer, "https://mykeycloak.apps.serv.run/auth/realms/my-realm",
+                        "my-app-de-secret");
             });
             step("And the File System User/Group override " + ComponentManagerDeployable.COMPONENT_MANAGER_CURRENT_USER
                     + "has been applied to the mount", () ->
@@ -294,7 +287,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             final Ingress ingress = client.ingresses()
                     .loadIngress(entandoApp.getMetadata().getNamespace(), NameUtils.standardIngressName(entandoApp));
             attachKubernetesResource("Ingress", ingress);
-            step("With a hostname derived from the Capability name, namespace and the routing suffix", () ->
+            step("With a hostname derived from the EntandoApp name, namespace and the routing suffix", () ->
                     assertThat(ingress.getSpec().getRules().get(0).getHost())
                             .isEqualTo(MY_APP + "-" + MY_NAMESPACE + "." + ROUTING_SUFFIX));
             step("And the path '/entando-de-app' is mapped to the servce 'my-app-service'", () ->
@@ -341,42 +334,16 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                 });
     }
 
-    private void verifyDbJobUserVariables(EntandoApp entandoApp, String servDbSecret, Container portDbInitContainer) {
-        step("and the credentials for the  schema user provided in a newly generated secret for the Red Hat SSO deployment: "
-                        + "'" + servDbSecret + "'",
-                () -> {
-                    attachKubernetesResource("Schema User Secret",
-                            getClient().secrets().loadSecret(entandoApp, servDbSecret));
-                    assertThat(theVariableReferenceNamed("DATABASE_PASSWORD").on(portDbInitContainer).getSecretKeyRef().getName())
-                            .isEqualTo(servDbSecret);
-                    assertThat(theVariableReferenceNamed("DATABASE_USER").on(portDbInitContainer).getSecretKeyRef().getName())
-                            .isEqualTo(servDbSecret);
-                    assertThat(theVariableReferenceNamed("DATABASE_PASSWORD").on(portDbInitContainer).getSecretKeyRef().getKey())
-                            .isEqualTo(SecretUtils.PASSSWORD_KEY);
-                    assertThat(theVariableReferenceNamed("DATABASE_USER").on(portDbInitContainer).getSecretKeyRef().getKey())
-                            .isEqualTo(SecretUtils.USERNAME_KEY);
-                });
-    }
-
-    private void verifyDbJobAdminVariables(EntandoApp entandoApp, Container portDbInitContainer) {
+    private void verifyDbJobAdminVariables(EntandoApp entandoApp, Container initContainer) {
+        attachKubernetesResource("PostgreSQL Admin Secret",
+                getClient().secrets().loadSecret(entandoApp, "default-postgresql-dbms-in-namespace-admin-secret"));
         step("using a cluster local connection to the database Service", () -> {
-            assertThat(theVariableNamed("DATABASE_SERVER_HOST").on(portDbInitContainer))
+            assertThat(theVariableNamed("DATABASE_SERVER_HOST").on(initContainer))
                     .isEqualTo("default-postgresql-dbms-in-namespace-service.my-namespace.svc.cluster.local");
-            assertThat(theVariableNamed("DATABASE_SERVER_PORT").on(portDbInitContainer))
+            assertThat(theVariableNamed("DATABASE_SERVER_PORT").on(initContainer))
                     .isEqualTo(String.valueOf(DbmsVendorConfig.POSTGRESQL.getDefaultPort()));
         });
-        step("and the admin credentials provided in the PostgreSQL Capability's admin secret", () -> {
-            attachKubernetesResource("PostgreSQL Admin Secret",
-                    getClient().secrets().loadSecret(entandoApp, "default-postgresql-dbms-in-namespace-admin-secret"));
-            assertThat(theVariableReferenceNamed("DATABASE_ADMIN_PASSWORD").on(portDbInitContainer).getSecretKeyRef().getName())
-                    .isEqualTo("default-postgresql-dbms-in-namespace-admin-secret");
-            assertThat(theVariableReferenceNamed("DATABASE_ADMIN_USER").on(portDbInitContainer).getSecretKeyRef().getName())
-                    .isEqualTo("default-postgresql-dbms-in-namespace-admin-secret");
-            assertThat(theVariableReferenceNamed("DATABASE_ADMIN_PASSWORD").on(portDbInitContainer).getSecretKeyRef().getKey())
-                    .isEqualTo(SecretUtils.PASSSWORD_KEY);
-            assertThat(theVariableReferenceNamed("DATABASE_ADMIN_USER").on(portDbInitContainer).getSecretKeyRef().getKey())
-                    .isEqualTo(SecretUtils.USERNAME_KEY);
-        });
+        verifyDbJobAdminCredentials("default-postgresql-dbms-in-namespace-admin-secret", initContainer);
     }
 
 }
