@@ -22,15 +22,14 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import org.entando.kubernetes.controller.support.client.impl.DefaultSimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.impl.EntandoOperatorTestConfig;
+import org.entando.kubernetes.controller.support.client.impl.SupportProducer;
 import org.entando.kubernetes.controller.support.client.impl.integrationtesthelpers.FluentIntegrationTesting;
 import org.entando.kubernetes.controller.support.client.impl.integrationtesthelpers.HttpTestHelper;
 import org.entando.kubernetes.controller.support.client.impl.integrationtesthelpers.TestFixturePreparation;
@@ -58,8 +57,8 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
 
     @Test
     @Description("Should successfully connect to newly deployed Keycloak Server")
-    void testDeployment() throws TimeoutException {
-        KubernetesClient client = new DefaultKubernetesClient();
+    void testDeployment() {
+        KubernetesClient client = new SupportProducer().getKubernetesClient();
         final DefaultSimpleK8SClient simpleClient = new DefaultSimpleK8SClient(client);
         step("Given I have a clean namespace", () -> {
             TestFixturePreparation.prepareTestFixture(client, deleteAll(EntandoApp.class).fromNamespace(MY_NAMESPACE));
