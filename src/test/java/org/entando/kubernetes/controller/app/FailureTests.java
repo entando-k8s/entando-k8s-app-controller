@@ -41,7 +41,6 @@ import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfigProp
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.deployable.Deployable;
 import org.entando.kubernetes.controller.spi.result.ServiceDeploymentResult;
-import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.capability.StandardCapability;
@@ -122,7 +121,8 @@ class FailureTests extends EntandoAppTestBase {
         });
         step("And the 'main' ServerStatus carries the actual failure", () -> {
             assertThat(
-                    entandoApp.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).get().getEntandoControllerFailure().getDetailMessage())
+                    entandoApp.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).get().getEntandoControllerFailure().get()
+                            .getDetailMessage())
                     .contains("Could not complete deployment of EntandoApp in 3 seconds");
             attachKubernetesResource("Failed EntandoApp", entandoApp);
         });
@@ -173,7 +173,7 @@ class FailureTests extends EntandoAppTestBase {
         });
         step("And the 'ab' ServerStatus carries the actual failure", () -> {
             assertThat(
-                    entandoApp.getStatus().getServerStatus("ab").get().getEntandoControllerFailure().getDetailMessage())
+                    entandoApp.getStatus().getServerStatus("ab").get().getEntandoControllerFailure().get().getDetailMessage())
                     .contains("Test Exception");
             attachKubernetesResource("Failed EntandoApp", entandoApp);
         });
@@ -208,7 +208,7 @@ class FailureTests extends EntandoAppTestBase {
                     .build();
         });
         step("But the controller to process requests for the DBMS capability provides a capability in 'FAILED' state",
-                () -> doAnswer(withFailedInternalServerStatus(NameUtils.MAIN_QUALIFIER, new NullPointerException()))
+                () -> doAnswer(withFailedServerStatus(NameUtils.MAIN_QUALIFIER, new NullPointerException()))
                         .when(client.capabilities())
                         .waitForCapabilityCompletion(argThat(matchesCapability(StandardCapability.DBMS)), anyInt()));
         ValueHolder<Throwable> throwable = new ValueHolder<>();
@@ -220,7 +220,8 @@ class FailureTests extends EntandoAppTestBase {
         });
         step("And the 'main' ServerStatus carries the actual failure", () -> {
             assertThat(
-                    entandoApp.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).get().getEntandoControllerFailure().getDetailMessage())
+                    entandoApp.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).get().getEntandoControllerFailure().get()
+                            .getDetailMessage())
                     .contains(" Could not prepare database for EntandoApp my-namespace/my-app");
             attachKubernetesResource("Failed EntandoApp", entandoApp);
         });
@@ -255,7 +256,7 @@ class FailureTests extends EntandoAppTestBase {
                     .build();
         });
         step("But the controller to process requests for the SSO capability provides a capability in 'FAILED' state",
-                () -> doAnswer(withFailedExposedServerStatus(NameUtils.MAIN_QUALIFIER, new NullPointerException()))
+                () -> doAnswer(withFailedServerStatus(NameUtils.MAIN_QUALIFIER, new NullPointerException()))
                         .when(client.capabilities())
                         .waitForCapabilityCompletion(argThat(matchesCapability(StandardCapability.SSO)), anyInt()));
         ValueHolder<Throwable> throwable = new ValueHolder<>();
@@ -267,7 +268,8 @@ class FailureTests extends EntandoAppTestBase {
         });
         step("And the 'main' ServerStatus carries the actual failure", () -> {
             assertThat(
-                    entandoApp.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).get().getEntandoControllerFailure().getDetailMessage())
+                    entandoApp.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).get().getEntandoControllerFailure().get()
+                            .getDetailMessage())
                     .contains("Could not prepare SSO for EntandoApp my-namespace/my-app");
             attachKubernetesResource("Failed EntandoApp", entandoApp);
         });

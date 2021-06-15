@@ -47,7 +47,6 @@ import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.capability.ProvidedCapability;
 import org.entando.kubernetes.model.capability.StandardCapability;
 import org.entando.kubernetes.model.common.DbmsVendor;
-import org.entando.kubernetes.model.common.ExposedServerStatus;
 import org.entando.kubernetes.test.common.SourceLink;
 import org.entando.kubernetes.test.common.VariableReferenceAssertions;
 import org.junit.jupiter.api.Tag;
@@ -104,14 +103,16 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             final ProvidedCapability capability = getClient().entandoResources()
                     .load(ProvidedCapability.class, MY_NAMESPACE, "default-postgresql-dbms-in-namespace");
             assertThat(capability).isNotNull();
+            assertThat(entandoApp.getStatus().getServerStatus(NameUtils.DB_QUALIFIER)).isPresent();
             attachKubernetesResource("PostgreSQL DBMS Capability", capability);
         });
         step("Then a Red Hat SSO Capability was provided", () -> {
             final ProvidedCapability capability = getClient().entandoResources()
                     .load(ProvidedCapability.class, MY_NAMESPACE, "default-sso-in-namespace");
             assertThat(capability).isNotNull();
-            assertThat(((ExposedServerStatus) capability.getStatus().findCurrentServerStatus().get()).getExternalBaseUrl())
-                    .isEqualTo("https://mykeycloak.apps.serv.run/auth");
+            assertThat(capability.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).get().getExternalBaseUrl())
+                    .contains("https://mykeycloak.apps.serv.run/auth");
+            assertThat(entandoApp.getStatus().getServerStatus(NameUtils.SSO_QUALIFIER)).isPresent();
             attachKubernetesResource(" Red Hat SSO Capability", capability);
         });
         final String servDbSecret = "my-app-servdb-secret";

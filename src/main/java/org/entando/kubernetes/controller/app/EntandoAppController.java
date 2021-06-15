@@ -46,6 +46,7 @@ import org.entando.kubernetes.model.capability.CapabilityScope;
 import org.entando.kubernetes.model.capability.StandardCapability;
 import org.entando.kubernetes.model.capability.StandardCapabilityImplementation;
 import org.entando.kubernetes.model.common.DbmsVendor;
+import org.entando.kubernetes.model.common.ServerStatus;
 import picocli.CommandLine;
 
 @CommandLine.Command()
@@ -79,7 +80,6 @@ public class EntandoAppController implements Runnable {
             queueDeployable(new EntandoAppServerDeployable(entandoApp.get(), ssoConnectionInfo, dbConnectionInfo), timeoutForDbAware);
             final long timeoutForNonDbAware = EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
             queueDeployable(new AppBuilderDeployable(entandoApp.get(), ssoConnectionInfo), timeoutForNonDbAware);
-
             EntandoK8SService k8sService = new EntandoK8SService(k8sClient.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE));
             queueDeployable(new ComponentManagerDeployable(entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo),
                     timeoutForDbAware);
@@ -88,16 +88,17 @@ public class EntandoAppController implements Runnable {
             if (!executor.awaitTermination(totalTimeout, TimeUnit.SECONDS)) {
                 throw new TimeoutException(format("Could not complete deployment of EntandoApp in %s seconds", totalTimeout));
             }
+            entandoApp.updateAndGet(k8sClient::deploymentEnded);
         } catch (Exception e) {
             attachControllerFailure(e, EntandoAppController.class, NameUtils.MAIN_QUALIFIER);
         }
-        entandoApp.updateAndGet(k8sClient::deploymentEnded);
-        entandoApp.get().getStatus().findFailedServerStatus().ifPresent(s -> {
-            throw new CommandLine.ExecutionException(new CommandLine(this), s.getEntandoControllerFailure().getMessage());
+        entandoApp.get().getStatus().findFailedServerStatus().flatMap(ServerStatus::getEntandoControllerFailure).ifPresent(s -> {
+            throw new CommandLine.ExecutionException(new CommandLine(this), s.getMessage());
         });
     }
 
     private long calculateDbAwareTimeout() {
+        //TODO Meh.... who cares.
         final long timeoutForDbAware;
         if (requiresDbmsService(EntandoAppHelper.determineDbmsVendor(entandoApp.get()))) {
             timeoutForDbAware =
@@ -121,8 +122,8 @@ public class EntandoAppController implements Runnable {
     private void attachControllerFailure(Exception e, Class<?> theClass, String qualifier) {
         entandoApp.updateAndGet(current -> k8sClient.deploymentFailed(current, e, qualifier));
         LOGGER.log(Level.SEVERE, e, () -> format("Processing the class %s failed.: %n%s", theClass.getSimpleName(),
-                entandoApp.get().getStatus().getServerStatus(qualifier).orElseThrow(IllegalStateException::new)
-                        .getEntandoControllerFailure().getDetailMessage()));
+                entandoApp.get().getStatus().getServerStatus(qualifier).flatMap(ServerStatus::getEntandoControllerFailure)
+                        .orElseThrow(IllegalStateException::new).getDetailMessage()));
     }
 
     private ProvidedDatabaseCapability provideDatabaseIfRequired() throws TimeoutException {
@@ -134,6 +135,8 @@ public class EntandoAppController implements Runnable {
                             .withImplementation(StandardCapabilityImplementation.valueOf(dbmsVendor.name()))
                             .withResolutionScopePreference(CapabilityScope.NAMESPACE, CapabilityScope.DEDICATED, CapabilityScope.CLUSTER)
                             .build(), 180);
+            capabilityResult.getProvidedCapability().getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
+                    this.entandoApp.updateAndGet(a -> this.k8sClient.updateStatus(a, new ServerStatus(NameUtils.DB_QUALIFIER, s))));
             capabilityResult.getControllerFailure().ifPresent(f -> {
                 throw new EntandoControllerException(format("Could not prepare database for EntandoApp %s/%s%n%s", entandoApp.get()
                                 .getMetadata().getNamespace(), entandoApp.get()
@@ -159,6 +162,8 @@ public class EntandoAppController implements Runnable {
                         .withPreferredTlsSecretName(entandoApp.get().getSpec().getTlsSecretName().orElse(null))
                         .withResolutionScopePreference(CapabilityScope.NAMESPACE, CapabilityScope.CLUSTER)
                         .build(), 240);
+        capabilityResult.getProvidedCapability().getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
+                this.entandoApp.updateAndGet(a -> this.k8sClient.updateStatus(a, new ServerStatus(NameUtils.SSO_QUALIFIER, s))));
         capabilityResult.getControllerFailure().ifPresent(f -> {
             throw new EntandoControllerException(format("Could not prepare SSO for EntandoApp %s/%s%n%s", entandoApp.get()
                             .getMetadata().getNamespace(), entandoApp.get()

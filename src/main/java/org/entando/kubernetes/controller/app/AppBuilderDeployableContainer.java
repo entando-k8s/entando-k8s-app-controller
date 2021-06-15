@@ -35,6 +35,11 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
     }
 
     @Override
+    public Optional<Integer> getMaximumStartupTimeSeconds() {
+        return Optional.of(120);
+    }
+
+    @Override
     public int getMemoryLimitMebibytes() {
         return 512;
     }
