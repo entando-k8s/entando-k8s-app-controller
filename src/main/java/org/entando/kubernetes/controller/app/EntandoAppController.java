@@ -76,15 +76,15 @@ public class EntandoAppController implements Runnable {
             entandoApp.set(k8sClient.deploymentStarted(entandoApp.get()));
             final DatabaseConnectionInfo dbConnectionInfo = provideDatabaseIfRequired();
             final SsoConnectionInfo ssoConnectionInfo = provideSso();
-            final long timeoutForDbAware = calculateDbAwareTimeout();
+            final int timeoutForDbAware = calculateDbAwareTimeout();
             queueDeployable(new EntandoAppServerDeployable(entandoApp.get(), ssoConnectionInfo, dbConnectionInfo), timeoutForDbAware);
-            final long timeoutForNonDbAware = EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
+            final int timeoutForNonDbAware = EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
             queueDeployable(new AppBuilderDeployable(entandoApp.get(), ssoConnectionInfo), timeoutForNonDbAware);
             EntandoK8SService k8sService = new EntandoK8SService(k8sClient.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE));
             queueDeployable(new ComponentManagerDeployable(entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo),
                     timeoutForDbAware);
             executor.shutdown();
-            final long totalTimeout = timeoutForDbAware * 2 + timeoutForNonDbAware;
+            final int totalTimeout = timeoutForDbAware * 2 + timeoutForNonDbAware;
             if (!executor.awaitTermination(totalTimeout, TimeUnit.SECONDS)) {
                 throw new TimeoutException(format("Could not complete deployment of EntandoApp in %s seconds", totalTimeout));
             }
@@ -97,9 +97,9 @@ public class EntandoAppController implements Runnable {
         });
     }
 
-    private long calculateDbAwareTimeout() {
+    private int calculateDbAwareTimeout() {
         //TODO Meh.... who cares.
-        final long timeoutForDbAware;
+        final int timeoutForDbAware;
         if (requiresDbmsService(EntandoAppHelper.determineDbmsVendor(entandoApp.get()))) {
             timeoutForDbAware =
                     EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() + EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
