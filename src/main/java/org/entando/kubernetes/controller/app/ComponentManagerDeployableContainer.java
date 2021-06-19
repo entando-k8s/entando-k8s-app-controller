@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.entando.kubernetes.controller.spi.common.KeycloakPreference;
 import org.entando.kubernetes.controller.spi.container.DatabaseSchemaConnectionInfo;
 import org.entando.kubernetes.controller.spi.container.DbAwareContainer;
 import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
@@ -29,17 +28,14 @@ import org.entando.kubernetes.controller.spi.container.PersistentVolumeAwareCont
 import org.entando.kubernetes.controller.spi.container.SecretToMount;
 import org.entando.kubernetes.controller.spi.container.SpringBootDeployableContainer;
 import org.entando.kubernetes.controller.spi.container.SsoAwareContainer;
-import org.entando.kubernetes.controller.spi.container.SsoClientConfig;
-import org.entando.kubernetes.controller.spi.container.SsoConnectionInfo;
+import org.entando.kubernetes.controller.spi.deployable.SsoClientConfig;
+import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.DbmsVendor;
-import org.entando.kubernetes.model.common.KeycloakToUse;
-import org.entando.kubernetes.model.common.Permission;
 
 public class ComponentManagerDeployableContainer
-        implements SpringBootDeployableContainer, PersistentVolumeAwareContainer, ParameterizableContainer, SsoAwareContainer,
-        KeycloakPreference {
+        implements SpringBootDeployableContainer, PersistentVolumeAwareContainer, ParameterizableContainer, SsoAwareContainer {
 
     public static final String COMPONENT_MANAGER_QUALIFIER = "de";
     public static final String COMPONENT_MANAGER_IMAGE_NAME = "entando/entando-component-manager";
@@ -50,15 +46,18 @@ public class ComponentManagerDeployableContainer
     private final SsoConnectionInfo keycloakConnectionConfig;
     private final EntandoK8SService infrastructureConfig;
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
+    private SsoClientConfig ssoClientConfig;
 
     public ComponentManagerDeployableContainer(
             EntandoApp entandoApp,
             SsoConnectionInfo keycloakConnectionConfig,
             EntandoK8SService infrastructureConfig,
-            DatabaseConnectionInfo databaseServiceResult) {
+            DatabaseConnectionInfo databaseServiceResult,
+            SsoClientConfig ssoClientConfig) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.infrastructureConfig = infrastructureConfig;
+        this.ssoClientConfig = ssoClientConfig;
         this.databaseSchemaConnectionInfo = Optional.ofNullable(databaseServiceResult)
                 .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Collections.singletonList(DEDB)))
                 .orElse(Collections.emptyList());
@@ -112,6 +111,11 @@ public class ComponentManagerDeployableContainer
     }
 
     @Override
+    public SsoClientConfig getSsoClientConfig() {
+        return ssoClientConfig;
+    }
+
+    @Override
     public List<DatabaseSchemaConnectionInfo> getSchemaConnectionInfo() {
         return this.databaseSchemaConnectionInfo;
     }
@@ -141,22 +145,6 @@ public class ComponentManagerDeployableContainer
     @Override
     public SsoConnectionInfo getSsoConnectionInfo() {
         return keycloakConnectionConfig;
-    }
-
-    @Override
-    public Optional<KeycloakToUse> getPreferredKeycloakToUse() {
-        return entandoApp.getSpec().getKeycloakToUse();
-    }
-
-    @Override
-    public SsoClientConfig getSsoClientConfig() {
-        String entandoAppClientId = EntandoAppDeployableContainer.clientIdOf(entandoApp);
-        String clientId = entandoApp.getMetadata().getName() + "-" + getNameQualifier();
-        List<Permission> permissions = new ArrayList<>();
-        permissions.add(new Permission(entandoAppClientId, "superuser"));
-        return new SsoClientConfig(getRealmToUse(), clientId, clientId,
-                Collections.emptyList(),
-                permissions);
     }
 
     @Override

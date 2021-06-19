@@ -56,11 +56,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tags({@Tag("component"), @Tag("in-process"), @Tag("allure")})
+@Tags({@Tag("component"), @Tag("in-process"), @Tag("allure"), @Tag("inner-hexagon")})
 @Feature("As a deployer, I would like to deploy an EntandoApp directly so that I have more granular control over the "
         + "configuration settings")
 @Issue("ENG-2284")
-@SourceLink("DeployedKeycloakServerTest.java")
+@SourceLink("DeployedEntandoAppServerTest.java")
 @SuppressWarnings({"java:S5961"})//because this test is intended to generate documentation and should read like the generated document
 class DeployedEntandoAppServerTest extends EntandoAppTestBase implements VariableReferenceAssertions {
 

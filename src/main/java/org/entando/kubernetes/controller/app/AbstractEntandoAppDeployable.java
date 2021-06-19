@@ -22,13 +22,11 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import java.util.Optional;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
-import org.entando.kubernetes.controller.spi.container.SsoConnectionInfo;
-import org.entando.kubernetes.controller.spi.deployable.PublicIngressingDeployable;
+import org.entando.kubernetes.controller.spi.deployable.IngressingDeployable;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.EntandoResourceRequirements;
-import org.entando.kubernetes.model.common.KeycloakToUse;
 
-public abstract class AbstractEntandoAppDeployable implements PublicIngressingDeployable<EntandoAppDeploymentResult> {
+public abstract class AbstractEntandoAppDeployable implements IngressingDeployable<EntandoAppDeploymentResult> {
 
     /**
      * The operating system level id of the default user in the Red Hat base images. Was determined to be 185 running the 'id' command in
@@ -37,16 +35,9 @@ public abstract class AbstractEntandoAppDeployable implements PublicIngressingDe
     public static final long DEFAULT_USERID_IN_JBOSS_BASE_IMAGES = 185L;
 
     protected final EntandoApp entandoApp;
-    protected final SsoConnectionInfo keycloakConnectionConfig;
 
-    protected AbstractEntandoAppDeployable(EntandoApp entandoApp, SsoConnectionInfo keycloakConnectionConfig) {
+    protected AbstractEntandoAppDeployable(EntandoApp entandoApp) {
         this.entandoApp = entandoApp;
-        this.keycloakConnectionConfig = keycloakConnectionConfig;
-    }
-
-    @Override
-    public Optional<KeycloakToUse> getPreferredKeycloakToUse() {
-        return entandoApp.getSpec().getKeycloakToUse();
     }
 
     @Override
@@ -84,11 +75,6 @@ public abstract class AbstractEntandoAppDeployable implements PublicIngressingDe
         return entandoApp.getMetadata().getNamespace();
     }
 
-    @Override
-    public SsoConnectionInfo getSsoConnectionInfo() {
-        return keycloakConnectionConfig;
-    }
-
     public Optional<String> getFileUploadLimit() {
         return entandoApp.getSpec().getResourceRequirements().flatMap(EntandoResourceRequirements::getFileUploadLimit);
     }
@@ -107,4 +93,5 @@ public abstract class AbstractEntandoAppDeployable implements PublicIngressingDe
     public String getServiceAccountToUse() {
         return getCustomResource().getSpec().getServiceAccountToUse().orElse(getDefaultServiceAccountName());
     }
+
 }

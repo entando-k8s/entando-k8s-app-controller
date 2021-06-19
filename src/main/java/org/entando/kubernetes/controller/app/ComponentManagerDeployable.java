@@ -16,28 +16,54 @@
 
 package org.entando.kubernetes.controller.app;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.spi.container.DeployableContainer;
-import org.entando.kubernetes.controller.spi.container.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.deployable.DbAwareDeployable;
+import org.entando.kubernetes.controller.spi.deployable.SsoAwareDeployable;
+import org.entando.kubernetes.controller.spi.deployable.SsoClientConfig;
+import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.common.Permission;
 
-public class ComponentManagerDeployable extends AbstractEntandoAppDeployable implements DbAwareDeployable<EntandoAppDeploymentResult> {
+public class ComponentManagerDeployable
+        extends AbstractEntandoAppDeployable
+        implements DbAwareDeployable<EntandoAppDeploymentResult>, SsoAwareDeployable<EntandoAppDeploymentResult> {
 
     public static final long COMPONENT_MANAGER_CURRENT_USER = 185L;
+    public static final String COMPONENT_MANAGER_QUALIFIER = "cm";
     private final List<DeployableContainer> containers;
+    private final SsoConnectionInfo ssoConnectionInfo;
 
     public ComponentManagerDeployable(EntandoApp entandoApp,
             SsoConnectionInfo ssoConnectionInfo,
             EntandoK8SService entandoK8SService,
             DatabaseConnectionInfo databaseServiceResult) {
-        super(entandoApp, ssoConnectionInfo);
+        super(entandoApp);
+        this.ssoConnectionInfo = ssoConnectionInfo;
         this.containers = Collections.singletonList(
-                new ComponentManagerDeployableContainer(entandoApp, ssoConnectionInfo, entandoK8SService, databaseServiceResult)
+                new ComponentManagerDeployableContainer(entandoApp, ssoConnectionInfo, entandoK8SService, databaseServiceResult,
+                        getSsoClientConfig())
         );
+    }
+
+    @Override
+    public SsoConnectionInfo getSsoConnectionInfo() {
+        return ssoConnectionInfo;
+    }
+
+    @Override
+    public SsoClientConfig getSsoClientConfig() {
+        String entandoAppClientId = EntandoAppServerDeployable.clientIdOf(entandoApp);
+        String clientId = entandoApp.getMetadata().getName() + "-" + ComponentManagerDeployableContainer.COMPONENT_MANAGER_QUALIFIER;
+        List<Permission> permissions = new ArrayList<>();
+        permissions.add(new Permission(entandoAppClientId, "superuser"));
+        return new SsoClientConfig(EntandoAppHelper.determineRealm(entandoApp, ssoConnectionInfo), clientId, clientId,
+                Collections.emptyList(),
+                permissions);
     }
 
     @Override
@@ -52,7 +78,7 @@ public class ComponentManagerDeployable extends AbstractEntandoAppDeployable imp
 
     @Override
     public Optional<String> getQualifier() {
-        return Optional.of("cm");
+        return Optional.of(COMPONENT_MANAGER_QUALIFIER);
     }
 
 }

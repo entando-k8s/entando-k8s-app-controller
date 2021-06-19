@@ -18,8 +18,11 @@ package org.entando.kubernetes.controller.app;
 
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMode;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
+import org.entando.kubernetes.controller.spi.container.KeycloakName;
+import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.DbmsVendor;
+import org.entando.kubernetes.model.common.KeycloakToUse;
 
 public class EntandoAppHelper {
 
@@ -33,7 +36,10 @@ public class EntandoAppHelper {
         } else {
             return entandoApp.getSpec().getDbms().orElse(DbmsVendor.EMBEDDED);
         }
-
     }
 
+    public static String determineRealm(EntandoApp entandoApp, SsoConnectionInfo ssoConnectionInfo) {
+        return entandoApp.getSpec().getKeycloakToUse().flatMap(KeycloakToUse::getRealm).or(() -> ssoConnectionInfo.getDefaultRealm())
+                .orElse(KeycloakName.ENTANDO_DEFAULT_KEYCLOAK_REALM);
+    }
 }

@@ -17,6 +17,7 @@
 package org.entando.kubernetes.controller.app;
 
 import static java.lang.String.format;
+import static java.util.Optional.ofNullable;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
 import java.util.ArrayList;
@@ -26,7 +27,6 @@ import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMode;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
-import org.entando.kubernetes.controller.spi.common.KeycloakPreference;
 import org.entando.kubernetes.controller.spi.common.LabelNames;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.common.SecretUtils;
@@ -41,18 +41,17 @@ import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
 import org.entando.kubernetes.controller.spi.container.PersistentVolumeAwareContainer;
 import org.entando.kubernetes.controller.spi.container.PortSpec;
 import org.entando.kubernetes.controller.spi.container.SsoAwareContainer;
-import org.entando.kubernetes.controller.spi.container.SsoClientConfig;
-import org.entando.kubernetes.controller.spi.container.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.container.TrustStoreAwareContainer;
+import org.entando.kubernetes.controller.spi.deployable.SsoClientConfig;
+import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.DbmsVendor;
 import org.entando.kubernetes.model.common.EntandoResourceRequirements;
 import org.entando.kubernetes.model.common.JeeServer;
-import org.entando.kubernetes.model.common.KeycloakToUse;
 
 public class EntandoAppDeployableContainer implements IngressingContainer, PersistentVolumeAwareContainer, DbAwareContainer,
-        TrustStoreAwareContainer, SsoAwareContainer, KeycloakPreference, ParameterizableContainer, ConfigurableResourceContainer {
+        TrustStoreAwareContainer, SsoAwareContainer, ParameterizableContainer, ConfigurableResourceContainer {
 
     public static final String INGRESS_WEB_CONTEXT = "/entando-de-app";
     public static final int PORT = 8080;
@@ -67,20 +66,18 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     private final SsoConnectionInfo keycloakConnectionConfig;
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
     private final DbmsVendor dbmsVendor;
+    private SsoClientConfig ssoClientConfig;
 
     public EntandoAppDeployableContainer(EntandoApp entandoApp, SsoConnectionInfo keycloakConnectionConfig,
-            DatabaseConnectionInfo databaseServiceResult) {
+            DatabaseConnectionInfo databaseServiceResult, SsoClientConfig ssoClientConfig) {
         this.dbmsVendor = EntandoAppHelper.determineDbmsVendor(entandoApp);
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
+        this.ssoClientConfig = ssoClientConfig;
         this.databaseSchemaConnectionInfo = Optional.ofNullable(databaseServiceResult)
                 .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Arrays.asList(PORTDB, SERVDB)))
                 .orElse(Collections.emptyList());
 
-    }
-
-    public static String clientIdOf(EntandoApp entandoApp) {
-        return entandoApp.getMetadata().getName();
     }
 
     public static String determineEntandoServiceBaseUrl(EntandoApp entandoApp) {
@@ -162,19 +159,6 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     }
 
     @Override
-    public Optional<KeycloakToUse> getPreferredKeycloakToUse() {
-        return entandoApp.getSpec().getKeycloakToUse();
-    }
-
-    @Override
-    public SsoClientConfig getSsoClientConfig() {
-        String clientId = clientIdOf(this.entandoApp);
-        return new SsoClientConfig(KeycloakName.ofTheRealm(this),
-                clientId,
-                clientId).withRole("superuser").withPermission("realm-management", "realm-admin");
-    }
-
-    @Override
     public String getWebContextPath() {
         return entandoApp.getSpec().getIngressPath().orElse(INGRESS_WEB_CONTEXT);
     }
@@ -238,6 +222,21 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     @Override
     public List<EnvVar> getEnvironmentVariableOverrides() {
         return entandoApp.getSpec().getEnvironmentVariables();
+    }
+
+    public List<EnvVar> getSsoVariables() {
+        List<EnvVar> vars = new ArrayList<>();
+        vars.add(new EnvVar("KEYCLOAK_ENABLED", "true", null));
+        vars.add(new EnvVar("KEYCLOAK_REALM", ssoClientConfig.getRealm(), null));
+        vars.add(new EnvVar("KEYCLOAK_PUBLIC_CLIENT_ID", EntandoAppServerDeployable.publicClientIdOf(entandoApp), null));
+        ofNullable(getSsoConnectionInfo()).ifPresent(ssoConnectionInfo ->
+                vars.add(new EnvVar("KEYCLOAK_AUTH_URL", ssoConnectionInfo.getExternalBaseUrl(), null)));
+        String keycloakSecretName = KeycloakName.forTheClientSecret(ssoClientConfig);
+        vars.add(new EnvVar("KEYCLOAK_CLIENT_SECRET", null,
+                SecretUtils.secretKeyRef(keycloakSecretName, KeycloakName.CLIENT_SECRET_KEY)));
+        vars.add(new EnvVar("KEYCLOAK_CLIENT_ID", null,
+                SecretUtils.secretKeyRef(keycloakSecretName, KeycloakName.CLIENT_ID_KEY)));
+        return vars;
     }
 
     /**
