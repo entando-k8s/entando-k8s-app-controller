@@ -92,7 +92,8 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
         });
         step("Then I can successfully login into the newly deployed Entando server", () -> {
             final String strUrl =
-                    "http://" + MY_APP + "-" + MY_NAMESPACE + "." + EntandoOperatorConfig.getDefaultRoutingSuffix().orElse("apps.serv.run")
+                    HttpTestHelper.getDefaultProtocol() + "://" + MY_APP + "-" + MY_NAMESPACE + "." + EntandoOperatorConfig
+                            .getDefaultRoutingSuffix().orElse("apps.serv.run")
                             + "/entando-de-app/api/health";
             await().atMost(1, TimeUnit.MINUTES).ignoreExceptions().until(() -> HttpTestHelper.statusOk(strUrl));
             assertThat(HttpTestHelper.statusOk(strUrl)).isTrue();
