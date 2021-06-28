@@ -135,12 +135,12 @@ public class EntandoAppController implements Runnable {
                             .withCapability(StandardCapability.DBMS)
                             .withImplementation(StandardCapabilityImplementation.valueOf(dbmsVendor.name()))
                             .withResolutionScopePreference(CapabilityScope.NAMESPACE, CapabilityScope.DEDICATED, CapabilityScope.CLUSTER)
-                            .build(), 180);
+                            .build(), EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds());
             final ProvidedCapability dbmsCapability = capabilityResult.getProvidedCapability();
             dbmsCapability.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
                     this.entandoApp.updateAndGet(a -> this.k8sClient.updateStatus(a, new ServerStatus(NameUtils.DB_QUALIFIER, s))));
             capabilityResult.getControllerFailure().ifPresent(f -> {
-                throw new EntandoControllerException(
+                throw new EntandoControllerException(dbmsCapability,
                         format("Could not prepare DBMS  capability for EntandoApp %s/%s. Please inspect the ProvidedCapability %s/%s, "
                                         + "address the "
                                         + "deployment failure and force a redeployment using the annotation value 'entando"
@@ -169,12 +169,13 @@ public class EntandoAppController implements Runnable {
                         .withPreferredIngressHostName(entandoApp.get().getSpec().getIngressHostName().orElse(null))
                         .withPreferredTlsSecretName(entandoApp.get().getSpec().getTlsSecretName().orElse(null))
                         .withResolutionScopePreference(CapabilityScope.NAMESPACE, CapabilityScope.CLUSTER)
-                        .build(), 240);
+                        .build(), EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() + EntandoOperatorSpiConfig
+                        .getPodReadinessTimeoutSeconds());
         final ProvidedCapability ssoCapability = capabilityResult.getProvidedCapability();
         ssoCapability.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
                 this.entandoApp.updateAndGet(a -> this.k8sClient.updateStatus(a, new ServerStatus(NameUtils.SSO_QUALIFIER, s))));
         capabilityResult.getControllerFailure().ifPresent(f -> {
-            throw new EntandoControllerException(
+            throw new EntandoControllerException(ssoCapability,
                     format("Could not prepare SSO capability for EntandoApp %s/%s. Please inspect the ProvidedCapability %s/%s, address "
                                     + "the "
                                     + "deployment failure and force a redeployment using the annotation value 'entando"
