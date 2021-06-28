@@ -38,12 +38,12 @@ import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.container.ProvidedDatabaseCapability;
 import org.entando.kubernetes.controller.spi.container.ProvidedSsoCapability;
 import org.entando.kubernetes.controller.spi.deployable.IngressingDeployable;
-import org.entando.kubernetes.controller.spi.deployable.PublicIngressingDeployable;
 import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.capability.CapabilityRequirementBuilder;
 import org.entando.kubernetes.model.capability.CapabilityScope;
+import org.entando.kubernetes.model.capability.ProvidedCapability;
 import org.entando.kubernetes.model.capability.StandardCapability;
 import org.entando.kubernetes.model.capability.StandardCapabilityImplementation;
 import org.entando.kubernetes.model.common.DbmsVendor;
@@ -136,13 +136,20 @@ public class EntandoAppController implements Runnable {
                             .withImplementation(StandardCapabilityImplementation.valueOf(dbmsVendor.name()))
                             .withResolutionScopePreference(CapabilityScope.NAMESPACE, CapabilityScope.DEDICATED, CapabilityScope.CLUSTER)
                             .build(), 180);
-            capabilityResult.getProvidedCapability().getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
+            final ProvidedCapability dbmsCapability = capabilityResult.getProvidedCapability();
+            dbmsCapability.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
                     this.entandoApp.updateAndGet(a -> this.k8sClient.updateStatus(a, new ServerStatus(NameUtils.DB_QUALIFIER, s))));
             capabilityResult.getControllerFailure().ifPresent(f -> {
-                throw new EntandoControllerException(format("Could not prepare database for EntandoApp %s/%s%n%s", entandoApp.get()
-                                .getMetadata().getNamespace(), entandoApp.get()
-                                .getMetadata().getName(),
-                        f.getDetailMessage()));
+                throw new EntandoControllerException(
+                        format("Could not prepare DBMS  capability for EntandoApp %s/%s. Please inspect the ProvidedCapability %s/%s, "
+                                        + "address the "
+                                        + "deployment failure and force a redeployment using the annotation value 'entando"
+                                        + ".org/processing-instruction: force. The following message was received:%n %s",
+                                entandoApp.get().getMetadata().getNamespace(),
+                                entandoApp.get().getMetadata().getName(),
+                                dbmsCapability.getMetadata().getNamespace(),
+                                dbmsCapability.getMetadata().getName(),
+                                f.getDetailMessage()));
             });
             return new ProvidedDatabaseCapability(capabilityResult);
         } else {
@@ -163,13 +170,20 @@ public class EntandoAppController implements Runnable {
                         .withPreferredTlsSecretName(entandoApp.get().getSpec().getTlsSecretName().orElse(null))
                         .withResolutionScopePreference(CapabilityScope.NAMESPACE, CapabilityScope.CLUSTER)
                         .build(), 240);
-        capabilityResult.getProvidedCapability().getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
+        final ProvidedCapability ssoCapability = capabilityResult.getProvidedCapability();
+        ssoCapability.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
                 this.entandoApp.updateAndGet(a -> this.k8sClient.updateStatus(a, new ServerStatus(NameUtils.SSO_QUALIFIER, s))));
         capabilityResult.getControllerFailure().ifPresent(f -> {
-            throw new EntandoControllerException(format("Could not prepare SSO for EntandoApp %s/%s%n%s", entandoApp.get()
-                            .getMetadata().getNamespace(), entandoApp.get()
-                            .getMetadata().getName(),
-                    f.getDetailMessage()));
+            throw new EntandoControllerException(
+                    format("Could not prepare SSO capability for EntandoApp %s/%s. Please inspect the ProvidedCapability %s/%s, address "
+                                    + "the "
+                                    + "deployment failure and force a redeployment using the annotation value 'entando"
+                                    + ".org/processing-instruction: force. The following message was received:%n %s",
+                            entandoApp.get().getMetadata().getNamespace(),
+                            entandoApp.get().getMetadata().getName(),
+                            ssoCapability.getMetadata().getNamespace(),
+                            ssoCapability.getMetadata().getName(),
+                            f.getDetailMessage()));
         });
         return new ProvidedSsoCapability(capabilityResult);
     }
