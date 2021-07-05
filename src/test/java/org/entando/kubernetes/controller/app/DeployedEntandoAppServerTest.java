@@ -27,6 +27,8 @@ import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.Service;
+import io.fabric8.kubernetes.api.model.ServiceBuilder;
+import io.fabric8.kubernetes.api.model.ServicePort;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import io.qameta.allure.Description;
@@ -41,7 +43,9 @@ import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.common.SecretUtils;
 import org.entando.kubernetes.controller.spi.container.KeycloakName;
 import org.entando.kubernetes.controller.spi.container.SpringBootDeployableContainer.SpringProperty;
+import org.entando.kubernetes.controller.support.client.doubles.AbstractK8SClientDouble;
 import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
+import org.entando.kubernetes.fluentspi.TestResource;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.capability.ProvidedCapability;
@@ -78,8 +82,23 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                 .endSpec()
                 .build();
         step("Given that the Entando Operator is running in 'Red Hat' compliance mode",
-                () -> attachEnvironmentVariable(EntandoOperatorSpiConfigProperty.ENTANDO_K8S_OPERATOR_COMPLIANCE_MODE,
-                        EntandoOperatorComplianceMode.REDHAT.getName()));
+                () -> {
+                    getClient().services()
+                            .createOrReplaceService(new TestResource().withNames(AbstractK8SClientDouble.CONTROLLER_NAMESPACE, "ignored"),
+                                    new ServiceBuilder()
+                                            .withNewMetadata()
+                                            .withName(EntandoAppController.ENTANDO_K8S_SERVICE)
+                                            .withNamespace(AbstractK8SClientDouble.CONTROLLER_NAMESPACE)
+                                            .endMetadata()
+                                            .withNewSpec()
+                                            .addNewPort()
+                                            .withPort(8084)
+                                            .endPort()
+                                            .endSpec()
+                                            .build());
+                    attachEnvironmentVariable(EntandoOperatorSpiConfigProperty.ENTANDO_K8S_OPERATOR_COMPLIANCE_MODE,
+                            EntandoOperatorComplianceMode.REDHAT.getName());
+                });
         step("And the Operator runs in a Kubernetes environment the requires a filesystem user/group override for mounted volumes",
                 () -> attachEnvironmentVariable(EntandoOperatorConfigProperty.ENTANDO_REQUIRES_FILESYSTEM_GROUP_OVERRIDE, "true"));
         step("And the routing suffix has been configured globally ",
@@ -191,7 +210,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             step("With a volume mounted to the standard directory /entando-data",
                     () -> assertThat(theVolumeMountNamed("my-app-de-volume").on(theComponentManagerContainer)
                             .getMountPath()).isEqualTo("/entando-data"));
-            step("Which is bound to a PersistentVolumeClain", () -> {
+            step("Which is bound to a PersistentVolumeClaim", () -> {
                 final PersistentVolumeClaim pvc = client.persistentVolumeClaims()
                         .loadPersistentVolumeClaim(entandoApp, "my-app-de-pvc");
                 attachKubernetesResource("PersistentVolumeClaim", pvc);
@@ -202,6 +221,14 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             step("And all the variables required to connect to Red Hat SSO have been configured", () -> {
                 verifySpringSecurityVariables(theComponentManagerContainer, "https://mykeycloak.apps.serv.run/auth/realms/my-realm",
                         "my-app-de-secret");
+            });
+            step("And a variables to connect to the entando-k8s-service", () -> {
+                assertThat(theVariableNamed("ENTANDO_K8S_SERVICE_URL").on(theComponentManagerContainer))
+                        .isEqualTo("http://entando-k8s-service.controller-namespace.svc.cluster.local:8084/k8s");
+            });
+            step("And a variables to connect to the app-engine instance", () -> {
+                assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer))
+                        .isEqualTo("http://my-app-service.my-namespace.svc.cluster.local:8080/entando-de-apps");
             });
             step("And the File System User/Group override " + ComponentManagerDeployable.COMPONENT_MANAGER_CURRENT_USER
                     + "has been applied to the mount", () ->

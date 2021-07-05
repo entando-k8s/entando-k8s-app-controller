@@ -16,6 +16,8 @@
 
 package org.entando.kubernetes.controller.app;
 
+import static java.lang.String.format;
+
 import io.fabric8.kubernetes.api.model.EnvVar;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -95,7 +97,9 @@ public class ComponentManagerDeployableContainer
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPrimaryPort()), null));
-        vars.add(new EnvVar("ENTANDO_K8S_SERVICE_URL", "http://" + infrastructureConfig.getInternalServiceHostname() + "/k8s", null));
+        vars.add(
+                new EnvVar("ENTANDO_K8S_SERVICE_URL", format("http://%s:%s/k8s", infrastructureConfig.getInternalServiceHostname(),
+                        infrastructureConfig.getService().getSpec().getPorts().get(0).getPort()), null));
         //The ssh files will be copied to /opt/.ssh and chmod to 400. This can only happen at runtime because Openshift generates a
         // random userid
         entandoApp.getSpec().getEcrGitSshSecretName().ifPresent(s -> vars.add(new EnvVar("GIT_SSH_COMMAND", "ssh "
