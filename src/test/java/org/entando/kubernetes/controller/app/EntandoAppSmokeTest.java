@@ -115,7 +115,7 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
                     EntandoOperatorTestConfig.getVersionOfImageUnderTest().orElse("0.0.0-11"));
         });
         step("Then the EntandoApp is processed successfully", () -> {
-            EntandoApp app = simpleClient.entandoResources().load(EntandoApp.class, client.getNamespace(), MY_APP);
+            EntandoApp app = simpleClient.entandoResources().load(EntandoApp.class, MY_NAMESPACE, MY_APP);
             app = simpleClient.entandoResources().waitForCompletion(app, 480);
             assertThat(app.getStatus().getPhase()).isEqualTo(EntandoDeploymentPhase.SUCCESSFUL);
         });
