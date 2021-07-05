@@ -78,6 +78,7 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
                     .withNewSpec()
                     .withSelector(Map.of("not-matching-anything", "nothing"))
                     .addNewPort()
+                    .withPort(8084)
                     .endPort()
                     .endSpec()
                     .build());
