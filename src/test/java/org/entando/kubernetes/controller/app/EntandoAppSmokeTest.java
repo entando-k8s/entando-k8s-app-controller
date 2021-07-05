@@ -19,13 +19,17 @@ package org.entando.kubernetes.controller.app;
 import static io.qameta.allure.Allure.attachment;
 import static io.qameta.allure.Allure.step;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Fail.fail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.fabric8.kubernetes.api.model.Service;
+import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.entando.kubernetes.controller.support.client.impl.DefaultSimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.impl.EntandoOperatorTestConfig;
@@ -38,6 +42,7 @@ import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.capability.ProvidedCapability;
 import org.entando.kubernetes.model.common.DbmsVendor;
+import org.entando.kubernetes.model.common.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.common.JeeServer;
 import org.entando.kubernetes.test.common.KeycloakTestCapabilityProvider;
 import org.entando.kubernetes.test.e2etest.ControllerExecutor;
@@ -59,9 +64,23 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
     @Description("Should successfully connect to newly deployed Keycloak Server")
     void testDeployment() {
         KubernetesClient client = new SupportProducer().getKubernetesClient();
+
         final DefaultSimpleK8SClient simpleClient = new DefaultSimpleK8SClient(client);
         step("Given I have a clean namespace", () -> {
             TestFixturePreparation.prepareTestFixture(client, deleteAll(EntandoApp.class).fromNamespace(MY_NAMESPACE));
+        });
+        step("And I have a service called 'entando-k8s-service'", () -> {
+            client.services().inNamespace(client.getNamespace()).create(new ServiceBuilder()
+                    .withNewMetadata()
+                    .withNamespace(client.getNamespace())
+                    .withName(EntandoAppController.ENTANDO_K8S_SERVICE)
+                    .endMetadata()
+                    .withNewSpec()
+                    .withSelector(Map.of("not-matching-anything", "nothing"))
+                    .addNewPort()
+                    .endPort()
+                    .endSpec()
+                    .build());
         });
         step("And I have configured a ProvidedCapability for SSO in the namespace", () -> {
             final ProvidedCapability providedCapability = new KeycloakTestCapabilityProvider(simpleClient, MY_NAMESPACE)
@@ -82,7 +101,7 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
                                     .endSpec()
                                     .build()
                     );
-            attachment("SSO Capability", objectMapper.writeValueAsString(this.entandoApp));
+            attachment("EntandoApp", objectMapper.writeValueAsString(this.entandoApp));
         });
         step("When I run the entando-k8s-app-controller container against the EntandoApp", () -> {
             ControllerExecutor executor = new ControllerExecutor(MY_NAMESPACE, simpleClient,
@@ -90,11 +109,29 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
             executor.runControllerFor(Action.ADDED, entandoApp,
                     EntandoOperatorTestConfig.getVersionOfImageUnderTest().orElse("0.0.0-11"));
         });
-        step("Then I can successfully login into the newly deployed Entando server", () -> {
+        step("Then the EntandoApp is processed successfully", () -> {
+            await().atMost(7, TimeUnit.MINUTES).ignoreException(NullPointerException.class).until(() -> {
+                EntandoApp app = simpleClient.entandoResources().load(EntandoApp.class, client.getNamespace(), MY_APP);
+                if (app.getStatus().getPhase() == EntandoDeploymentPhase.FAILED) {
+                    attachment("Failed EntandoApp", objectMapper.writeValueAsString(this.entandoApp));
+                    throw new AssertionError("EntandoApp was not processed successfully");
+                }
+                return app.getStatus().getPhase() == EntandoDeploymentPhase.SUCCESSFUL;
+            });
+        });
+        step("And I can access the health check path of the newly deployed Entando server", () -> {
             final String strUrl =
                     HttpTestHelper.getDefaultProtocol() + "://" + MY_APP + "-" + MY_NAMESPACE + "." + EntandoOperatorConfig
                             .getDefaultRoutingSuffix().orElse("apps.serv.run")
                             + "/entando-de-app/api/health";
+            await().atMost(1, TimeUnit.MINUTES).ignoreExceptions().until(() -> HttpTestHelper.statusOk(strUrl));
+            assertThat(HttpTestHelper.statusOk(strUrl)).isTrue();
+        });
+        step("And I can access the health check path of the the ComponentManager", () -> {
+            final String strUrl =
+                    HttpTestHelper.getDefaultProtocol() + "://" + MY_APP + "-" + MY_NAMESPACE + "." + EntandoOperatorConfig
+                            .getDefaultRoutingSuffix().orElse("apps.serv.run")
+                            + "/digital-exchange/actuator/health";
             await().atMost(1, TimeUnit.MINUTES).ignoreExceptions().until(() -> HttpTestHelper.statusOk(strUrl));
             assertThat(HttpTestHelper.statusOk(strUrl)).isTrue();
         });
