@@ -38,6 +38,7 @@ import org.entando.kubernetes.controller.support.client.impl.integrationtesthelp
 import org.entando.kubernetes.controller.support.client.impl.integrationtesthelpers.HttpTestHelper;
 import org.entando.kubernetes.controller.support.client.impl.integrationtesthelpers.TestFixturePreparation;
 import org.entando.kubernetes.controller.support.common.EntandoOperatorConfig;
+import org.entando.kubernetes.fluentspi.TestResource;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.capability.ProvidedCapability;
@@ -71,18 +72,20 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
         });
         step("And I have a service called 'entando-k8s-service'", () -> {
             //The EntandoApp is in same namespace as the controller at this point
-            simpleClient.services().createOrReplaceService(entandoApp, new ServiceBuilder()
-                    .withNewMetadata()
-                    .withNamespace(MY_NAMESPACE)
-                    .withName(EntandoAppController.ENTANDO_K8S_SERVICE)
-                    .endMetadata()
-                    .withNewSpec()
-                    .withSelector(Map.of("not-matching-anything", "nothing"))
-                    .addNewPort()
-                    .withPort(8084)
-                    .endPort()
-                    .endSpec()
-                    .build());
+            simpleClient.services().createOrReplaceService(
+                    new TestResource().withNames(MY_NAMESPACE, "ingored"),
+                    new ServiceBuilder()
+                            .withNewMetadata()
+                            .withNamespace(MY_NAMESPACE)
+                            .withName(EntandoAppController.ENTANDO_K8S_SERVICE)
+                            .endMetadata()
+                            .withNewSpec()
+                            .withSelector(Map.of("not-matching-anything", "nothing"))
+                            .addNewPort()
+                            .withPort(8084)
+                            .endPort()
+                            .endSpec()
+                            .build());
         });
         step("And I have configured a ProvidedCapability for SSO in the namespace", () -> {
             final ProvidedCapability providedCapability = new KeycloakTestCapabilityProvider(simpleClient, MY_NAMESPACE)
