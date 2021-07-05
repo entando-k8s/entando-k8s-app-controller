@@ -228,7 +228,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             });
             step("And a variables to connect to the app-engine instance", () -> {
                 assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer))
-                        .isEqualTo("http://my-app-service.my-namespace.svc.cluster.local:8080/entando-de-apps");
+                        .isEqualTo("http://my-app-service.my-namespace.svc.cluster.local:8080/entando-de-app");
             });
             step("And the File System User/Group override " + ComponentManagerDeployable.COMPONENT_MANAGER_CURRENT_USER
                     + "has been applied to the mount", () ->

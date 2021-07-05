@@ -81,7 +81,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     }
 
     public static String determineEntandoServiceBaseUrl(EntandoApp entandoApp) {
-        return format("http://%s.%s.svc.cluster.local:%s%ss",
+        return format("http://%s.%s.svc.cluster.local:%s%s",
                 NameUtils.standardServiceName(entandoApp),
                 entandoApp.getMetadata().getNamespace(),
                 PORT,
