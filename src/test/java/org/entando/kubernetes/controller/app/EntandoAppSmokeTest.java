@@ -70,7 +70,8 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
             TestFixturePreparation.prepareTestFixture(client, deleteAll(EntandoApp.class).fromNamespace(MY_NAMESPACE));
         });
         step("And I have a service called 'entando-k8s-service'", () -> {
-            client.services().inNamespace(MY_NAMESPACE).create(new ServiceBuilder()
+            //The EntandoApp is in same namespace as the controller at this point
+            simpleClient.services().createOrReplaceService(entandoApp, new ServiceBuilder()
                     .withNewMetadata()
                     .withNamespace(MY_NAMESPACE)
                     .withName(EntandoAppController.ENTANDO_K8S_SERVICE)
