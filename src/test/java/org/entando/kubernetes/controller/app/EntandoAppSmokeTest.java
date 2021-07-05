@@ -19,7 +19,7 @@ package org.entando.kubernetes.controller.app;
 import static io.qameta.allure.Allure.attachment;
 import static io.qameta.allure.Allure.step;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.Fail.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -70,9 +70,9 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
             TestFixturePreparation.prepareTestFixture(client, deleteAll(EntandoApp.class).fromNamespace(MY_NAMESPACE));
         });
         step("And I have a service called 'entando-k8s-service'", () -> {
-            client.services().inNamespace(client.getNamespace()).create(new ServiceBuilder()
+            client.services().inNamespace(MY_NAMESPACE).create(new ServiceBuilder()
                     .withNewMetadata()
-                    .withNamespace(client.getNamespace())
+                    .withNamespace(MY_NAMESPACE)
                     .withName(EntandoAppController.ENTANDO_K8S_SERVICE)
                     .endMetadata()
                     .withNewSpec()
@@ -111,14 +111,9 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
                     EntandoOperatorTestConfig.getVersionOfImageUnderTest().orElse("0.0.0-11"));
         });
         step("Then the EntandoApp is processed successfully", () -> {
-            await().atMost(7, TimeUnit.MINUTES).ignoreException(NullPointerException.class).until(() -> {
-                EntandoApp app = simpleClient.entandoResources().load(EntandoApp.class, client.getNamespace(), MY_APP);
-                if (app.getStatus().getPhase() == EntandoDeploymentPhase.FAILED) {
-                    attachment("Failed EntandoApp", objectMapper.writeValueAsString(this.entandoApp));
-                    throw new AssertionError("EntandoApp was not processed successfully");
-                }
-                return app.getStatus().getPhase() == EntandoDeploymentPhase.SUCCESSFUL;
-            });
+            EntandoApp app = simpleClient.entandoResources().load(EntandoApp.class, client.getNamespace(), MY_APP);
+            app = simpleClient.entandoResources().waitForCompletion(app, 480);
+            assertThat(app.getStatus().getPhase()).isEqualTo(EntandoDeploymentPhase.SUCCESSFUL);
         });
         step("And I can access the health check path of the newly deployed Entando server", () -> {
             final String strUrl =
