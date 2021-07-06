@@ -39,7 +39,7 @@ public class EntandoAppHelper {
     }
 
     public static String determineRealm(EntandoApp entandoApp, SsoConnectionInfo ssoConnectionInfo) {
-        return entandoApp.getSpec().getKeycloakToUse().flatMap(KeycloakToUse::getRealm).or(() -> ssoConnectionInfo.getDefaultRealm())
+        return entandoApp.getSpec().getKeycloakToUse().flatMap(KeycloakToUse::getRealm).or(ssoConnectionInfo::getDefaultRealm)
                 .orElse(KeycloakName.ENTANDO_DEFAULT_KEYCLOAK_REALM);
     }
 }

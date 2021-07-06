@@ -94,7 +94,7 @@ public class EntandoAppController implements Runnable {
             attachControllerFailure(e, EntandoAppController.class, NameUtils.MAIN_QUALIFIER);
         }
         entandoApp.get().getStatus().findFailedServerStatus().flatMap(ServerStatus::getEntandoControllerFailure).ifPresent(s -> {
-            throw new CommandLine.ExecutionException(new CommandLine(this), s.getMessage());
+            throw new CommandLine.ExecutionException(new CommandLine(this), s.getDetailMessage());
         });
     }
 
