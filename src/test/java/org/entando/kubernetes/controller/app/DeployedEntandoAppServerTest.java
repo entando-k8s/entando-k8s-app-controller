@@ -138,7 +138,8 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
         final String portDbSecret = "my-app-portdb-secret";
         step("And a database schema was prepared for the Entando App and for Component Manager", () -> {
             final Pod mainDbPreprationJob = getClient().pods().loadPod(MY_NAMESPACE,
-                    Map.of("EntandoResourceKind", "EntandoApp", "jobKind", "db-preparation-job", "EntandoApp",
+                    Map.of(LabelNames.RESOURCE_KIND.getName(), "EntandoApp", LabelNames.JOB_KIND.getName(), "db-preparation-job",
+                            "EntandoApp",
                             MY_APP, LabelNames.DEPLOYMENT_QUALIFIER.getName(), NameUtils.MAIN_QUALIFIER));
             assertThat(mainDbPreprationJob).isNotNull();
             final Container portDbInitContainer = theInitContainerNamed("my-app-portdb-schema-creation-job").on(mainDbPreprationJob);
@@ -193,7 +194,8 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
 
         step("And a database schema was prepared for the Component Manager", () -> {
             final Pod cmDbPreprationJob = getClient().pods().loadPod(MY_NAMESPACE,
-                    Map.of("EntandoResourceKind", "EntandoApp", "jobKind", "db-preparation-job", "EntandoApp",
+                    Map.of(LabelNames.RESOURCE_KIND.getName(), "EntandoApp", LabelNames.JOB_KIND.getName(), "db-preparation-job",
+                            "EntandoApp",
                             MY_APP, LabelNames.DEPLOYMENT_QUALIFIER.getName(), "cm"));
             assertThat(cmDbPreprationJob).isNotNull();
             final Container cmDbInitContainer = theInitContainerNamed("my-app-dedb-schema-creation-job").on(cmDbPreprationJob);
@@ -279,9 +281,9 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                     () -> assertThat(service.getSpec().getPorts().get(0).getPort()).isEqualTo(8080));
             step("And with a label selector matching the labels of the Pod Template on the  Deployment",
                     () -> assertThat(service.getSpec().getSelector()).containsAllEntriesOf(
-                            Map.of("EntandoResourceKind", "EntandoApp", "EntandoApp",
+                            Map.of(LabelNames.RESOURCE_KIND.getName(), "EntandoApp", "EntandoApp",
                                     entandoApp.getMetadata().getName(),
-                                    "deployment", entandoApp.getMetadata().getName())
+                                    LabelNames.DEPLOYMENT.getName(), entandoApp.getMetadata().getName())
                     ));
         });
         step("And a Kubernetes Service was created for the Component Manager deployment", () -> {
@@ -292,9 +294,9 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                     () -> assertThat(service.getSpec().getPorts().get(0).getPort()).isEqualTo(8083));
             step("And with a label selector matching the labels of the Pod Template on the  Deployment",
                     () -> assertThat(service.getSpec().getSelector()).containsAllEntriesOf(
-                            Map.of("EntandoResourceKind", "EntandoApp", "EntandoApp",
+                            Map.of(LabelNames.RESOURCE_KIND.getName(), "EntandoApp", "EntandoApp",
                                     entandoApp.getMetadata().getName(),
-                                    "deployment", entandoApp.getMetadata().getName() + "-cm")
+                                    LabelNames.DEPLOYMENT.getName(), entandoApp.getMetadata().getName() + "-cm")
                     ));
         });
         step("And a Kubernetes Service was created for the AppBuilder deployment", () -> {
@@ -305,9 +307,9 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                     () -> assertThat(service.getSpec().getPorts().get(0).getPort()).isEqualTo(8081));
             step("And with a label selector matching the labels of the Pod Template on the  Deployment",
                     () -> assertThat(service.getSpec().getSelector()).containsAllEntriesOf(
-                            Map.of("EntandoResourceKind", "EntandoApp", "EntandoApp",
+                            Map.of(LabelNames.RESOURCE_KIND.getName(), "EntandoApp", "EntandoApp",
                                     entandoApp.getMetadata().getName(),
-                                    "deployment", entandoApp.getMetadata().getName() + "-ab")
+                                    LabelNames.DEPLOYMENT.getName(), entandoApp.getMetadata().getName() + "-ab")
                     ));
         });
 
