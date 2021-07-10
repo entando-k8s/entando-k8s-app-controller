@@ -113,7 +113,8 @@ public class EntandoAppController implements Runnable {
     private void queueDeployable(IngressingDeployable<EntandoAppDeploymentResult> deployable, long timeout) {
         executor.submit(() -> {
             try {
-                deploymentProcessor.processDeployable(deployable, (int) timeout);
+                EntandoAppDeploymentResult result = deploymentProcessor.processDeployable(deployable, (int) timeout);
+                entandoApp.getAndUpdate(ea -> k8sClient.updateStatus(ea, result.getStatus()));
             } catch (Exception e) {
                 attachControllerFailure(e, deployable.getClass(), deployable.getQualifier().orElse(NameUtils.MAIN_QUALIFIER));
             }
