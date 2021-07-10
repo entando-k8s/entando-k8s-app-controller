@@ -20,10 +20,18 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import org.entando.kubernetes.controller.spi.result.ExposedDeploymentResult;
+import org.entando.kubernetes.model.common.ServerStatus;
 
 public class EntandoAppDeploymentResult extends ExposedDeploymentResult<EntandoAppDeploymentResult> {
 
     public EntandoAppDeploymentResult(Pod pod, Service service, Ingress ingress) {
         super(pod, service, ingress);
+    }
+
+    @Override
+    public EntandoAppDeploymentResult withStatus(ServerStatus status) {
+        super.withStatus(status);
+        status.setExternalBaseUrl(getExternalBaseUrl());
+        return this;
     }
 }
