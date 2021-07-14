@@ -71,6 +71,7 @@ public class EntandoAppController implements Runnable {
 
     //There is no point re-interrupting the thread when the VM is about to exit.
     @SuppressWarnings("java:S2142")
+    @Override
     public void run() {
         this.entandoApp.set((EntandoApp) k8sClient.resolveCustomResourceToProcess(Collections.singletonList(EntandoApp.class)));
         try {
