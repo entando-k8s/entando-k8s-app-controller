@@ -99,7 +99,6 @@ public class EntandoAppController implements Runnable {
     }
 
     private int calculateDbAwareTimeout() {
-        //TODO Meh.... who cares.
         final int timeoutForDbAware;
         if (requiresDbmsService(EntandoAppHelper.determineDbmsVendor(entandoApp.get()))) {
             timeoutForDbAware =
