@@ -100,7 +100,8 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
     @Override
     public String determineImageToUse() {
-        return entandoApp.getSpec().getCustomServerImage().orElse(determineStandardImage().getImageName());
+        return this.entandoApp.getSpec().getCustomServerImage()
+                .orElse(EntandoAppHelper.appendImageVersion(this.entandoApp, determineStandardImage().getImageName()));
     }
 
     private JeeServer determineStandardImage() {

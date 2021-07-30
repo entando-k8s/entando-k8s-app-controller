@@ -27,7 +27,7 @@ import org.entando.kubernetes.model.app.EntandoApp;
 
 public class AppBuilderDeployableContainer implements DeployableContainer, IngressingContainer, ParameterizableContainer {
 
-    private static final String ENTANDO_APP_BUILDER_IMAGE_NAME = "entando/app-builder";
+    private static final String ENTANDO_APP_BUILDER_IMAGE_NAME = "app-builder";
     private final EntandoApp entandoApp;
 
     public AppBuilderDeployableContainer(EntandoApp entandoApp) {
@@ -51,7 +51,7 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
 
     @Override
     public String determineImageToUse() {
-        return ENTANDO_APP_BUILDER_IMAGE_NAME;
+        return EntandoAppHelper.appendImageVersion(entandoApp, ENTANDO_APP_BUILDER_IMAGE_NAME);
     }
 
     @Override

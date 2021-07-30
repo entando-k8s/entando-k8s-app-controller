@@ -17,12 +17,18 @@
 package org.entando.kubernetes.controller.app;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
+import static org.entando.kubernetes.controller.spi.common.EntandoOperatorConfigBase.lookupProperty;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import org.entando.kubernetes.controller.spi.common.EntandoOperatorConfigBase;
 import org.entando.kubernetes.controller.spi.container.DatabaseSchemaConnectionInfo;
 import org.entando.kubernetes.controller.spi.container.DbAwareContainer;
 import org.entando.kubernetes.controller.spi.container.ParameterizableContainer;
@@ -40,7 +46,7 @@ public class ComponentManagerDeployableContainer
         implements SpringBootDeployableContainer, PersistentVolumeAwareContainer, ParameterizableContainer, SsoAwareContainer {
 
     public static final String COMPONENT_MANAGER_QUALIFIER = "de";
-    public static final String COMPONENT_MANAGER_IMAGE_NAME = "entando/entando-component-manager";
+    public static final String COMPONENT_MANAGER_IMAGE_NAME = "entando-component-manager";
 
     private static final String DEDB = "dedb";
     public static final String ECR_GIT_CONFIG_DIR = "/etc/ecr-git-config";
@@ -60,9 +66,9 @@ public class ComponentManagerDeployableContainer
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.infrastructureConfig = infrastructureConfig;
         this.ssoClientConfig = ssoClientConfig;
-        this.databaseSchemaConnectionInfo = Optional.ofNullable(databaseServiceResult)
+        this.databaseSchemaConnectionInfo = ofNullable(databaseServiceResult)
                 .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Collections.singletonList(DEDB)))
-                .orElse(Collections.emptyList());
+                .orElse(emptyList());
     }
 
     @Override
@@ -77,7 +83,7 @@ public class ComponentManagerDeployableContainer
 
     @Override
     public String determineImageToUse() {
-        return COMPONENT_MANAGER_IMAGE_NAME;
+        return EntandoAppHelper.appendImageVersion(entandoApp, COMPONENT_MANAGER_IMAGE_NAME);
     }
 
     @Override
@@ -97,6 +103,15 @@ public class ComponentManagerDeployableContainer
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPrimaryPort()), null));
+        List<String> ecrNamespacesToUse = ofNullable(entandoApp.getSpec().getComponentRepositoryNamespaces()).orElse(emptyList());
+        if (ecrNamespacesToUse.isEmpty()) {
+            ecrNamespacesToUse = lookupProperty(EntandoAppConfigProperty.ENTANDO_COMPONENT_MANAGER_NAMESPACES)
+                    .map(s -> Arrays.asList(s.split(EntandoOperatorConfigBase.SEPERATOR_PATTERN)))
+                    .orElse(emptyList());
+        }
+        if (!ecrNamespacesToUse.isEmpty()) {
+            vars.add(new EnvVar("ENTANDO_DIGITAL_EXCHANGES_NAME", String.join(",", ecrNamespacesToUse), null));
+        }
         vars.add(
                 new EnvVar("ENTANDO_K8S_SERVICE_URL", format("http://%s:%s/k8s", infrastructureConfig.getInternalServiceHostname(),
                         infrastructureConfig.getService().getSpec().getPorts().get(0).getPort()), null));

@@ -17,6 +17,7 @@
 package org.entando.kubernetes.controller.app;
 
 import static io.qameta.allure.Allure.step;
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -28,12 +29,12 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
-import io.fabric8.kubernetes.api.model.ServicePort;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Issue;
+import java.util.HashMap;
 import java.util.Map;
 import org.entando.kubernetes.controller.spi.common.DbmsVendorConfig;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMode;
@@ -44,6 +45,7 @@ import org.entando.kubernetes.controller.spi.common.SecretUtils;
 import org.entando.kubernetes.controller.spi.container.KeycloakName;
 import org.entando.kubernetes.controller.spi.container.SpringBootDeployableContainer.SpringProperty;
 import org.entando.kubernetes.controller.support.client.doubles.AbstractK8SClientDouble;
+import org.entando.kubernetes.controller.support.common.EntandoImageResolver;
 import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.fluentspi.TestResource;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -68,6 +70,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @SuppressWarnings({"java:S5961"})//because this test is intended to generate documentation and should read like the generated document
 class DeployedEntandoAppServerTest extends EntandoAppTestBase implements VariableReferenceAssertions {
 
+    public static final String COMPONENT_MANAGER_IMAGE_OVERRIDE = "myregistry/myorg/johns-component-manager"
+            + "@sha2561234561234";
+    public static final String APP_BUILDER_IMAGE_OVERRIDE = "someregistry/someorg/apppbuild:54312";
+    public static final String ENTANDO_EAP_IMAGE_OVERRIDE = "thepiratebay.com/pirates/of-the-carribean:1234";
     private EntandoApp app;
 
     @Test
@@ -83,19 +89,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                 .build();
         step("Given that the Entando Operator is running in 'Red Hat' compliance mode",
                 () -> {
-                    getClient().services()
-                            .createOrReplaceService(new TestResource().withNames(AbstractK8SClientDouble.CONTROLLER_NAMESPACE, "ignored"),
-                                    new ServiceBuilder()
-                                            .withNewMetadata()
-                                            .withName(EntandoAppController.ENTANDO_K8S_SERVICE)
-                                            .withNamespace(AbstractK8SClientDouble.CONTROLLER_NAMESPACE)
-                                            .endMetadata()
-                                            .withNewSpec()
-                                            .addNewPort()
-                                            .withPort(8084)
-                                            .endPort()
-                                            .endSpec()
-                                            .build());
+                    emulateEntandoK8SService();
                     attachEnvironmentVariable(EntandoOperatorSpiConfigProperty.ENTANDO_K8S_OPERATOR_COMPLIANCE_MODE,
                             EntandoOperatorComplianceMode.REDHAT.getName());
                 });
@@ -104,12 +98,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
         step("And the routing suffix has been configured globally ",
                 () -> attachEnvironmentVariable(EntandoOperatorConfigProperty.ENTANDO_DEFAULT_ROUTING_SUFFIX, "entando.org"));
         theDefaultTlsSecretWasCreatedAndConfiguredAsDefault();
-        step("And there is a controller to process requests for the DBMS capability",
-                () -> doAnswer(withADatabaseCapabilityStatus(DbmsVendor.POSTGRESQL, "my_db")).when(client.capabilities())
-                        .waitForCapabilityCompletion(argThat(matchesCapability(StandardCapability.DBMS)), anyInt()));
-        step("And there is a controller to process requests for the SSO capability",
-                () -> doAnswer(withAnSsoCapabilityStatus("mykeycloak.apps.serv.run", "my-realm")).when(client.capabilities())
-                        .waitForCapabilityCompletion(argThat(matchesCapability(StandardCapability.SSO)), anyInt()));
+        capabilityControllersForDbmsAndSsoAreRunning();
         step("When I create an EntandoApp with minimal configuration",
                 () -> {
                     if (this.app.getMetadata().getResourceVersion() != null) {
@@ -341,6 +330,139 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
 
         });
         attachKubernetesState();
+    }
+
+    private void emulateEntandoK8SService() {
+        getClient().services()
+                .createOrReplaceService(new TestResource().withNames(AbstractK8SClientDouble.CONTROLLER_NAMESPACE, "ignored"),
+                        new ServiceBuilder()
+                                .withNewMetadata()
+                                .withName(EntandoAppController.ENTANDO_K8S_SERVICE)
+                                .withNamespace(AbstractK8SClientDouble.CONTROLLER_NAMESPACE)
+                                .endMetadata()
+                                .withNewSpec()
+                                .addNewPort()
+                                .withPort(8084)
+                                .endPort()
+                                .endSpec()
+                                .build());
+    }
+
+    @Test
+    @Description("Should deploy the images specified in the annotations for a given version of Entando")
+    void shouldDeployImagesInAnnotations() {
+        this.app = new EntandoAppBuilder()
+                .withNewMetadata()
+                .withName(MY_APP)
+                .withNamespace(MY_NAMESPACE)
+                .endMetadata()
+                .withNewSpec()
+                .withEntandoAppVersion("6.5")
+                .endSpec()
+                .build();
+        step("Given that the Entando Operator is running in 'Red Hat' compliance mode",
+                () -> {
+                    emulateEntandoK8SService();
+                    attachEnvironmentVariable(EntandoOperatorSpiConfigProperty.ENTANDO_K8S_OPERATOR_COMPLIANCE_MODE,
+                            EntandoOperatorComplianceMode.REDHAT.getName());
+                });
+        step("And the routing suffix has been configured globally ",
+                () -> attachEnvironmentVariable(EntandoOperatorConfigProperty.ENTANDO_DEFAULT_ROUTING_SUFFIX, "entando.org"));
+        theDefaultTlsSecretWasCreatedAndConfiguredAsDefault();
+        capabilityControllersForDbmsAndSsoAreRunning();
+        step("When I create an EntandoApp with image override annotations",
+                () -> {
+                    HashMap<String, String> annotations = new HashMap<>();
+                    annotations.put(EntandoImageResolver.IMAGE_OVERRIDE_ANNOTATION_PREFIX + "entando-component-manager-6-5",
+                            COMPONENT_MANAGER_IMAGE_OVERRIDE);
+                    annotations.put(EntandoImageResolver.IMAGE_OVERRIDE_ANNOTATION_PREFIX + "app-builder-6-5",
+                            APP_BUILDER_IMAGE_OVERRIDE);
+                    annotations.put(EntandoImageResolver.IMAGE_OVERRIDE_ANNOTATION_PREFIX + "entando-de-app-eap-6-5",
+                            ENTANDO_EAP_IMAGE_OVERRIDE);
+                    this.app.getMetadata().setAnnotations(annotations);
+                    if (this.app.getMetadata().getResourceVersion() != null) {
+                        this.app = getClient().entandoResources().reload(app);
+                    }
+                    runControllerAgainstCustomResource(app);
+                });
+        final EntandoApp entandoApp = client.entandoResources().load(EntandoApp.class, MY_NAMESPACE, MY_APP);
+        step("And a Kubernetes Deployment was created reflecting the correct Entando Eap image:", () -> {
+            final Deployment theEngineDeployment = client.deployments()
+                    .loadDeployment(entandoApp, NameUtils.standardDeployment(entandoApp));
+            attachKubernetesResource("Deployment", theEngineDeployment);
+            final Container theEngineContainer = thePrimaryContainerOn(theEngineDeployment);
+            step(format("using the Entando Eap Image '%s'", ENTANDO_EAP_IMAGE_OVERRIDE),
+                    () -> assertThat(theEngineContainer.getImage()).isEqualTo(ENTANDO_EAP_IMAGE_OVERRIDE));
+        });
+        step("And a Kubernetes Deployment was created reflecting the requirements of the Entando Component Manager image:", () -> {
+            final Deployment componentManagerDeployment = client.deployments()
+                    .loadDeployment(entandoApp, entandoApp.getMetadata().getName() + "-cm-" + NameUtils.DEFAULT_DEPLOYMENT_SUFFIX);
+            attachKubernetesResource("Deployment", componentManagerDeployment);
+            final Container theComponentManagerContainer = thePrimaryContainerOn(componentManagerDeployment);
+            step(format("using the image '%s'", COMPONENT_MANAGER_IMAGE_OVERRIDE),
+                    () -> assertThat(theComponentManagerContainer.getImage()).isEqualTo(COMPONENT_MANAGER_IMAGE_OVERRIDE));
+        });
+
+        step("And a Kubernetes Deployment was created reflecting the requirements of the AppBuilder image:", () -> {
+            final Deployment appBuilderDeployment = client.deployments()
+                    .loadDeployment(entandoApp, entandoApp.getMetadata().getName() + "-ab-" + NameUtils.DEFAULT_DEPLOYMENT_SUFFIX);
+            attachKubernetesResource("Deployment", appBuilderDeployment);
+            final Container theAppBuilder = thePrimaryContainerOn(appBuilderDeployment);
+            step(format("using the image '%s'", APP_BUILDER_IMAGE_OVERRIDE),
+                    () -> assertThat(theAppBuilder.getImage()).isEqualTo(APP_BUILDER_IMAGE_OVERRIDE));
+        });
+
+        attachKubernetesState();
+    }
+
+    @Test
+    @Description("Should point ComponentManager to the globally configured Component Repository Namespaces")
+    void shouldPointComponentManagerToGlobalRepositoryNamespaces() {
+        this.app = new EntandoAppBuilder()
+                .withNewMetadata()
+                .withName(MY_APP)
+                .withNamespace(MY_NAMESPACE)
+                .endMetadata()
+                .withNewSpec()
+                .endSpec()
+                .build();
+        step("Given that I have configured the Component Repository namespaces 'ecr1' and 'ecr2'",
+                () -> {
+                    emulateEntandoK8SService();
+                    attachEnvironmentVariable(EntandoAppConfigProperty.ENTANDO_COMPONENT_MANAGER_NAMESPACES, "ecr1,ecr2");
+
+                });
+        step("And the routing suffix has been configured globally ",
+                () -> attachEnvironmentVariable(EntandoOperatorConfigProperty.ENTANDO_DEFAULT_ROUTING_SUFFIX, "entando.org"));
+        theDefaultTlsSecretWasCreatedAndConfiguredAsDefault();
+        capabilityControllersForDbmsAndSsoAreRunning();
+        step("When I create an EntandoApp ",
+                () -> {
+                    if (this.app.getMetadata().getResourceVersion() != null) {
+                        this.app = getClient().entandoResources().reload(app);
+                    }
+                    runControllerAgainstCustomResource(app);
+                });
+        final EntandoApp entandoApp = client.entandoResources().load(EntandoApp.class, MY_NAMESPACE, MY_APP);
+        final Deployment componentManagerDeployment = client.deployments()
+                .loadDeployment(entandoApp, entandoApp.getMetadata().getName() + "-cm-" + NameUtils.DEFAULT_DEPLOYMENT_SUFFIX);
+        step("Then a Kubernetes Deployment was created for the Entando Component Manager image:", () -> {
+            attachKubernetesResource("Deployment", componentManagerDeployment);
+        });
+        step("And the Component Manager container points to the previously configured ComponentRepository namespaces", () -> {
+            assertThat(theVariableNamed("ENTANDO_DIGITAL_EXCHANGES_NAME").on(thePrimaryContainerOn(componentManagerDeployment))).isEqualTo(
+                    "ecr1,ecr2");
+        });
+        attachKubernetesState();
+    }
+
+    private void capabilityControllersForDbmsAndSsoAreRunning() {
+        step("And there is a controller to process requests for the DBMS capability",
+                () -> doAnswer(withADatabaseCapabilityStatus(DbmsVendor.POSTGRESQL, "my_db")).when(client.capabilities())
+                        .waitForCapabilityCompletion(argThat(matchesCapability(StandardCapability.DBMS)), anyInt()));
+        step("And there is a controller to process requests for the SSO capability",
+                () -> doAnswer(withAnSsoCapabilityStatus("mykeycloak.apps.serv.run", "my-realm")).when(client.capabilities())
+                        .waitForCapabilityCompletion(argThat(matchesCapability(StandardCapability.SSO)), anyInt()));
     }
 
     private void verifyEntandoDbVariables(EntandoApp entandoApp, String dbSecret, String variablePrefix, Container theEngineContainer) {

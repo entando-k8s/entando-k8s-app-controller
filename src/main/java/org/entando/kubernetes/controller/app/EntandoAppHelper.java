@@ -26,6 +26,8 @@ import org.entando.kubernetes.model.common.KeycloakToUse;
 
 public class EntandoAppHelper {
 
+    public static final String FIRST_DECOUPLED_ENTANDO_VERSION = "6.3";
+
     private EntandoAppHelper() {
 
     }
@@ -41,5 +43,9 @@ public class EntandoAppHelper {
     public static String determineRealm(EntandoApp entandoApp, SsoConnectionInfo ssoConnectionInfo) {
         return entandoApp.getSpec().getKeycloakToUse().flatMap(KeycloakToUse::getRealm).or(ssoConnectionInfo::getDefaultRealm)
                 .orElse(KeycloakName.ENTANDO_DEFAULT_KEYCLOAK_REALM);
+    }
+
+    public static String appendImageVersion(EntandoApp entandoApp, String imageName) {
+        return imageName + "-" + entandoApp.getSpec().getEntandoAppVersion().orElse(FIRST_DECOUPLED_ENTANDO_VERSION).replace('.', '-');
     }
 }
