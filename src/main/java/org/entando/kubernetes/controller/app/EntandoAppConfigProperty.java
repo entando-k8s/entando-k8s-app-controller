@@ -20,6 +20,6 @@ import org.entando.kubernetes.controller.spi.common.ConfigProperty;
 import org.entando.kubernetes.model.common.NamedEnum;
 
 public enum EntandoAppConfigProperty implements ConfigProperty, NamedEnum {
-    ENTANDO_COMPONENT_MANAGER_NAMESPACES
+    ENTANDO_COMPONENT_REPOSITORY_NAMESPACES
 
 }

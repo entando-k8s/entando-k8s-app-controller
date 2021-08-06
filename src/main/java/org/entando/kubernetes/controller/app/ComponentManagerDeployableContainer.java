@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorConfigBase;
 import org.entando.kubernetes.controller.spi.container.DatabaseSchemaConnectionInfo;
 import org.entando.kubernetes.controller.spi.container.DbAwareContainer;
@@ -105,12 +104,12 @@ public class ComponentManagerDeployableContainer
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPrimaryPort()), null));
         List<String> ecrNamespacesToUse = ofNullable(entandoApp.getSpec().getComponentRepositoryNamespaces()).orElse(emptyList());
         if (ecrNamespacesToUse.isEmpty()) {
-            ecrNamespacesToUse = lookupProperty(EntandoAppConfigProperty.ENTANDO_COMPONENT_MANAGER_NAMESPACES)
+            ecrNamespacesToUse = lookupProperty(EntandoAppConfigProperty.ENTANDO_COMPONENT_REPOSITORY_NAMESPACES)
                     .map(s -> Arrays.asList(s.split(EntandoOperatorConfigBase.SEPERATOR_PATTERN)))
                     .orElse(emptyList());
         }
         if (!ecrNamespacesToUse.isEmpty()) {
-            vars.add(new EnvVar("ENTANDO_DIGITAL_EXCHANGES_NAME", String.join(",", ecrNamespacesToUse), null));
+            vars.add(new EnvVar("ENTANDO_COMPONENT_REPOSITORY_NAMESPACES", String.join(",", ecrNamespacesToUse), null));
         }
         vars.add(
                 new EnvVar("ENTANDO_K8S_SERVICE_URL", format("http://%s:%s/k8s", infrastructureConfig.getInternalServiceHostname(),

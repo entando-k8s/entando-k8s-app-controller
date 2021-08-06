@@ -429,7 +429,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
         step("Given that I have configured the Component Repository namespaces 'ecr1' and 'ecr2'",
                 () -> {
                     emulateEntandoK8SService();
-                    attachEnvironmentVariable(EntandoAppConfigProperty.ENTANDO_COMPONENT_MANAGER_NAMESPACES, "ecr1,ecr2");
+                    attachEnvironmentVariable(EntandoAppConfigProperty.ENTANDO_COMPONENT_REPOSITORY_NAMESPACES, "ecr1,ecr2");
 
                 });
         step("And the routing suffix has been configured globally ",
@@ -450,8 +450,8 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             attachKubernetesResource("Deployment", componentManagerDeployment);
         });
         step("And the Component Manager container points to the previously configured ComponentRepository namespaces", () -> {
-            assertThat(theVariableNamed("ENTANDO_DIGITAL_EXCHANGES_NAME").on(thePrimaryContainerOn(componentManagerDeployment))).isEqualTo(
-                    "ecr1,ecr2");
+            assertThat(theVariableNamed("ENTANDO_COMPONENT_REPOSITORY_NAMESPACES").on(
+                    thePrimaryContainerOn(componentManagerDeployment))).isEqualTo("ecr1,ecr2");
         });
         attachKubernetesState();
     }
