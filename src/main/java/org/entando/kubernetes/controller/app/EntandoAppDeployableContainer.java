@@ -142,6 +142,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
             vars.add(new EnvVar("KUBERNETES_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
             vars.add(new EnvVar("KUBERNETES_LABELS", labelExpression, null));
         }
+        vars.add(new EnvVar("ENTANDO_WEB_CONTEXT",getWebContextPath(),null));
         return vars;
     }
 
