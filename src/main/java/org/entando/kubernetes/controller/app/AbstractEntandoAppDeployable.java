@@ -22,13 +22,11 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import java.util.Optional;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
-import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
-import org.entando.kubernetes.controller.spi.deployable.PublicIngressingDeployable;
-import org.entando.kubernetes.controller.support.spibase.PublicIngressingDeployableBase;
+import org.entando.kubernetes.controller.spi.deployable.IngressingDeployable;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.common.EntandoResourceRequirements;
 
-public abstract class AbstractEntandoAppDeployable
-        implements PublicIngressingDeployable<EntandoAppDeploymentResult>, PublicIngressingDeployableBase<EntandoAppDeploymentResult> {
+public abstract class AbstractEntandoAppDeployable implements IngressingDeployable<EntandoAppDeploymentResult> {
 
     /**
      * The operating system level id of the default user in the Red Hat base images. Was determined to be 185 running the 'id' command in
@@ -37,11 +35,14 @@ public abstract class AbstractEntandoAppDeployable
     public static final long DEFAULT_USERID_IN_JBOSS_BASE_IMAGES = 185L;
 
     protected final EntandoApp entandoApp;
-    protected final KeycloakConnectionConfig keycloakConnectionConfig;
 
-    protected AbstractEntandoAppDeployable(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig) {
+    protected AbstractEntandoAppDeployable(EntandoApp entandoApp) {
         this.entandoApp = entandoApp;
-        this.keycloakConnectionConfig = keycloakConnectionConfig;
+    }
+
+    @Override
+    public boolean isIngressRequired() {
+        return true;
     }
 
     @Override
@@ -74,13 +75,23 @@ public abstract class AbstractEntandoAppDeployable
         return entandoApp.getMetadata().getNamespace();
     }
 
+    public Optional<String> getFileUploadLimit() {
+        return entandoApp.getSpec().getResourceRequirements().flatMap(EntandoResourceRequirements::getFileUploadLimit);
+    }
+
     @Override
-    public KeycloakConnectionConfig getKeycloakConnectionConfig() {
-        return keycloakConnectionConfig;
+    public Optional<String> getTlsSecretName() {
+        return entandoApp.getSpec().getTlsSecretName();
+    }
+
+    @Override
+    public Optional<String> getIngressHostName() {
+        return entandoApp.getSpec().getIngressHostName();
     }
 
     @Override
     public String getServiceAccountToUse() {
         return getCustomResource().getSpec().getServiceAccountToUse().orElse(getDefaultServiceAccountName());
     }
+
 }

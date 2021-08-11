@@ -21,7 +21,7 @@ package org.entando.kubernetes.controller.app;
  */
 
 import java.util.Optional;
-import org.entando.kubernetes.model.DbmsVendor;
+import org.entando.kubernetes.model.common.DbmsVendor;
 
 public enum JbossDatasourceValidation {
 

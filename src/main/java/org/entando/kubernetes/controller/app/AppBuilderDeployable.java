@@ -16,19 +16,19 @@
 
 package org.entando.kubernetes.controller.app;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.entando.kubernetes.controller.spi.container.DeployableContainer;
-import org.entando.kubernetes.controller.spi.container.KeycloakConnectionConfig;
 import org.entando.kubernetes.model.app.EntandoApp;
 
 public class AppBuilderDeployable extends AbstractEntandoAppDeployable {
 
     private final List<DeployableContainer> containers;
 
-    public AppBuilderDeployable(EntandoApp entandoApp, KeycloakConnectionConfig keycloakConnectionConfig) {
-        super(entandoApp, keycloakConnectionConfig);
-        this.containers = Arrays.asList(new AppBuilderDeployableContainer(entandoApp));
+    public AppBuilderDeployable(EntandoApp entandoApp) {
+        super(entandoApp);
+        this.containers = Collections.singletonList(new AppBuilderDeployableContainer(entandoApp));
     }
 
     @Override
@@ -37,8 +37,8 @@ public class AppBuilderDeployable extends AbstractEntandoAppDeployable {
     }
 
     @Override
-    public String getNameQualifier() {
-        return "ab";
+    public Optional<String> getQualifier() {
+        return Optional.of("ab");
     }
 
 }

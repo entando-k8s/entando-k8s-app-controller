@@ -1,4 +1,4 @@
-FROM entando/entando-k8s-operator-common:6.3.20
+FROM entando/entando-k8s-operator-common:6.4.0
 ARG VERSION
 LABEL name="Entando K8S App Controller" \
       vendor="Entando" \
@@ -11,8 +11,8 @@ LABEL name="Entando K8S App Controller" \
                    Subsequent executions of this container against the same EntandoApp will patch the existing \
                    deployment resources"
 ENV JAVA_OPTIONS="-Djava.util.logging.manager=org.jboss.logmanager.LogManager"
-ENV AB_ENABLED=jmx_exporter
-#COPY target/generated-resources/licenses /licenses
-#COPY target/lib/* /deployments/lib/
-COPY target/*-runner.jar /deployments/app.jar
+COPY target/quarkus-app/lib/main/org.entando.*.jar /deployments/lib/main/
+COPY target/quarkus-app/*.jar /deployments/
+COPY target/quarkus-app/app/ /deployments/app/
+COPY target/quarkus-app/quarkus/ /deployments/quarkus/
 ENTRYPOINT [ "/deployments/run-java.sh" ]

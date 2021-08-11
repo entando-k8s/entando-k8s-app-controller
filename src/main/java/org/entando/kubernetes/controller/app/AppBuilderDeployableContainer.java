@@ -27,11 +27,16 @@ import org.entando.kubernetes.model.app.EntandoApp;
 
 public class AppBuilderDeployableContainer implements DeployableContainer, IngressingContainer, ParameterizableContainer {
 
-    private static final String ENTANDO_APP_BUILDER_IMAGE_NAME = "entando/app-builder";
+    private static final String ENTANDO_APP_BUILDER_IMAGE_NAME = "app-builder";
     private final EntandoApp entandoApp;
 
     public AppBuilderDeployableContainer(EntandoApp entandoApp) {
         this.entandoApp = entandoApp;
+    }
+
+    @Override
+    public Optional<Integer> getMaximumStartupTimeSeconds() {
+        return Optional.of(120);
     }
 
     @Override
@@ -46,7 +51,7 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
 
     @Override
     public String determineImageToUse() {
-        return ENTANDO_APP_BUILDER_IMAGE_NAME;
+        return EntandoAppHelper.appendImageVersion(entandoApp, ENTANDO_APP_BUILDER_IMAGE_NAME);
     }
 
     @Override
@@ -72,7 +77,8 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
     @Override
     public List<EnvVar> getEnvironmentVariables() {
         List<EnvVar> vars = new ArrayList<>();
-        vars.add(new EnvVar("DOMAIN", entandoApp.getSpec().getIngressPath().orElse("/entando-de-app"), null));
+        vars.add(new EnvVar("DOMAIN", entandoApp.getSpec().getIngressPath().orElse(EntandoAppDeployableContainer.INGRESS_WEB_CONTEXT),
+                null));
         return vars;
     }
 
