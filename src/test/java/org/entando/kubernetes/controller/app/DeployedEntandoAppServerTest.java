@@ -53,6 +53,7 @@ import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.capability.ProvidedCapability;
 import org.entando.kubernetes.model.capability.StandardCapability;
 import org.entando.kubernetes.model.common.DbmsVendor;
+import org.entando.kubernetes.model.common.JeeServer;
 import org.entando.kubernetes.test.common.SourceLink;
 import org.entando.kubernetes.test.common.VariableReferenceAssertions;
 import org.junit.jupiter.api.Tag;
@@ -452,6 +453,55 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
         step("And the Component Manager container points to the previously configured ComponentRepository namespaces", () -> {
             assertThat(theVariableNamed("ENTANDO_COMPONENT_REPOSITORY_NAMESPACES").on(
                     thePrimaryContainerOn(componentManagerDeployment))).isEqualTo("ecr1,ecr2");
+        });
+        attachKubernetesState();
+    }
+
+    @Test
+    @Description("Should support ingressPaths at the root context")
+    @Issue("ENG-2404")
+    void shouldSupportIngressPathsAtTheRootContext() {
+        step("Given that I have emulated an instance of entando-k8s-service",
+                this::emulateEntandoK8SService);
+        step("And I have an EntandoApp with a custom server image that exposes the Entando web-app at the root context '/'", () ->
+                this.app = new EntandoAppBuilder()
+                        .withNewMetadata()
+                        .withName(MY_APP)
+                        .withNamespace(MY_NAMESPACE)
+                        .endMetadata()
+                        .withNewSpec()
+                        .withIngressPath("/")
+                        .withCustomServerImage("my-org/my-custom-serverimage:1.2.3")
+                        .endSpec()
+                        .build());
+        step("And the routing suffix has been configured globally ",
+                () -> attachEnvironmentVariable(EntandoOperatorConfigProperty.ENTANDO_DEFAULT_ROUTING_SUFFIX, "entando.org"));
+        theDefaultTlsSecretWasCreatedAndConfiguredAsDefault();
+        capabilityControllersForDbmsAndSsoAreRunning();
+        step("When I create an EntandoApp ",
+                () -> {
+                    if (this.app.getMetadata().getResourceVersion() != null) {
+                        this.app = getClient().entandoResources().reload(app);
+                    }
+                    runControllerAgainstCustomResource(app);
+                });
+        final EntandoApp entandoApp = client.entandoResources().load(EntandoApp.class, MY_NAMESPACE, MY_APP);
+        final Deployment appEngineDeployment = client.deployments()
+                .loadDeployment(entandoApp, entandoApp.getMetadata().getName() + "-" + NameUtils.DEFAULT_DEPLOYMENT_SUFFIX);
+        attachKubernetesResource("Deployment", appEngineDeployment);
+        step("Then a Kubernetes Deployment was created for the custom Entando App image:", () -> {
+            assertThat(thePrimaryContainerOn(appEngineDeployment).getImage()).isEqualTo("docker.io/my-org/my-custom-serverimage:1.2.3");
+        });
+        step("And its health check paths point to the root context", () -> {
+            assertThat(thePrimaryContainerOn(appEngineDeployment).getLivenessProbe().getHttpGet().getPath()).isEqualTo("/api/health");
+            assertThat(thePrimaryContainerOn(appEngineDeployment).getReadinessProbe().getHttpGet().getPath()).isEqualTo("/api/health");
+        });
+        step("And the environment variable ENTANDO_WEB_CONTEXTS points to the root context", () -> {
+            assertThat(theVariableNamed("ENTANDO_WEB_CONTEXT").on(thePrimaryContainerOn(appEngineDeployment))).isEqualTo("/");
+        });
+        step("And the Ingress that was created exposes the App-Engine's service at the root context", () -> {
+            Ingress ingress = getClient().ingresses().loadIngress(MY_NAMESPACE, NameUtils.standardIngressName(entandoApp));
+            assertThat(theHttpPath("/").on(ingress).getBackend().getServiceName()).isEqualTo(NameUtils.standardServiceName(entandoApp));
         });
         attachKubernetesState();
     }

@@ -55,7 +55,6 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
     public static final String INGRESS_WEB_CONTEXT = "/entando-de-app";
     public static final int PORT = 8080;
-    public static final String HEALTH_CHECK = "/api/health";
     private static final String PORTDB = "portdb";
     private static final String SERVDB = "servdb";
     private static final int PORTDB_IDX = 0;
@@ -142,7 +141,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
             vars.add(new EnvVar("KUBERNETES_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
             vars.add(new EnvVar("KUBERNETES_LABELS", labelExpression, null));
         }
-        vars.add(new EnvVar("ENTANDO_WEB_CONTEXT",getWebContextPath(),null));
+        vars.add(new EnvVar("ENTANDO_WEB_CONTEXT", getWebContextPath(), null));
         return vars;
     }
 
@@ -167,7 +166,11 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
     @Override
     public Optional<String> getHealthCheckPath() {
-        return Optional.of(getWebContextPath() + HEALTH_CHECK);
+        if (getWebContextPath().endsWith("/")) {
+            return Optional.of(getWebContextPath() + "api/health");
+        } else {
+            return Optional.of(getWebContextPath() + "/api/health");
+        }
     }
 
     @Override
