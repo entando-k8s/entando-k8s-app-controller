@@ -490,7 +490,8 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                 .loadDeployment(entandoApp, entandoApp.getMetadata().getName() + "-" + NameUtils.DEFAULT_DEPLOYMENT_SUFFIX);
         attachKubernetesResource("Deployment", appEngineDeployment);
         step("Then a Kubernetes Deployment was created for the custom Entando App image:", () -> {
-            assertThat(thePrimaryContainerOn(appEngineDeployment).getImage()).isEqualTo("docker.io/my-org/my-custom-serverimage:1.2.3");
+            assertThat(thePrimaryContainerOn(appEngineDeployment).getImage()).isEqualTo(
+                    "registry.hub.docker.com/my-org/my-custom-serverimage:1.2.3");
         });
         step("And its health check paths point to the root context", () -> {
             assertThat(thePrimaryContainerOn(appEngineDeployment).getLivenessProbe().getHttpGet().getPath()).isEqualTo("/api/health");
