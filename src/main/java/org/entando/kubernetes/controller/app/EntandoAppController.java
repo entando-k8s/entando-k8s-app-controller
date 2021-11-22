@@ -59,7 +59,18 @@ public class EntandoAppController implements Runnable {
     private final CapabilityProvider capabilityProvider;
     private final DeploymentProcessor deploymentProcessor;
     private final AtomicReference<EntandoApp> entandoApp = new AtomicReference<>();
-    private final ExecutorService executor = Executors.newFixedThreadPool(3);
+    private final ExecutorService executor = mkExecutorService();
+
+    private ExecutorService mkExecutorService() {
+        String dpenv = System.getenv("ENTANDO_DEPLOYMENT_PARALLELISM");
+        int dp = (dpenv != null) ? Integer.parseInt(dpenv) : 0;
+        if (dp > 0 && dp <= 3) {
+            LOGGER.log(Level.INFO, () -> format("Deployment parallelism explicitly set to: %d", dp));
+            return Executors.newFixedThreadPool(dp);
+        } else {
+            return Executors.newFixedThreadPool(3);
+        }
+    }
 
     @Inject
     public EntandoAppController(KubernetesClientForControllers k8sClient, DeploymentProcessor deploymentProcessor,
