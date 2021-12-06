@@ -16,8 +16,17 @@
 
 package org.entando.kubernetes.controller.app;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.fabric8.kubernetes.api.model.LimitRange;
+import io.fabric8.kubernetes.api.model.LimitRangeList;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -45,6 +54,10 @@ abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHel
     protected final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
     @Mock
     private SimpleKeycloakClient keycloakClient;
+    @Mock
+    private KubernetesClient kubernetesClient;
+    @Mock
+    private MixedOperation<LimitRange, LimitRangeList, Resource<LimitRange>> limitRangesMixOp;
 
     @Override
     public Optional<SimpleKeycloakClient> getKeycloakClient() {
@@ -67,6 +80,10 @@ abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHel
         registerCrd("crd/entandoapps.entando.org.crd.yaml");
         registerCrd("testresources.test.org.crd.yaml");
         LogInterceptor.listenToClass(EntandoAppController.class);
+        when(kubernetesClient.getNamespace()).thenReturn("my-namespace");
+        when(kubernetesClient.limitRanges()).thenReturn(limitRangesMixOp);
+        when(limitRangesMixOp.inNamespace(anyString())).thenReturn(limitRangesMixOp);
+        when(limitRangesMixOp.create(any(LimitRange.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
     }
 
     @AfterEach
@@ -88,7 +105,7 @@ abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHel
     @Override
     public Runnable createController(KubernetesClientForControllers kubernetesClientForControllers, DeploymentProcessor deploymentProcessor,
             CapabilityProvider capabilityProvider) {
-        return new EntandoAppController(kubernetesClientForControllers, deploymentProcessor, capabilityProvider);
+        return new EntandoAppController(kubernetesClientForControllers, deploymentProcessor, capabilityProvider, kubernetesClient);
     }
 
 }
