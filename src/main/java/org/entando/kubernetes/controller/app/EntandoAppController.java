@@ -18,7 +18,12 @@ package org.entando.kubernetes.controller.app;
 
 import static java.lang.String.format;
 
+import io.fabric8.kubernetes.api.model.LimitRange;
+import io.fabric8.kubernetes.api.model.LimitRangeBuilder;
+import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -55,7 +60,8 @@ public class EntandoAppController implements Runnable {
 
     private static final Logger LOGGER = Logger.getLogger(EntandoAppController.class.getName());
     public static final String ENTANDO_K8S_SERVICE = "entando-k8s-service";
-    private final KubernetesClientForControllers k8sClient;
+    private final KubernetesClientForControllers k8sClientForControllers;
+    private final KubernetesClient k8sClient;
     private final CapabilityProvider capabilityProvider;
     private final DeploymentProcessor deploymentProcessor;
     private final AtomicReference<EntandoApp> entandoApp = new AtomicReference<>();
@@ -73,27 +79,31 @@ public class EntandoAppController implements Runnable {
     }
 
     @Inject
-    public EntandoAppController(KubernetesClientForControllers k8sClient, DeploymentProcessor deploymentProcessor,
-            CapabilityProvider capabilityProvider) {
-        this.k8sClient = k8sClient;
+    public EntandoAppController(KubernetesClientForControllers k8sClientForControllers, DeploymentProcessor deploymentProcessor,
+            CapabilityProvider capabilityProvider, KubernetesClient k8sClient) {
+        this.k8sClientForControllers = k8sClientForControllers;
         this.capabilityProvider = capabilityProvider;
         this.deploymentProcessor = deploymentProcessor;
+        this.k8sClient = k8sClient;
     }
 
     //There is no point re-interrupting the thread when the VM is about to exit.
     @SuppressWarnings("java:S2142")
     @Override
     public void run() {
-        this.entandoApp.set((EntandoApp) k8sClient.resolveCustomResourceToProcess(Collections.singletonList(EntandoApp.class)));
+        this.entandoApp.set(
+                (EntandoApp) k8sClientForControllers.resolveCustomResourceToProcess(Collections.singletonList(EntandoApp.class)));
         try {
-            entandoApp.set(k8sClient.deploymentStarted(entandoApp.get()));
+            entandoApp.set(k8sClientForControllers.deploymentStarted(entandoApp.get()));
+            this.createDefaultLimitRange();
             final DatabaseConnectionInfo dbConnectionInfo = provideDatabaseIfRequired();
             final SsoConnectionInfo ssoConnectionInfo = provideSso();
             final int timeoutForDbAware = calculateDbAwareTimeout();
             queueDeployable(new EntandoAppServerDeployable(entandoApp.get(), ssoConnectionInfo, dbConnectionInfo), timeoutForDbAware);
             final int timeoutForNonDbAware = EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
             queueDeployable(new AppBuilderDeployable(entandoApp.get()), timeoutForNonDbAware);
-            EntandoK8SService k8sService = new EntandoK8SService(k8sClient.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE));
+            EntandoK8SService k8sService = new EntandoK8SService(
+                    k8sClientForControllers.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE));
             queueDeployable(new ComponentManagerDeployable(entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo),
                     timeoutForDbAware);
             executor.shutdown();
@@ -101,7 +111,7 @@ public class EntandoAppController implements Runnable {
             if (!executor.awaitTermination(totalTimeout, TimeUnit.SECONDS)) {
                 throw new TimeoutException(format("Could not complete deployment of EntandoApp in %s seconds", totalTimeout));
             }
-            entandoApp.updateAndGet(k8sClient::deploymentEnded);
+            entandoApp.updateAndGet(k8sClientForControllers::deploymentEnded);
         } catch (Exception e) {
             attachControllerFailure(e, EntandoAppController.class, NameUtils.MAIN_QUALIFIER);
         }
@@ -125,7 +135,7 @@ public class EntandoAppController implements Runnable {
         executor.submit(() -> {
             try {
                 EntandoAppDeploymentResult result = deploymentProcessor.processDeployable(deployable, (int) timeout);
-                entandoApp.getAndUpdate(ea -> k8sClient.updateStatus(ea, result.getStatus()));
+                entandoApp.getAndUpdate(ea -> k8sClientForControllers.updateStatus(ea, result.getStatus()));
             } catch (Exception e) {
                 attachControllerFailure(e, deployable.getClass(), deployable.getQualifier().orElse(NameUtils.MAIN_QUALIFIER));
             }
@@ -133,7 +143,7 @@ public class EntandoAppController implements Runnable {
     }
 
     private void attachControllerFailure(Exception e, Class<?> theClass, String qualifier) {
-        entandoApp.updateAndGet(current -> k8sClient.deploymentFailed(current, e, qualifier));
+        entandoApp.updateAndGet(current -> k8sClientForControllers.deploymentFailed(current, e, qualifier));
         LOGGER.log(Level.SEVERE, e, () -> format("Processing the class %s failed.: %n%s", theClass.getSimpleName(),
                 entandoApp.get().getStatus().getServerStatus(qualifier).flatMap(ServerStatus::getEntandoControllerFailure)
                         .orElseThrow(IllegalStateException::new).getDetailMessage()));
@@ -150,7 +160,8 @@ public class EntandoAppController implements Runnable {
                             .build(), EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds());
             final ProvidedCapability dbmsCapability = capabilityResult.getProvidedCapability();
             dbmsCapability.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
-                    this.entandoApp.updateAndGet(a -> this.k8sClient.updateStatus(a, new ServerStatus(NameUtils.DB_QUALIFIER, s))));
+                    this.entandoApp.updateAndGet(
+                            a -> this.k8sClientForControllers.updateStatus(a, new ServerStatus(NameUtils.DB_QUALIFIER, s))));
             capabilityResult.getControllerFailure().ifPresent(f -> {
                 throw new EntandoControllerException(dbmsCapability,
                         format("Could not prepare DBMS  capability for EntandoApp %s/%s. Please inspect the ProvidedCapability %s/%s, "
@@ -185,7 +196,8 @@ public class EntandoAppController implements Runnable {
                         .getPodReadinessTimeoutSeconds());
         final ProvidedCapability ssoCapability = capabilityResult.getProvidedCapability();
         ssoCapability.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
-                this.entandoApp.updateAndGet(a -> this.k8sClient.updateStatus(a, new ServerStatus(NameUtils.SSO_QUALIFIER, s))));
+                this.entandoApp.updateAndGet(
+                        a -> this.k8sClientForControllers.updateStatus(a, new ServerStatus(NameUtils.SSO_QUALIFIER, s))));
         capabilityResult.getControllerFailure().ifPresent(f -> {
             throw new EntandoControllerException(ssoCapability,
                     format("Could not prepare SSO capability for EntandoApp %s/%s. Please inspect the ProvidedCapability %s/%s, address "
@@ -209,4 +221,29 @@ public class EntandoAppController implements Runnable {
         return dbmsVendor;
     }
 
+    /**
+     * create the default LimitRange.
+     */
+    public void createDefaultLimitRange() {
+
+        String namespace = this.k8sClient.getNamespace();
+
+        final LimitRange limitRange = new LimitRangeBuilder()
+                .withNewMetadata()
+                .withName("storagelimits")
+                .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                .addNewLimit()
+                .withType("PersistentVolumeClaim")
+                .withMax(Map.of("storage", Quantity.parse("1000Gi")))
+                .withMin(Map.of("storage", Quantity.parse("100Mi")))
+                .endLimit()
+                .endSpec()
+                .build();
+
+        this.k8sClient.limitRanges()
+                .inNamespace(namespace)
+                .create(limitRange);
+    }
 }
