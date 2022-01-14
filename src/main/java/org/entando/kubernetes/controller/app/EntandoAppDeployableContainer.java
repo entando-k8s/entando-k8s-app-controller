@@ -208,7 +208,6 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     @Override
     public List<EnvVar> getDatabaseConnectionVariables() {
         List<EnvVar> vars = new ArrayList<>();
-        vars.add(new EnvVar("DB_STARTUP_CHECK", "false", null));
         addEntandoDbConnectionVars(vars, PORTDB_IDX, PORTDB_PREFIX);
         addEntandoDbConnectionVars(vars, SERVDB_IDX, SERVDB_PREFIX);
         return vars;
