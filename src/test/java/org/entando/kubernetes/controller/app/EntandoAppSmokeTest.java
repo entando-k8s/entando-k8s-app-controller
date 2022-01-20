@@ -19,11 +19,9 @@ package org.entando.kubernetes.controller.app;
 import static io.qameta.allure.Allure.attachment;
 import static io.qameta.allure.Allure.step;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watcher.Action;
@@ -50,6 +48,7 @@ import org.entando.kubernetes.test.e2etest.ControllerExecutor;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 @Tags({@Tag("smoke"), @Tag("allure"), @Tag("post-deployment"), @Tag("inter-process")})
 @Feature("As an Entando Operator users, I want to use a Docker container to process an EntandoApp so that I don't need to "
@@ -62,6 +61,7 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
     private EntandoApp entandoApp;
 
     @Test
+    @DisabledIfEnvironmentVariable(named = "ENTANDO_OPT_SKIP_INTEGRATION_TESTS", matches = "true")
     @Description("Should successfully connect to newly deployed Keycloak Server")
     void testDeployment() {
         KubernetesClient client = new SupportProducer().getKubernetesClient();

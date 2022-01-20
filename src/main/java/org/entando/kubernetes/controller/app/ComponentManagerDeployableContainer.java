@@ -147,7 +147,7 @@ public class ComponentManagerDeployableContainer
 
     @Override
     public int getMemoryLimitMebibytes() {
-        return 768;
+        return 1200;
     }
 
     @Override
