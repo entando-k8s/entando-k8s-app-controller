@@ -43,6 +43,7 @@ import org.entando.kubernetes.model.capability.ProvidedCapability;
 import org.entando.kubernetes.model.common.DbmsVendor;
 import org.entando.kubernetes.model.common.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.common.JeeServer;
+import org.entando.kubernetes.test.common.ControllerTestHelper;
 import org.entando.kubernetes.test.common.KeycloakTestCapabilityProvider;
 import org.entando.kubernetes.test.e2etest.ControllerExecutor;
 import org.junit.jupiter.api.Tag;
@@ -55,7 +56,7 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
         + "know any of its implementation details to use it.")
 class EntandoAppSmokeTest implements FluentIntegrationTesting {
 
-    private static final String MY_NAMESPACE = EntandoOperatorTestConfig.calculateNameSpace("my-namespace");
+    private static final String MY_NAMESPACE = EntandoOperatorTestConfig.calculateNameSpace(ControllerTestHelper.MY_NAMESPACE);
     public static final String MY_APP = EntandoOperatorTestConfig.calculateName("my-app");
     private final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
     private EntandoApp entandoApp;

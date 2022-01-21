@@ -220,7 +220,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             });
             step("And a variables to connect to the app-engine instance", () -> {
                 assertThat(theVariableNamed("ENTANDO_URL").on(theComponentManagerContainer))
-                        .isEqualTo("http://my-app-service.my-namespace.svc.cluster.local:8080/entando-de-app");
+                        .isEqualTo("http://my-app-service." + MY_NAMESPACE + ".svc.cluster.local:8080/entando-de-app");
             });
             step("And the File System User/Group override " + ComponentManagerDeployable.COMPONENT_MANAGER_CURRENT_USER
                     + "has been applied to the mount", () ->
@@ -238,7 +238,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                                 .matches(theSecretKey(cmDbSecret, SecretUtils.USERNAME_KEY));
                         assertThat(theVariableNamed(SpringProperty.SPRING_DATASOURCE_URL.name()).on(theComponentManagerContainer))
                                 .isEqualTo(
-                                        "jdbc:postgresql://default-postgresql-dbms-in-namespace-service.my-namespace.svc.cluster"
+                                        "jdbc:postgresql://default-postgresql-dbms-in-namespace-service." + MY_NAMESPACE + ".svc.cluster"
                                                 + ".local:5432/my_db");
                     });
 
@@ -527,7 +527,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                             .matches(theSecretKey(dbSecret, SecretUtils.USERNAME_KEY));
                     assertThat(theVariableNamed(variablePrefix + "_URL").on(theEngineContainer))
                             .isEqualTo(
-                                    "jdbc:postgresql://default-postgresql-dbms-in-namespace-service.my-namespace.svc.cluster"
+                                    "jdbc:postgresql://default-postgresql-dbms-in-namespace-service." + MY_NAMESPACE + ".svc.cluster"
                                             + ".local:5432/my_db");
                     assertThat(theVariableNamed(variablePrefix + "_EXCEPTION_SORTER").on(theEngineContainer))
                             .isEqualTo("org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter");
@@ -542,7 +542,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                 getClient().secrets().loadSecret(entandoApp, "default-postgresql-dbms-in-namespace-admin-secret"));
         step("using a cluster local connection to the database Service", () -> {
             assertThat(theVariableNamed("DATABASE_SERVER_HOST").on(initContainer))
-                    .isEqualTo("default-postgresql-dbms-in-namespace-service.my-namespace.svc.cluster.local");
+                    .isEqualTo("default-postgresql-dbms-in-namespace-service." + MY_NAMESPACE + ".svc.cluster.local");
             assertThat(theVariableNamed("DATABASE_SERVER_PORT").on(initContainer))
                     .isEqualTo(String.valueOf(DbmsVendorConfig.POSTGRESQL.getDefaultPort()));
         });

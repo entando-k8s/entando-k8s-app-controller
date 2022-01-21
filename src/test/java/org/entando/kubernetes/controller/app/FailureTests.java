@@ -222,14 +222,14 @@ class FailureTests extends EntandoAppTestBase {
             assertThat(
                     entandoApp.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).get().getEntandoControllerFailure().get()
                             .getDetailMessage())
-                    .contains(" Could not prepare DBMS  capability for EntandoApp my-namespace/my-app");
+                    .contains(" Could not prepare DBMS  capability for EntandoApp " + MY_NAMESPACE + "/my-app");
             attachKubernetesResource("Failed EntandoApp", entandoApp);
         });
         step("And this exception was logged as SEVERE", () -> {
-            assertThat(LogInterceptor.getLogRecords())
-                    .anyMatch(r -> r.getMessage().contains(" Could not prepare DBMS  capability for EntandoApp my-namespace/my-app"));
+            assertThat(LogInterceptor.getLogRecords()).anyMatch(
+                    r -> r.getMessage().contains(" Could not prepare DBMS  capability for EntandoApp " + MY_NAMESPACE + "/my-app"));
             final LogRecord logRecord = LogInterceptor.getLogRecords().stream()
-                    .filter(r -> r.getMessage().contains(" Could not prepare DBMS  capability for EntandoApp my-namespace/my-app"))
+                    .filter(r -> r.getMessage().contains(" Could not prepare DBMS  capability for EntandoApp " + MY_NAMESPACE + "/my-app"))
                     .findFirst()
                     .get();
             assertThat(logRecord.getLevel()).isEqualTo(Level.SEVERE);
@@ -271,15 +271,15 @@ class FailureTests extends EntandoAppTestBase {
             assertThat(
                     entandoApp.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).get().getEntandoControllerFailure().get()
                             .getDetailMessage())
-                    .contains("Could not prepare SSO capability for EntandoApp my-namespace/my-app");
+                    .contains("Could not prepare SSO capability for EntandoApp " + MY_NAMESPACE + "/my-app");
             attachKubernetesResource("Failed EntandoApp", entandoApp);
         });
         step("And this exception was logged as SEVERE", () -> {
             assertThat(LogInterceptor.getLogRecords())
-                    .anyMatch(r -> r.getMessage().contains("Could not prepare SSO capability for EntandoApp my-namespace/my-app"));
+                    .anyMatch(r -> r.getMessage().contains("Could not prepare SSO capability for EntandoApp " + MY_NAMESPACE + "/my-app"));
             final LogRecord logRecord = LogInterceptor.getLogRecords().stream()
-                    .filter(r -> r.getMessage().contains("Could not prepare SSO capability for EntandoApp my-namespace/my-app")).findFirst()
-                    .get();
+                    .filter(r -> r.getMessage().contains("Could not prepare SSO capability for EntandoApp " + MY_NAMESPACE + "/my-app"))
+                    .findFirst().get();
             assertThat(logRecord.getLevel()).isEqualTo(Level.SEVERE);
             assertThat(logRecord.getThrown()).isInstanceOf(EntandoControllerException.class);
         });
