@@ -80,7 +80,7 @@ abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHel
         registerCrd("crd/entandoapps.entando.org.crd.yaml");
         registerCrd("testresources.test.org.crd.yaml");
         LogInterceptor.listenToClass(EntandoAppController.class);
-        when(kubernetesClient.getNamespace()).thenReturn("my-namespace");
+        when(kubernetesClient.getNamespace()).thenReturn("" + MY_NAMESPACE + "");
         when(kubernetesClient.limitRanges()).thenReturn(limitRangesMixOp);
         when(limitRangesMixOp.inNamespace(anyString())).thenReturn(limitRangesMixOp);
         when(limitRangesMixOp.create(any(LimitRange.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
