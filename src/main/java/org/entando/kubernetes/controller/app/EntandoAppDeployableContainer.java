@@ -261,7 +261,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
         @Override
         public List<String> getCommand() {
-            return Arrays.asList("/bin/bash", "-c", "/entando-common/init-db-from-deployment.sh");
+            return Arrays.asList("/bin/bash", "-c", "true");
         }
 
         @Override
