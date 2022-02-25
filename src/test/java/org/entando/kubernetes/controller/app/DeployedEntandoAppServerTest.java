@@ -19,18 +19,27 @@ package org.entando.kubernetes.controller.app;
 import static io.qameta.allure.Allure.step;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.LimitRange;
+import io.fabric8.kubernetes.api.model.LimitRangeBuilder;
+import io.fabric8.kubernetes.api.model.OwnerReference;
+import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Issue;
@@ -41,6 +50,7 @@ import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMod
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfigProperty;
 import org.entando.kubernetes.controller.spi.common.LabelNames;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.common.ResourceUtils;
 import org.entando.kubernetes.controller.spi.common.SecretUtils;
 import org.entando.kubernetes.controller.spi.container.KeycloakName;
 import org.entando.kubernetes.controller.spi.container.SpringBootDeployableContainer.SpringProperty;
@@ -331,6 +341,40 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
 
         });
         attachKubernetesState();
+
+        step("And the LimitRange has been created as expected", () -> {
+            final KubernetesClient kubernetesClient = getKubernetesClient();
+            verify(kubernetesClient, times(1)).limitRanges();
+            verify(kubernetesClient.limitRanges(), times(1)).inNamespace(MY_NAMESPACE);
+            verify(kubernetesClient.limitRanges(), times(1)).createOrReplace(getLimitRange(entandoApp));
+        });
+    }
+
+    private LimitRange getLimitRange(EntandoApp entandoApp) {
+        final OwnerReference ownerRef = new OwnerReferenceBuilder()
+                .withApiVersion("entando.org/v1")
+                .withBlockOwnerDeletion(true)
+                .withController(true)
+                .withKind("EntandoApp")
+                .withName(MY_APP)
+                .withUid(entandoApp.getMetadata().getUid()).build();
+
+        final LimitRange limitRange = new LimitRangeBuilder()
+                .withNewMetadata()
+                .withName("entando-storage-limits")
+                .withNamespace(MY_NAMESPACE)
+                .addToOwnerReferences(ownerRef)
+                .endMetadata()
+                .withNewSpec()
+                .addNewLimit()
+                .withType("PersistentVolumeClaim")
+                .withMax(Map.of("storage", Quantity.parse("1000Gi")))
+                .withMin(Map.of("storage", Quantity.parse("100Mi")))
+                .endLimit()
+                .endSpec()
+                .build();
+
+        return limitRange;
     }
 
     private void emulateEntandoK8SService() {
