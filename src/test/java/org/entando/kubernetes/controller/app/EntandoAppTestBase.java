@@ -83,7 +83,7 @@ abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHel
         when(kubernetesClient.getNamespace()).thenReturn("" + MY_NAMESPACE + "");
         when(kubernetesClient.limitRanges()).thenReturn(limitRangesMixOp);
         when(limitRangesMixOp.inNamespace(anyString())).thenReturn(limitRangesMixOp);
-        when(limitRangesMixOp.create(any(LimitRange.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        when(limitRangesMixOp.createOrReplace(any(LimitRange.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
     }
 
     @AfterEach
@@ -108,4 +108,7 @@ abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHel
         return new EntandoAppController(kubernetesClientForControllers, deploymentProcessor, capabilityProvider, kubernetesClient);
     }
 
+    public KubernetesClient getKubernetesClient() {
+        return kubernetesClient;
+    }
 }

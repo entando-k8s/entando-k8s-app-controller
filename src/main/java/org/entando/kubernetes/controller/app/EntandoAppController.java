@@ -20,6 +20,7 @@ import static java.lang.String.format;
 
 import io.fabric8.kubernetes.api.model.LimitRange;
 import io.fabric8.kubernetes.api.model.LimitRangeBuilder;
+import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Collections;
@@ -40,6 +41,7 @@ import org.entando.kubernetes.controller.spi.command.DeploymentProcessor;
 import org.entando.kubernetes.controller.spi.common.EntandoControllerException;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.common.ResourceUtils;
 import org.entando.kubernetes.controller.spi.container.ProvidedDatabaseCapability;
 import org.entando.kubernetes.controller.spi.container.ProvidedSsoCapability;
 import org.entando.kubernetes.controller.spi.deployable.IngressingDeployable;
@@ -228,10 +230,14 @@ public class EntandoAppController implements Runnable {
 
         String namespace = this.k8sClient.getNamespace();
 
+        final OwnerReference ownerReference = ResourceUtils.buildOwnerReference(entandoApp.get());
+        ownerReference.setKind(entandoApp.get().getClass().getSimpleName());
+
         final LimitRange limitRange = new LimitRangeBuilder()
                 .withNewMetadata()
-                .withName("storagelimits")
+                .withName("entando-storage-limits")
                 .withNamespace(namespace)
+                .addToOwnerReferences(ownerReference)
                 .endMetadata()
                 .withNewSpec()
                 .addNewLimit()
@@ -244,6 +250,6 @@ public class EntandoAppController implements Runnable {
 
         this.k8sClient.limitRanges()
                 .inNamespace(namespace)
-                .create(limitRange);
+                .createOrReplace(limitRange);
     }
 }
