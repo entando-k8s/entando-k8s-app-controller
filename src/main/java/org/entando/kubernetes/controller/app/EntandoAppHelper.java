@@ -47,6 +47,7 @@ public class EntandoAppHelper {
 
     public static String appendImageVersion(EntandoApp entandoApp, String imageName) {
         String entandoAppVersion = entandoApp.getSpec().getEntandoAppVersion().orElse(FIRST_DECOUPLED_ENTANDO_VERSION);
+        // 7.0 version will become 6.4 internally, so it is not required to change all the references to 6-4 when resolving the images
         if (entandoAppVersion.equals("7.0")) {
             entandoAppVersion = "6.4";
         }
