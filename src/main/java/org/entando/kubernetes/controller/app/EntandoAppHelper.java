@@ -26,7 +26,7 @@ import org.entando.kubernetes.model.common.KeycloakToUse;
 
 public class EntandoAppHelper {
 
-    public static final String FIRST_DECOUPLED_ENTANDO_VERSION = "6.3";
+    public static final String FIRST_DECOUPLED_ENTANDO_VERSION = "6.4";
 
     private EntandoAppHelper() {
 
@@ -46,6 +46,10 @@ public class EntandoAppHelper {
     }
 
     public static String appendImageVersion(EntandoApp entandoApp, String imageName) {
-        return imageName + "-" + entandoApp.getSpec().getEntandoAppVersion().orElse(FIRST_DECOUPLED_ENTANDO_VERSION).replace('.', '-');
+        String entandoAppVersion = entandoApp.getSpec().getEntandoAppVersion().orElse(FIRST_DECOUPLED_ENTANDO_VERSION);
+        if (entandoAppVersion.equals("7.0")) {
+            entandoAppVersion = "6.4";
+        }
+        return imageName + "-" + entandoAppVersion.replace('.', '-');
     }
 }
