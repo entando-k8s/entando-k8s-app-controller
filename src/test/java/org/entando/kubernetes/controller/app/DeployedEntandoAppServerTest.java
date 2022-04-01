@@ -37,7 +37,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.extensions.Ingress;
+import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
@@ -321,11 +321,11 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                     assertThat(ingress.getSpec().getRules().get(0).getHost())
                             .isEqualTo(MY_APP + "-" + MY_NAMESPACE + "." + ROUTING_SUFFIX));
             step("And the path '/entando-de-app' is mapped to the servce 'my-app-service'", () ->
-                    assertThat(theHttpPath("/entando-de-app").on(ingress).getBackend().getServiceName()).isEqualTo("my-app-service"));
+                    assertThat(theHttpPath("/entando-de-app").on(ingress).getBackend().getService().getName()).isEqualTo("my-app-service"));
             step("And the path '/app-builder/' is mapped to the servce 'my-app-ab-service'", () ->
-                    assertThat(theHttpPath("/app-builder/").on(ingress).getBackend().getServiceName()).isEqualTo("my-app-ab-service"));
+                    assertThat(theHttpPath("/app-builder/").on(ingress).getBackend().getService().getName()).isEqualTo("my-app-ab-service"));
             step("And the path '/digital-exchange' is mapped to the service 'my-app-de-service'", () ->
-                    assertThat(theHttpPath("/digital-exchange").on(ingress).getBackend().getServiceName())
+                    assertThat(theHttpPath("/digital-exchange").on(ingress).getBackend().getService().getName())
                             .isEqualTo("my-app-cm-service"));
             step("And with TLS configured to use the default TLS secret", () -> {
                 assertThat(ingress.getSpec().getTls().get(0).getHosts())
@@ -549,7 +549,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
         });
         step("And the Ingress that was created exposes the App-Engine's service at the root context", () -> {
             Ingress ingress = getClient().ingresses().loadIngress(MY_NAMESPACE, NameUtils.standardIngressName(entandoApp));
-            assertThat(theHttpPath("/").on(ingress).getBackend().getServiceName()).isEqualTo(NameUtils.standardServiceName(entandoApp));
+            assertThat(theHttpPath("/").on(ingress).getBackend().getService().getName()).isEqualTo(NameUtils.standardServiceName(entandoApp));
         });
         attachKubernetesState();
     }
