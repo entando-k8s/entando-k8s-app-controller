@@ -38,6 +38,7 @@ import org.entando.kubernetes.controller.spi.container.SsoAwareContainer;
 import org.entando.kubernetes.controller.spi.deployable.SsoClientConfig;
 import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
+import org.entando.kubernetes.controller.support.client.SecretClient;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.DbmsVendor;
 
@@ -60,13 +61,15 @@ public class ComponentManagerDeployableContainer
             SsoConnectionInfo keycloakConnectionConfig,
             EntandoK8SService infrastructureConfig,
             DatabaseConnectionInfo databaseServiceResult,
-            SsoClientConfig ssoClientConfig) {
+            SsoClientConfig ssoClientConfig,
+            SecretClient secretClient) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.infrastructureConfig = infrastructureConfig;
         this.ssoClientConfig = ssoClientConfig;
         this.databaseSchemaConnectionInfo = ofNullable(databaseServiceResult)
-                .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Collections.singletonList(DEDB)))
+                .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr,
+                        Collections.singletonList(DEDB), secretClient))
                 .orElse(emptyList());
     }
 

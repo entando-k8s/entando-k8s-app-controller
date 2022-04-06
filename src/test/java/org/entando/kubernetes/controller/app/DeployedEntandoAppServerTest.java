@@ -19,7 +19,6 @@ package org.entando.kubernetes.controller.app;
 import static io.qameta.allure.Allure.step;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
@@ -50,7 +49,6 @@ import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMod
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfigProperty;
 import org.entando.kubernetes.controller.spi.common.LabelNames;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
-import org.entando.kubernetes.controller.spi.common.ResourceUtils;
 import org.entando.kubernetes.controller.spi.common.SecretUtils;
 import org.entando.kubernetes.controller.spi.container.KeycloakName;
 import org.entando.kubernetes.controller.spi.container.SpringBootDeployableContainer.SpringProperty;
@@ -63,7 +61,6 @@ import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.capability.ProvidedCapability;
 import org.entando.kubernetes.model.capability.StandardCapability;
 import org.entando.kubernetes.model.common.DbmsVendor;
-import org.entando.kubernetes.model.common.JeeServer;
 import org.entando.kubernetes.test.common.SourceLink;
 import org.entando.kubernetes.test.common.VariableReferenceAssertions;
 import org.junit.jupiter.api.Tag;
@@ -90,6 +87,9 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
     @Test
     @Description("Should deploy the Entando EAP image with all the default values in a Red Hat compliant environment")
     void shouldDeployEntandoEapImageWithDefaultValues() {
+
+        initSecretsMock();
+
         this.app = new EntandoAppBuilder()
                 .withNewMetadata()
                 .withName(MY_APP)
@@ -396,6 +396,9 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
     @Test
     @Description("Should deploy the images specified in the annotations for a given version of Entando")
     void shouldDeployImagesInAnnotations() {
+
+        initSecretsMock();
+
         this.app = new EntandoAppBuilder()
                 .withNewMetadata()
                 .withName(MY_APP)

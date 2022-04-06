@@ -47,6 +47,8 @@ import org.entando.kubernetes.controller.spi.container.ProvidedSsoCapability;
 import org.entando.kubernetes.controller.spi.deployable.IngressingDeployable;
 import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
+import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
+import org.entando.kubernetes.controller.support.client.impl.DefaultSimpleK8SClient;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.capability.CapabilityRequirementBuilder;
 import org.entando.kubernetes.model.capability.CapabilityScope;
@@ -64,6 +66,7 @@ public class EntandoAppController implements Runnable {
     public static final String ENTANDO_K8S_SERVICE = "entando-k8s-service";
     private final KubernetesClientForControllers k8sClientForControllers;
     private final KubernetesClient k8sClient;
+    private final SimpleK8SClient<?> simpleK8SClient;
     private final CapabilityProvider capabilityProvider;
     private final DeploymentProcessor deploymentProcessor;
     private final AtomicReference<EntandoApp> entandoApp = new AtomicReference<>();
@@ -87,6 +90,7 @@ public class EntandoAppController implements Runnable {
         this.capabilityProvider = capabilityProvider;
         this.deploymentProcessor = deploymentProcessor;
         this.k8sClient = k8sClient;
+        this.simpleK8SClient = new DefaultSimpleK8SClient(k8sClient);
     }
 
     //There is no point re-interrupting the thread when the VM is about to exit.
@@ -101,17 +105,21 @@ public class EntandoAppController implements Runnable {
             final DatabaseConnectionInfo dbConnectionInfo = provideDatabaseIfRequired();
             final SsoConnectionInfo ssoConnectionInfo = provideSso();
             final int timeoutForDbAware = calculateDbAwareTimeout();
-            queueDeployable(new EntandoAppServerDeployable(entandoApp.get(), ssoConnectionInfo, dbConnectionInfo), timeoutForDbAware);
+            queueDeployable(new EntandoAppServerDeployable(entandoApp.get(), ssoConnectionInfo, dbConnectionInfo,
+                    simpleK8SClient.secrets()), timeoutForDbAware);
             final int timeoutForNonDbAware = EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
             queueDeployable(new AppBuilderDeployable(entandoApp.get()), timeoutForNonDbAware);
             EntandoK8SService k8sService = new EntandoK8SService(
                     k8sClientForControllers.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE));
-            queueDeployable(new ComponentManagerDeployable(entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo),
+            queueDeployable(
+                    new ComponentManagerDeployable(entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo,
+                            simpleK8SClient.secrets()),
                     timeoutForDbAware);
             executor.shutdown();
             final int totalTimeout = timeoutForDbAware * 2 + timeoutForNonDbAware;
             if (!executor.awaitTermination(totalTimeout, TimeUnit.SECONDS)) {
-                throw new TimeoutException(format("Could not complete deployment of EntandoApp in %s seconds", totalTimeout));
+                throw new TimeoutException(
+                        format("Could not complete deployment of EntandoApp in %s seconds", totalTimeout));
             }
             entandoApp.updateAndGet(k8sClientForControllers::deploymentEnded);
         } catch (Exception e) {
