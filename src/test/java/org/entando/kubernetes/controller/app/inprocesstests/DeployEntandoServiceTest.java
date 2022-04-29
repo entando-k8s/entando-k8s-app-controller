@@ -40,8 +40,8 @@ import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceStatus;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import io.fabric8.kubernetes.api.model.extensions.Ingress;
-import io.fabric8.kubernetes.api.model.extensions.IngressStatus;
+import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import io.fabric8.kubernetes.api.model.networking.v1.IngressStatus;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
 import java.util.Collections;
@@ -151,7 +151,7 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
         //And that K8S is up and receiving PVC requests
         PersistentVolumeClaimStatus pvcStatus = new PersistentVolumeClaimStatus();
         lenient().when(client.persistentVolumeClaims()
-                .loadPersistentVolumeClaim(eq(newEntandoApp), eq(MY_APP_SERVER_PVC)))
+                        .loadPersistentVolumeClaim(eq(newEntandoApp), eq(MY_APP_SERVER_PVC)))
                 .then(respondWithPersistentVolumeClaimStatus(pvcStatus));
         //When the EntandoAppController is notified that a new EntandoApp has been added
         entandoAppController.onStartup(new StartupEvent());
@@ -250,16 +250,16 @@ class DeployEntandoServiceTest implements InProcessTestUtil, EnvVarAssertionHelp
                 ingressArgumentCaptor.getValue().getMetadata().getName());
         assertThat(theIngress.getSpec().getRules().get(0).getHost(), is("myapp.192.168.0.100.nip.io"));
         // Then a K8S Ingress Path was created that reflects the webcontext of the entando-de-app
-        assertThat(theHttpPath(ENTANDO_DE_APP).on(theIngress).getBackend().getServicePort().getIntVal(), is(8080));
-        assertThat(theHttpPath(ENTANDO_DE_APP).on(theIngress).getBackend().getServiceName(), is(MY_APP_SERVER_SERVICE));
+        assertThat(theHttpPath(ENTANDO_DE_APP).on(theIngress).getBackend().getService().getPort().getNumber(), is(8080));
+        assertThat(theHttpPath(ENTANDO_DE_APP).on(theIngress).getBackend().getService().getName(), is(MY_APP_SERVER_SERVICE));
 
         // And a K8S Ingress Path was created that reflects the webcontext of the component-manager
-        assertThat(theHttpPath(DIGITAL_EXCHANGE).on(theIngress).getBackend().getServicePort().getIntVal(), is(8083));
-        assertThat(theHttpPath(DIGITAL_EXCHANGE).on(theIngress).getBackend().getServiceName(), is(MY_APP_COMPONENT_MANAGER_SERVICE));
+        assertThat(theHttpPath(DIGITAL_EXCHANGE).on(theIngress).getBackend().getService().getPort().getNumber(), is(8083));
+        assertThat(theHttpPath(DIGITAL_EXCHANGE).on(theIngress).getBackend().getService().getName(), is(MY_APP_COMPONENT_MANAGER_SERVICE));
 
         // And a K8S Ingress Path was created that reflects the webcontext of the appbuilder
-        assertThat(theHttpPath(APP_BUILDER).on(theIngress).getBackend().getServicePort().getIntVal(), is(8081));
-        assertThat(theHttpPath(APP_BUILDER).on(theIngress).getBackend().getServiceName(), is(MY_APP_APP_BUILDER_SERVICE));
+        assertThat(theHttpPath(APP_BUILDER).on(theIngress).getBackend().getService().getPort().getNumber(), is(8081));
+        assertThat(theHttpPath(APP_BUILDER).on(theIngress).getBackend().getService().getName(), is(MY_APP_APP_BUILDER_SERVICE));
         assertThat(theIngress.getMetadata().getAnnotations().get("nginx.ingress.kubernetes.io/proxy-body-size"), is("500m"));
 
         //And the Ingress state was reloaded from K8S
