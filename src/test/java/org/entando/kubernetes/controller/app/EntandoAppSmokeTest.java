@@ -22,13 +22,20 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfigProperty;
+import org.entando.kubernetes.controller.spi.common.TrustStoreHelper;
+import org.entando.kubernetes.controller.support.client.SecretClient;
 import org.entando.kubernetes.controller.support.client.impl.DefaultSimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.impl.EntandoOperatorTestConfig;
 import org.entando.kubernetes.controller.support.client.impl.SupportProducer;
@@ -65,6 +72,8 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
     @DisabledIfEnvironmentVariable(named = "ENTANDO_OPT_SKIP_INTEGRATION_TESTS", matches = "true")
     @Description("Should successfully connect to newly deployed Keycloak Server")
     void testDeployment() {
+        System.setProperty(EntandoOperatorSpiConfigProperty.ENTANDO_CONTROLLER_POD_NAME.getJvmSystemProperty(), "some-pod");
+        System.setProperty("ENTANDO_K8S_OPERATOR_SECURITY_MODE", "strict");
         KubernetesClient client = new SupportProducer().getKubernetesClient();
 
         final DefaultSimpleK8SClient simpleClient = new DefaultSimpleK8SClient(client);
@@ -92,6 +101,9 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
             final ProvidedCapability providedCapability = new KeycloakTestCapabilityProvider(simpleClient, MY_NAMESPACE)
                     .provideKeycloakCapability();
             attachment("SSO Capability", objectMapper.writeValueAsString(providedCapability));
+        });
+        step("And I have prepared the truststore", () -> {
+            generateTrustStore(client);
         });
         step("And I have created an EntandoApp custom resource", () -> {
             this.entandoApp = simpleClient.entandoResources()
@@ -139,4 +151,11 @@ class EntandoAppSmokeTest implements FluentIntegrationTesting {
         //TODO spin up the AppBuilder test container here.
     }
 
+    private void generateTrustStore(KubernetesClient client) {
+        client.secrets().inNamespace(MY_NAMESPACE).createOrReplace(
+                TrustStoreHelper.newTrustStoreSecret(
+                        client.secrets().inNamespace(MY_NAMESPACE).withName("test-ca-secret").get()
+                )
+        );
+    }
 }

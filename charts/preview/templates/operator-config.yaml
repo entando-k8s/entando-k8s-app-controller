@@ -1,0 +1,12 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: entando-operator-config
+data:
+  entando.ca.secret.name: test-ca-secret
+  entando.timeout.adjustment.ratio: '2'
+  entando.profile.plugins.my-test-plugin: |-
+    resources.limits.cpu: "1000"
+    resources.limits.memory: "2000"
+    resources.requests.cpu: "500"
+    resources.requests.memory: "500"
