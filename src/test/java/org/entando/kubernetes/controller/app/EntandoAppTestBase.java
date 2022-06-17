@@ -24,6 +24,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.LimitRange;
 import io.fabric8.kubernetes.api.model.LimitRangeList;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
@@ -44,6 +46,7 @@ import org.entando.kubernetes.test.common.FluentTraversals;
 import org.entando.kubernetes.test.common.LogInterceptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.mockito.Answers;
 import org.mockito.Mock;
 
 abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHelper {
@@ -58,6 +61,8 @@ abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHel
     private KubernetesClient kubernetesClient;
     @Mock
     private MixedOperation<LimitRange, LimitRangeList, Resource<LimitRange>> limitRangesMixOp;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private MixedOperation<Secret, SecretList, Resource<Secret>> secretOps;
 
     @Override
     public Optional<SimpleKeycloakClient> getKeycloakClient() {
@@ -75,15 +80,25 @@ abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHel
     }
 
     @BeforeEach
-    void registerCrds() throws IOException {
-        registerCrd("crd/providedcapabilities.entando.org.crd.yaml");
-        registerCrd("crd/entandoapps.entando.org.crd.yaml");
-        registerCrd("testresources.test.org.crd.yaml");
-        LogInterceptor.listenToClass(EntandoAppController.class);
+    void setup() throws IOException {
+        registerCrds();
+
         when(kubernetesClient.getNamespace()).thenReturn("" + MY_NAMESPACE + "");
         when(kubernetesClient.limitRanges()).thenReturn(limitRangesMixOp);
         when(limitRangesMixOp.inNamespace(anyString())).thenReturn(limitRangesMixOp);
         when(limitRangesMixOp.createOrReplace(any(LimitRange.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+    }
+
+    private void registerCrds() throws IOException {
+        registerCrd("crd/providedcapabilities.entando.org.crd.yaml");
+        registerCrd("crd/entandoapps.entando.org.crd.yaml");
+        registerCrd("testresources.test.org.crd.yaml");
+        LogInterceptor.listenToClass(EntandoAppController.class);
+    }
+
+    void initSecretsMock() {
+        when(kubernetesClient.secrets()).thenReturn(secretOps);
+        when(secretOps.inNamespace(anyString()).withName(anyString()).get()).thenReturn(null);
     }
 
     @AfterEach

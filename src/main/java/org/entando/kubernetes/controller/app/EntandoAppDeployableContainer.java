@@ -45,6 +45,7 @@ import org.entando.kubernetes.controller.spi.container.TrustStoreAwareContainer;
 import org.entando.kubernetes.controller.spi.deployable.SsoClientConfig;
 import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
+import org.entando.kubernetes.controller.support.client.SecretClient;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.DbmsVendor;
 import org.entando.kubernetes.model.common.EntandoResourceRequirements;
@@ -68,13 +69,14 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     private SsoClientConfig ssoClientConfig;
 
     public EntandoAppDeployableContainer(EntandoApp entandoApp, SsoConnectionInfo keycloakConnectionConfig,
-            DatabaseConnectionInfo databaseServiceResult, SsoClientConfig ssoClientConfig) {
+            DatabaseConnectionInfo databaseServiceResult, SsoClientConfig ssoClientConfig, SecretClient secretClient) {
         this.dbmsVendor = EntandoAppHelper.determineDbmsVendor(entandoApp);
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.ssoClientConfig = ssoClientConfig;
         this.databaseSchemaConnectionInfo = Optional.ofNullable(databaseServiceResult)
-                .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr, Arrays.asList(PORTDB, SERVDB)))
+                .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr,
+                        Arrays.asList(PORTDB, SERVDB), secretClient))
                 .orElse(Collections.emptyList());
 
     }

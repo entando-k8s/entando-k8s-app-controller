@@ -26,6 +26,7 @@ import org.entando.kubernetes.controller.spi.deployable.SsoAwareDeployable;
 import org.entando.kubernetes.controller.spi.deployable.SsoClientConfig;
 import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
+import org.entando.kubernetes.controller.support.client.SecretClient;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.Permission;
 
@@ -41,12 +42,13 @@ public class ComponentManagerDeployable
     public ComponentManagerDeployable(EntandoApp entandoApp,
             SsoConnectionInfo ssoConnectionInfo,
             EntandoK8SService entandoK8SService,
-            DatabaseConnectionInfo databaseServiceResult) {
+            DatabaseConnectionInfo databaseServiceResult,
+            SecretClient secretClient) {
         super(entandoApp);
         this.ssoConnectionInfo = ssoConnectionInfo;
         this.containers = Collections.singletonList(
                 new ComponentManagerDeployableContainer(entandoApp, ssoConnectionInfo, entandoK8SService, databaseServiceResult,
-                        getSsoClientConfig())
+                        getSsoClientConfig(), secretClient)
         );
     }
 

@@ -3,7 +3,7 @@ ARG VERSION
 LABEL name="Entando K8S App Controller" \
       vendor="Entando" \
       version="v${VERSION}" \
-      release="6" \
+      release="7.0" \
       summary="This container processes the EntandoApp custom resource and deploys the specified Entando App Engine Docker image." \
       description="This is a run-to-completion container. It processes new EntandoApp Custom \
                    Resources and deploys an instance of the specified Entando App Engine Docker image \

@@ -26,6 +26,7 @@ import org.entando.kubernetes.controller.spi.deployable.PublicIngressingDeployab
 import org.entando.kubernetes.controller.spi.deployable.SsoClientConfig;
 import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
+import org.entando.kubernetes.controller.support.client.SecretClient;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.common.KeycloakToUse;
 
@@ -38,11 +39,13 @@ public class EntandoAppServerDeployable
 
     public EntandoAppServerDeployable(EntandoApp entandoApp,
             SsoConnectionInfo ssoConnectionInfo,
-            DatabaseConnectionInfo databaseServiceResult) {
+            DatabaseConnectionInfo databaseServiceResult,
+            SecretClient secretClient) {
         super(entandoApp);
         this.ssoConnectionInfo = ssoConnectionInfo;
         this.containers = Collections.singletonList(
-                new EntandoAppDeployableContainer(entandoApp, ssoConnectionInfo, databaseServiceResult, getSsoClientConfig())
+                new EntandoAppDeployableContainer(entandoApp, ssoConnectionInfo, databaseServiceResult,
+                        getSsoClientConfig(), secretClient)
         );
     }
 
