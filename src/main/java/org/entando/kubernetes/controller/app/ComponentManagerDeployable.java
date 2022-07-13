@@ -43,12 +43,13 @@ public class ComponentManagerDeployable
             SsoConnectionInfo ssoConnectionInfo,
             EntandoK8SService entandoK8SService,
             DatabaseConnectionInfo databaseServiceResult,
-            SecretClient secretClient) {
+            SecretClient secretClient, String ecrPostinitConfiguration) {
         super(entandoApp);
         this.ssoConnectionInfo = ssoConnectionInfo;
-        this.containers = Collections.singletonList(
-                new ComponentManagerDeployableContainer(entandoApp, ssoConnectionInfo, entandoK8SService, databaseServiceResult,
-                        getSsoClientConfig(), secretClient)
+        this.containers = Collections.singletonList(new ComponentManagerDeployableContainer(
+                        entandoApp, ssoConnectionInfo, entandoK8SService, databaseServiceResult,
+                        getSsoClientConfig(), secretClient, ecrPostinitConfiguration
+                )
         );
     }
 

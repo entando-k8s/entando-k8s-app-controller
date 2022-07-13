@@ -114,6 +114,7 @@ abstract class EntandoAppTestBase implements FluentTraversals, ControllerTestHel
         System.clearProperty(EntandoOperatorSpiConfigProperty.ENTANDO_K8S_OPERATOR_DEFAULT_CLUSTERED_STORAGE_CLASS.getJvmSystemProperty());
         System.clearProperty(
                 EntandoOperatorSpiConfigProperty.ENTANDO_K8S_OPERATOR_DEFAULT_NON_CLUSTERED_STORAGE_CLASS.getJvmSystemProperty());
+        System.clearProperty(ComponentManagerDeployableContainer.ENTANDO_ECR_POSTINIT);
         LogInterceptor.reset();
     }
 
