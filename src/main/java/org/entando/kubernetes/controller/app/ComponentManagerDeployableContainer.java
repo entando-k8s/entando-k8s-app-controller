@@ -50,11 +50,13 @@ public class ComponentManagerDeployableContainer
 
     private static final String DEDB = "dedb";
     public static final String ECR_GIT_CONFIG_DIR = "/etc/ecr-git-config";
+    public static final String ENTANDO_ECR_POSTINIT = "ENTANDO_ECR_POSTINIT";
     private final EntandoApp entandoApp;
     private final SsoConnectionInfo keycloakConnectionConfig;
     private final EntandoK8SService infrastructureConfig;
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
     private SsoClientConfig ssoClientConfig;
+    private final String ecrPostinitConfiguration;
 
     public ComponentManagerDeployableContainer(
             EntandoApp entandoApp,
@@ -62,11 +64,12 @@ public class ComponentManagerDeployableContainer
             EntandoK8SService infrastructureConfig,
             DatabaseConnectionInfo databaseServiceResult,
             SsoClientConfig ssoClientConfig,
-            SecretClient secretClient) {
+            SecretClient secretClient, String ecrPostinitConfiguration) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.infrastructureConfig = infrastructureConfig;
         this.ssoClientConfig = ssoClientConfig;
+        this.ecrPostinitConfiguration = (ecrPostinitConfiguration != null) ? ecrPostinitConfiguration : "";
         this.databaseSchemaConnectionInfo = ofNullable(databaseServiceResult)
                 .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr,
                         Collections.singletonList(DEDB), secretClient))
@@ -123,6 +126,7 @@ public class ComponentManagerDeployableContainer
                 + "-o UserKnownHostsFile=/opt/.ssh/known_hosts "
                 + "-i /opt/.ssh/id_rsa "
                 + "-o IdentitiesOnly=yes", null)));
+        vars.add(new EnvVar(ENTANDO_ECR_POSTINIT, ecrPostinitConfiguration, null));
         return vars;
     }
 

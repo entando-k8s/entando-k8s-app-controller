@@ -17,6 +17,8 @@
 package org.entando.kubernetes.controller.app;
 
 import static java.lang.String.format;
+import static org.entando.kubernetes.controller.spi.common.EntandoOperatorConfigBase.lookupProperty;
+import static org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds;
 
 import io.fabric8.kubernetes.api.model.LimitRange;
 import io.fabric8.kubernetes.api.model.LimitRangeBuilder;
@@ -64,6 +66,7 @@ public class EntandoAppController implements Runnable {
 
     private static final Logger LOGGER = Logger.getLogger(EntandoAppController.class.getName());
     public static final String ENTANDO_K8S_SERVICE = "entando-k8s-service";
+    public static final String KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION = "entando.ecr.postinit";
     private final KubernetesClientForControllers k8sClientForControllers;
     private final KubernetesClient k8sClient;
     private final SimpleK8SClient<?> simpleK8SClient;
@@ -113,7 +116,7 @@ public class EntandoAppController implements Runnable {
                     k8sClientForControllers.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE));
             queueDeployable(
                     new ComponentManagerDeployable(entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo,
-                            simpleK8SClient.secrets()),
+                            simpleK8SClient.secrets(), readEntandoAppCustomConfig()),
                     timeoutForDbAware);
             executor.shutdown();
             final int totalTimeout = timeoutForDbAware * 2 + timeoutForNonDbAware;
@@ -128,6 +131,10 @@ public class EntandoAppController implements Runnable {
         entandoApp.get().getStatus().findFailedServerStatus().flatMap(ServerStatus::getEntandoControllerFailure).ifPresent(s -> {
             throw new CommandLine.ExecutionException(new CommandLine(this), s.getDetailMessage());
         });
+    }
+
+    private String readEntandoAppCustomConfig() {
+        return lookupProperty(KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION).orElse("");
     }
 
     private int calculateDbAwareTimeout() {
@@ -167,7 +174,7 @@ public class EntandoAppController implements Runnable {
                             .withCapability(StandardCapability.DBMS)
                             .withImplementation(StandardCapabilityImplementation.valueOf(dbmsVendor.name()))
                             .withResolutionScopePreference(CapabilityScope.NAMESPACE, CapabilityScope.DEDICATED, CapabilityScope.CLUSTER)
-                            .build(), EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds());
+                            .build(), getPodReadinessTimeoutSeconds());
             final ProvidedCapability dbmsCapability = capabilityResult.getProvidedCapability();
             dbmsCapability.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
                     this.entandoApp.updateAndGet(
@@ -202,8 +209,7 @@ public class EntandoAppController implements Runnable {
                         .withPreferredIngressHostName(entandoApp.get().getSpec().getIngressHostName().orElse(null))
                         .withPreferredTlsSecretName(entandoApp.get().getSpec().getTlsSecretName().orElse(null))
                         .withResolutionScopePreference(CapabilityScope.NAMESPACE, CapabilityScope.CLUSTER)
-                        .build(), EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() + EntandoOperatorSpiConfig
-                        .getPodReadinessTimeoutSeconds());
+                        .build(), EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() + getPodReadinessTimeoutSeconds());
         final ProvidedCapability ssoCapability = capabilityResult.getProvidedCapability();
         ssoCapability.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).ifPresent(s ->
                 this.entandoApp.updateAndGet(
