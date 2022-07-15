@@ -67,6 +67,7 @@ public class EntandoAppController implements Runnable {
     private static final Logger LOGGER = Logger.getLogger(EntandoAppController.class.getName());
     public static final String ENTANDO_K8S_SERVICE = "entando-k8s-service";
     public static final String KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION = "entando.ecr.postinit";
+    public static final String KEY_ENTANDO_APP_STARTUP_TIMEOUT = "entando.app.startup.timeout";
     private final KubernetesClientForControllers k8sClientForControllers;
     private final KubernetesClient k8sClient;
     private final SimpleK8SClient<?> simpleK8SClient;
@@ -119,7 +120,7 @@ public class EntandoAppController implements Runnable {
                             simpleK8SClient.secrets(), readEntandoAppCustomConfig()),
                     timeoutForDbAware);
             executor.shutdown();
-            final int totalTimeout = timeoutForDbAware * 2 + timeoutForNonDbAware;
+            final int totalTimeout = determineStartupTimeout(timeoutForDbAware, timeoutForNonDbAware);
             if (!executor.awaitTermination(totalTimeout, TimeUnit.SECONDS)) {
                 throw new TimeoutException(
                         format("Could not complete deployment of EntandoApp in %s seconds", totalTimeout));
@@ -133,8 +134,31 @@ public class EntandoAppController implements Runnable {
         });
     }
 
+    private int determineStartupTimeout(int timeoutForDbAware, int timeoutForNonDbAware) {
+        String configuredAppStartupTimeout = readAppStartupTimeout();
+        int startupTmeout;
+        int defaultStartupTimeout = timeoutForDbAware * 2 + timeoutForNonDbAware;
+        if (configuredAppStartupTimeout.isEmpty()) {
+            startupTmeout = defaultStartupTimeout;
+        } else {
+            startupTmeout = Integer.parseInt(configuredAppStartupTimeout);
+            if (startupTmeout < 500 || startupTmeout > 36000) {
+                LOGGER.log(Level.WARNING, String.format(
+                        "configured startupTimeout \"%s\" is not valid, falling back to default \"%s\"", startupTmeout,
+                        defaultStartupTimeout
+                ));
+                startupTmeout = defaultStartupTimeout;
+            }
+        }
+        return startupTmeout;
+    }
+
     private String readEntandoAppCustomConfig() {
         return lookupProperty(KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION).orElse("");
+    }
+
+    private String readAppStartupTimeout() {
+        return lookupProperty(KEY_ENTANDO_APP_STARTUP_TIMEOUT).orElse("");
     }
 
     private int calculateDbAwareTimeout() {
