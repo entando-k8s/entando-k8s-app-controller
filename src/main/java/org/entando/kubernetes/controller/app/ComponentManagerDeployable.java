@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.entando.kubernetes.controller.app.ComponentManagerDeployableContainer.ComponentManagerCustomConfigFromOperator;
 import org.entando.kubernetes.controller.spi.container.DeployableContainer;
 import org.entando.kubernetes.controller.spi.deployable.DbAwareDeployable;
 import org.entando.kubernetes.controller.spi.deployable.SsoAwareDeployable;
@@ -43,12 +44,12 @@ public class ComponentManagerDeployable
             SsoConnectionInfo ssoConnectionInfo,
             EntandoK8SService entandoK8SService,
             DatabaseConnectionInfo databaseServiceResult,
-            SecretClient secretClient, String ecrPostinitConfiguration) {
+            SecretClient secretClient, ComponentManagerCustomConfigFromOperator customConfig) {
         super(entandoApp);
         this.ssoConnectionInfo = ssoConnectionInfo;
         this.containers = Collections.singletonList(new ComponentManagerDeployableContainer(
                         entandoApp, ssoConnectionInfo, entandoK8SService, databaseServiceResult,
-                        getSsoClientConfig(), secretClient, ecrPostinitConfiguration
+                        getSsoClientConfig(), secretClient, customConfig
                 )
         );
     }
