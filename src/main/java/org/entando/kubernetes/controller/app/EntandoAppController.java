@@ -53,6 +53,7 @@ import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.impl.DefaultSimpleK8SClient;
+import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.capability.CapabilityRequirementBuilder;
 import org.entando.kubernetes.model.capability.CapabilityScope;
@@ -69,7 +70,6 @@ public class EntandoAppController implements Runnable {
     private static final Logger LOGGER = Logger.getLogger(EntandoAppController.class.getName());
     public static final String ENTANDO_K8S_SERVICE = "entando-k8s-service";
     public static final String KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION = "entando.ecr.postinit";
-    public static final String KEY_ENTANDO_TLS_SECRET_NAME = "entando.tls.secret.name";
     private final KubernetesClientForControllers k8sClientForControllers;
     private final KubernetesClient k8sClient;
     private final SimpleK8SClient<?> simpleK8SClient;
@@ -141,7 +141,7 @@ public class EntandoAppController implements Runnable {
         ComponentManagerCustomConfigFromOperator customConfig = new ComponentManagerCustomConfigFromOperator();
         customConfig.setEcrPostInitConfiguration(lookupProperty(KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION).orElse(""));
         customConfig.setTlsEnabled(StringUtils.isNotBlank(
-                lookupProperty(KEY_ENTANDO_TLS_SECRET_NAME).orElseGet(
+                lookupProperty(EntandoOperatorConfigProperty.ENTANDO_TLS_SECRET_NAME.getJvmSystemProperty()).orElseGet(
                         () -> entandoApp.get().getTlsSecretName().orElse(""))
         ));
 
