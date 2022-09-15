@@ -36,6 +36,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
+import org.apache.commons.lang3.StringUtils;
+import org.entando.kubernetes.controller.app.ComponentManagerDeployableContainer.ComponentManagerCustomConfigFromOperator;
 import org.entando.kubernetes.controller.spi.capability.CapabilityProvider;
 import org.entando.kubernetes.controller.spi.capability.CapabilityProvisioningResult;
 import org.entando.kubernetes.controller.spi.client.KubernetesClientForControllers;
@@ -51,6 +53,7 @@ import org.entando.kubernetes.controller.spi.deployable.SsoConnectionInfo;
 import org.entando.kubernetes.controller.spi.result.DatabaseConnectionInfo;
 import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.impl.DefaultSimpleK8SClient;
+import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.capability.CapabilityRequirementBuilder;
 import org.entando.kubernetes.model.capability.CapabilityScope;
@@ -128,20 +131,29 @@ public class EntandoAppController implements Runnable {
         } catch (Exception e) {
             attachControllerFailure(e, EntandoAppController.class, NameUtils.MAIN_QUALIFIER);
         }
-        entandoApp.get().getStatus().findFailedServerStatus().flatMap(ServerStatus::getEntandoControllerFailure).ifPresent(s -> {
-            throw new CommandLine.ExecutionException(new CommandLine(this), s.getDetailMessage());
-        });
+        entandoApp.get().getStatus().findFailedServerStatus().flatMap(ServerStatus::getEntandoControllerFailure)
+                .ifPresent(s -> {
+                    throw new CommandLine.ExecutionException(new CommandLine(this), s.getDetailMessage());
+                });
     }
 
-    private String readEntandoAppCustomConfig() {
-        return lookupProperty(KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION).orElse("");
+    private ComponentManagerCustomConfigFromOperator readEntandoAppCustomConfig() {
+        ComponentManagerCustomConfigFromOperator customConfig = new ComponentManagerCustomConfigFromOperator();
+        customConfig.setEcrPostInitConfiguration(lookupProperty(KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION).orElse(""));
+        customConfig.setTlsEnabled(StringUtils.isNotBlank(
+                lookupProperty(EntandoOperatorConfigProperty.ENTANDO_TLS_SECRET_NAME.getJvmSystemProperty()).orElseGet(
+                        () -> entandoApp.get().getTlsSecretName().orElse(""))
+        ));
+
+        return customConfig;
     }
 
     private int calculateDbAwareTimeout() {
         final int timeoutForDbAware;
         if (requiresDbmsService(EntandoAppHelper.determineDbmsVendor(entandoApp.get()))) {
             timeoutForDbAware =
-                    EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() + EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
+                    EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds()
+                            + EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
         } else {
             timeoutForDbAware = EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
         }
