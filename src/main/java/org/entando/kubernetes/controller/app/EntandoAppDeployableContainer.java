@@ -86,7 +86,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
                 NameUtils.standardServiceName(entandoApp),
                 entandoApp.getMetadata().getNamespace(),
                 PORT,
-                entandoApp.getSpec().getIngressPath().orElse(INGRESS_WEB_CONTEXT));
+                EntandoAppHelper.fetchAndNormalizeDeAppWebContextPath(entandoApp));
     }
 
     @Override
@@ -163,7 +163,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
     @Override
     public String getWebContextPath() {
-        return entandoApp.getSpec().getIngressPath().orElse(INGRESS_WEB_CONTEXT);
+        return EntandoAppHelper.fetchAndNormalizeDeAppWebContextPath(entandoApp);
     }
 
     @Override
