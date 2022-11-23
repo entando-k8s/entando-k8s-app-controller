@@ -56,7 +56,7 @@ public class EntandoAppHelper {
         return imageName + "-" + entandoAppVersion.replace('.', '-');
     }
 
-    public static String fetchAndNormalizeDeAppWebContextPath(EntandoApp entandoApp) {
+    public static String getNormalizedDeAppWebContextPath(EntandoApp entandoApp) {
         return entandoApp.getSpec().getIngressPath().map(EntandoAppHelper::getRootIfBlankOrValue)
                 .orElse(EntandoAppDeployableContainer.INGRESS_WEB_CONTEXT);
     }

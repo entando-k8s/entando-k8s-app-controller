@@ -16,7 +16,6 @@
 
 package org.entando.kubernetes.controller.app;
 
-import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
@@ -86,7 +85,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
                 NameUtils.standardServiceName(entandoApp),
                 entandoApp.getMetadata().getNamespace(),
                 PORT,
-                EntandoAppHelper.fetchAndNormalizeDeAppWebContextPath(entandoApp));
+                EntandoAppHelper.getNormalizedDeAppWebContextPath(entandoApp));
     }
 
     @Override
@@ -163,7 +162,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
     @Override
     public String getWebContextPath() {
-        return EntandoAppHelper.fetchAndNormalizeDeAppWebContextPath(entandoApp);
+        return EntandoAppHelper.getNormalizedDeAppWebContextPath(entandoApp);
     }
 
     @Override
