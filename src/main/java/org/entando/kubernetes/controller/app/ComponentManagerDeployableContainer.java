@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorConfigBase;
 import org.entando.kubernetes.controller.spi.container.DatabaseSchemaConnectionInfo;
 import org.entando.kubernetes.controller.spi.container.DbAwareContainer;
@@ -51,12 +52,13 @@ public class ComponentManagerDeployableContainer
     private static final String DEDB = "dedb";
     public static final String ECR_GIT_CONFIG_DIR = "/etc/ecr-git-config";
     public static final String ENTANDO_ECR_POSTINIT = "ENTANDO_ECR_POSTINIT";
+    public static final String ENTANDO_APP_USE_TLS = "ENTANDO_APP_USE_TLS";
     private final EntandoApp entandoApp;
     private final SsoConnectionInfo keycloakConnectionConfig;
     private final EntandoK8SService infrastructureConfig;
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
     private SsoClientConfig ssoClientConfig;
-    private final String ecrPostinitConfiguration;
+    private final ComponentManagerCustomConfigFromOperator customConfig;
 
     public ComponentManagerDeployableContainer(
             EntandoApp entandoApp,
@@ -64,12 +66,12 @@ public class ComponentManagerDeployableContainer
             EntandoK8SService infrastructureConfig,
             DatabaseConnectionInfo databaseServiceResult,
             SsoClientConfig ssoClientConfig,
-            SecretClient secretClient, String ecrPostinitConfiguration) {
+            SecretClient secretClient, ComponentManagerCustomConfigFromOperator customConfig) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.infrastructureConfig = infrastructureConfig;
         this.ssoClientConfig = ssoClientConfig;
-        this.ecrPostinitConfiguration = (ecrPostinitConfiguration != null) ? ecrPostinitConfiguration : "";
+        this.customConfig = customConfig;
         this.databaseSchemaConnectionInfo = ofNullable(databaseServiceResult)
                 .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr,
                         Collections.singletonList(DEDB), secretClient))
@@ -106,9 +108,12 @@ public class ComponentManagerDeployableContainer
         List<EnvVar> vars = new ArrayList<>();
         String entandoUrl = EntandoAppDeployableContainer.determineEntandoServiceBaseUrl(this.entandoApp);
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
+        vars.add(new EnvVar("ENTANDO_APP_HOST_NAME", entandoApp.getSpec().getIngressHostName().orElse(""), null));
+        vars.add(new EnvVar(ENTANDO_APP_USE_TLS, "" + customConfig.isTlsEnabled(), null));
         vars.add(new EnvVar("ENTANDO_URL", entandoUrl, null));
         vars.add(new EnvVar("SERVER_PORT", String.valueOf(getPrimaryPort()), null));
-        List<String> ecrNamespacesToUse = ofNullable(entandoApp.getSpec().getComponentRepositoryNamespaces()).orElse(emptyList());
+        List<String> ecrNamespacesToUse = ofNullable(entandoApp.getSpec().getComponentRepositoryNamespaces()).orElse(
+                emptyList());
         if (ecrNamespacesToUse.isEmpty()) {
             ecrNamespacesToUse = lookupProperty(EntandoAppConfigProperty.ENTANDO_COMPONENT_REPOSITORY_NAMESPACES)
                     .map(s -> Arrays.asList(s.split(EntandoOperatorConfigBase.SEPERATOR_PATTERN)))
@@ -118,15 +123,20 @@ public class ComponentManagerDeployableContainer
             vars.add(new EnvVar("ENTANDO_COMPONENT_REPOSITORY_NAMESPACES", String.join(",", ecrNamespacesToUse), null));
         }
         vars.add(
-                new EnvVar("ENTANDO_K8S_SERVICE_URL", format("http://%s:%s/k8s", infrastructureConfig.getInternalServiceHostname(),
-                        infrastructureConfig.getService().getSpec().getPorts().get(0).getPort()), null));
+                new EnvVar("ENTANDO_K8S_SERVICE_URL",
+                        format("http://%s:%s/k8s", infrastructureConfig.getInternalServiceHostname(),
+                                infrastructureConfig.getService().getSpec().getPorts().get(0).getPort()), null));
         //The ssh files will be copied to /opt/.ssh and chmod to 400. This can only happen at runtime because Openshift generates a
         // random userid
         entandoApp.getSpec().getEcrGitSshSecretName().ifPresent(s -> vars.add(new EnvVar("GIT_SSH_COMMAND", "ssh "
                 + "-o UserKnownHostsFile=/opt/.ssh/known_hosts "
                 + "-i /opt/.ssh/id_rsa "
                 + "-o IdentitiesOnly=yes", null)));
-        vars.add(new EnvVar(ENTANDO_ECR_POSTINIT, ecrPostinitConfiguration, null));
+
+        if (StringUtils.isNotBlank(customConfig.getEcrPostInitConfiguration())) {
+            vars.add(new EnvVar(ENTANDO_ECR_POSTINIT, customConfig.getEcrPostInitConfiguration(), null));
+        }
+
         return vars;
     }
 
@@ -192,4 +202,25 @@ public class ComponentManagerDeployableContainer
         return entandoApp.getSpec().getEnvironmentVariables();
     }
 
+    public static class ComponentManagerCustomConfigFromOperator {
+
+        private String ecrPostInitConfiguration;
+        private boolean tlsEnabled;
+
+        public boolean isTlsEnabled() {
+            return tlsEnabled;
+        }
+
+        public void setTlsEnabled(boolean tlsEnabled) {
+            this.tlsEnabled = tlsEnabled;
+        }
+
+        public String getEcrPostInitConfiguration() {
+            return ecrPostInitConfiguration;
+        }
+
+        public void setEcrPostInitConfiguration(String ecrPostInitConfiguration) {
+            this.ecrPostInitConfiguration = ecrPostInitConfiguration;
+        }
+    }
 }
