@@ -28,6 +28,7 @@ import org.entando.kubernetes.model.common.EntandoResourceRequirements;
 
 public abstract class AbstractEntandoAppDeployable implements IngressingDeployable<EntandoAppDeploymentResult> {
 
+    
     /**
      * The operating system level id of the default user in the Red Hat base images. Was determined to be 185 running the 'id' command in
      * the entando/entando-eap72-clusted-base image or entando/entando-wildfly17-base image or entando-component-manager image
