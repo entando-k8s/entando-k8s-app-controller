@@ -16,7 +16,6 @@
 
 package org.entando.kubernetes.controller.app;
 
-import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
@@ -82,11 +81,11 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     }
 
     public static String determineEntandoServiceBaseUrl(EntandoApp entandoApp) {
-        return format("http://%s.%s.svc.cluster.local:%s%s",
+        return String.format("http://%s.%s.svc.cluster.local:%s%s",
                 NameUtils.standardServiceName(entandoApp),
                 entandoApp.getMetadata().getNamespace(),
                 PORT,
-                entandoApp.getSpec().getIngressPath().orElse(INGRESS_WEB_CONTEXT));
+                EntandoAppHelper.getNormalizedDeAppWebContextPath(entandoApp));
     }
 
     @Override
@@ -163,7 +162,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
     @Override
     public String getWebContextPath() {
-        return entandoApp.getSpec().getIngressPath().orElse(INGRESS_WEB_CONTEXT);
+        return EntandoAppHelper.getNormalizedDeAppWebContextPath(entandoApp);
     }
 
     @Override

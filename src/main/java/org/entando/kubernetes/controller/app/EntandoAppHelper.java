@@ -16,6 +16,7 @@
 
 package org.entando.kubernetes.controller.app;
 
+import org.apache.commons.lang3.StringUtils;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMode;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
 import org.entando.kubernetes.controller.spi.container.KeycloakName;
@@ -54,4 +55,14 @@ public class EntandoAppHelper {
         }
         return imageName + "-" + entandoAppVersion.replace('.', '-');
     }
+
+    public static String getNormalizedDeAppWebContextPath(EntandoApp entandoApp) {
+        return entandoApp.getSpec().getIngressPath().map(EntandoAppHelper::getRootIfBlankOrValue)
+                .orElse(EntandoAppDeployableContainer.INGRESS_WEB_CONTEXT);
+    }
+
+    private static String getRootIfBlankOrValue(String path) {
+        return StringUtils.isBlank(path) ? "/" : path;
+    }
+
 }
