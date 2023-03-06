@@ -17,6 +17,7 @@
 package org.entando.kubernetes.controller.app;
 
 import static java.util.Optional.ofNullable;
+import static org.entando.kubernetes.controller.app.EntandoAppHelper.ENTANDO_APP_USE_TLS;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
 import java.util.ArrayList;
@@ -66,9 +67,11 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
     private final DbmsVendor dbmsVendor;
     private SsoClientConfig ssoClientConfig;
+    private CustomConfigFromOperator customConfig;
 
     public EntandoAppDeployableContainer(EntandoApp entandoApp, SsoConnectionInfo keycloakConnectionConfig,
-            DatabaseConnectionInfo databaseServiceResult, SsoClientConfig ssoClientConfig, SecretClient secretClient) {
+            DatabaseConnectionInfo databaseServiceResult, SsoClientConfig ssoClientConfig, SecretClient secretClient,
+            CustomConfigFromOperator customConfig) {
         this.dbmsVendor = EntandoAppHelper.determineDbmsVendor(entandoApp);
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
@@ -77,7 +80,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
                 .map(dsr -> DbAwareContainer.buildDatabaseSchemaConnectionInfo(entandoApp, dsr,
                         Arrays.asList(PORTDB, SERVDB), secretClient))
                 .orElse(Collections.emptyList());
-
+        this.customConfig = customConfig;
     }
 
     public static String determineEntandoServiceBaseUrl(EntandoApp entandoApp) {
@@ -143,6 +146,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
             vars.add(new EnvVar("KUBERNETES_LABELS", labelExpression, null));
         }
         vars.add(new EnvVar("ENTANDO_WEB_CONTEXT", getWebContextPath(), null));
+        vars.add(new EnvVar(ENTANDO_APP_USE_TLS, "" + customConfig.isTlsEnabled(), null));
         return vars;
     }
 

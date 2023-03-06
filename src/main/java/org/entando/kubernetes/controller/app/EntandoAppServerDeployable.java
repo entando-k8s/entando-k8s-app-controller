@@ -40,12 +40,13 @@ public class EntandoAppServerDeployable
     public EntandoAppServerDeployable(EntandoApp entandoApp,
             SsoConnectionInfo ssoConnectionInfo,
             DatabaseConnectionInfo databaseServiceResult,
-            SecretClient secretClient) {
+            SecretClient secretClient,
+            CustomConfigFromOperator customConfig) {
         super(entandoApp);
         this.ssoConnectionInfo = ssoConnectionInfo;
         this.containers = Collections.singletonList(
                 new EntandoAppDeployableContainer(entandoApp, ssoConnectionInfo, databaseServiceResult,
-                        getSsoClientConfig(), secretClient)
+                        getSsoClientConfig(), secretClient, customConfig)
         );
     }
 

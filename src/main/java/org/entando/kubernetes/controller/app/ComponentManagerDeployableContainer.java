@@ -19,6 +19,7 @@ package org.entando.kubernetes.controller.app;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
+import static org.entando.kubernetes.controller.app.EntandoAppHelper.ENTANDO_APP_USE_TLS;
 import static org.entando.kubernetes.controller.spi.common.EntandoOperatorConfigBase.lookupProperty;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
@@ -52,13 +53,12 @@ public class ComponentManagerDeployableContainer
     private static final String DEDB = "dedb";
     public static final String ECR_GIT_CONFIG_DIR = "/etc/ecr-git-config";
     public static final String ENTANDO_ECR_POSTINIT = "ENTANDO_ECR_POSTINIT";
-    public static final String ENTANDO_APP_USE_TLS = "ENTANDO_APP_USE_TLS";
     private final EntandoApp entandoApp;
     private final SsoConnectionInfo keycloakConnectionConfig;
     private final EntandoK8SService infrastructureConfig;
     private final List<DatabaseSchemaConnectionInfo> databaseSchemaConnectionInfo;
     private SsoClientConfig ssoClientConfig;
-    private final ComponentManagerCustomConfigFromOperator customConfig;
+    private final CustomConfigFromOperator customConfig;
 
     public ComponentManagerDeployableContainer(
             EntandoApp entandoApp,
@@ -66,7 +66,7 @@ public class ComponentManagerDeployableContainer
             EntandoK8SService infrastructureConfig,
             DatabaseConnectionInfo databaseServiceResult,
             SsoClientConfig ssoClientConfig,
-            SecretClient secretClient, ComponentManagerCustomConfigFromOperator customConfig) {
+            SecretClient secretClient, CustomConfigFromOperator customConfig) {
         this.entandoApp = entandoApp;
         this.keycloakConnectionConfig = keycloakConnectionConfig;
         this.infrastructureConfig = infrastructureConfig;
@@ -202,25 +202,4 @@ public class ComponentManagerDeployableContainer
         return entandoApp.getSpec().getEnvironmentVariables();
     }
 
-    public static class ComponentManagerCustomConfigFromOperator {
-
-        private String ecrPostInitConfiguration;
-        private boolean tlsEnabled;
-
-        public boolean isTlsEnabled() {
-            return tlsEnabled;
-        }
-
-        public void setTlsEnabled(boolean tlsEnabled) {
-            this.tlsEnabled = tlsEnabled;
-        }
-
-        public String getEcrPostInitConfiguration() {
-            return ecrPostInitConfiguration;
-        }
-
-        public void setEcrPostInitConfiguration(String ecrPostInitConfiguration) {
-            this.ecrPostInitConfiguration = ecrPostInitConfiguration;
-        }
-    }
 }
