@@ -27,6 +27,7 @@ import org.entando.kubernetes.model.common.KeycloakToUse;
 
 public class EntandoAppHelper {
 
+    public static final String ENTANDO_APP_USE_TLS = "ENTANDO_APP_USE_TLS";
     public static final String DEFAULT_ENTANDO_APP_VERSION = "6.4";
     private static final String ENTANDO_APP_VERSION_7_1 = "7.1";
 

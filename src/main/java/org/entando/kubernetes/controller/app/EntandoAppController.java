@@ -37,7 +37,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
 import org.apache.commons.lang3.StringUtils;
-import org.entando.kubernetes.controller.app.ComponentManagerDeployableContainer.ComponentManagerCustomConfigFromOperator;
 import org.entando.kubernetes.controller.spi.capability.CapabilityProvider;
 import org.entando.kubernetes.controller.spi.capability.CapabilityProvisioningResult;
 import org.entando.kubernetes.controller.spi.client.KubernetesClientForControllers;
@@ -111,15 +110,16 @@ public class EntandoAppController implements Runnable {
             final DatabaseConnectionInfo dbConnectionInfo = provideDatabaseIfRequired();
             final SsoConnectionInfo ssoConnectionInfo = provideSso();
             final int timeoutForDbAware = calculateDbAwareTimeout();
+            final CustomConfigFromOperator customConfig = readEntandoAppCustomConfig();
             queueDeployable(new EntandoAppServerDeployable(entandoApp.get(), ssoConnectionInfo, dbConnectionInfo,
-                    simpleK8SClient.secrets()), timeoutForDbAware);
+                    simpleK8SClient.secrets(), customConfig), timeoutForDbAware);
             final int timeoutForNonDbAware = EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
             queueDeployable(new AppBuilderDeployable(entandoApp.get()), timeoutForNonDbAware);
             EntandoK8SService k8sService = new EntandoK8SService(
                     k8sClientForControllers.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE));
             queueDeployable(
                     new ComponentManagerDeployable(entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo,
-                            simpleK8SClient.secrets(), readEntandoAppCustomConfig()),
+                            simpleK8SClient.secrets(), customConfig),
                     timeoutForDbAware);
             executor.shutdown();
             final int totalTimeout = timeoutForDbAware * 2 + timeoutForNonDbAware;
@@ -137,8 +137,8 @@ public class EntandoAppController implements Runnable {
                 });
     }
 
-    private ComponentManagerCustomConfigFromOperator readEntandoAppCustomConfig() {
-        ComponentManagerCustomConfigFromOperator customConfig = new ComponentManagerCustomConfigFromOperator();
+    private CustomConfigFromOperator readEntandoAppCustomConfig() {
+        CustomConfigFromOperator customConfig = new CustomConfigFromOperator();
         customConfig.setEcrPostInitConfiguration(lookupProperty(KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION).orElse(""));
         customConfig.setTlsEnabled(StringUtils.isNotBlank(
                 lookupProperty(EntandoOperatorConfigProperty.ENTANDO_TLS_SECRET_NAME.getJvmSystemProperty()).orElseGet(
