@@ -111,7 +111,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         if (EntandoOperatorSpiConfig.getComplianceMode() == EntandoOperatorComplianceMode.REDHAT) {
             return JeeServer.EAP;
         } else {
-            return entandoApp.getSpec().getStandardServerImage().orElse(JeeServer.WILDFLY);
+            return entandoApp.getSpec().getStandardServerImage().orElse(JeeServer.TOMCAT);
         }
     }
 
