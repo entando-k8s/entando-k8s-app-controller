@@ -29,7 +29,7 @@ public class EntandoAppHelper {
 
     public static final String ENTANDO_APP_USE_TLS = "ENTANDO_APP_USE_TLS";
     public static final String DEFAULT_ENTANDO_APP_VERSION = "6.4";
-    private static final String ENTANDO_APP_VERSION_7_2 = "7.2";
+    private static final String ENTANDO_APP_VERSION_7_3 = "7.3";
 
     private EntandoAppHelper() {
 
@@ -50,8 +50,8 @@ public class EntandoAppHelper {
 
     public static String appendImageVersion(EntandoApp entandoApp, String imageName) {
         String entandoAppVersion = entandoApp.getSpec().getEntandoAppVersion().orElse(DEFAULT_ENTANDO_APP_VERSION);
-        // 7.2 version will become 6.4 internally, so it is not required to change all the references to 6-4 when resolving the images
-        if (entandoAppVersion.equals(ENTANDO_APP_VERSION_7_2)) {
+        // 7.3 version will become 6.4 internally, so it is not required to change all the references to 6-4 when resolving the images
+        if (entandoAppVersion.equals(ENTANDO_APP_VERSION_7_3)) {
             entandoAppVersion = DEFAULT_ENTANDO_APP_VERSION;
         }
         return imageName + "-" + entandoAppVersion.replace('.', '-');
