@@ -1,9 +1,9 @@
-FROM entando/entando-k8s-operator-common:7.3.0-IT-442-PR-142
+FROM entando/entando-k8s-operator-common:7.4.0-ENG-5324-PR-154
 ARG VERSION
 LABEL name="Entando K8S App Controller" \
       vendor="Entando" \
       version="v${VERSION}" \
-      release="7.2" \
+      release="7.4" \
       summary="This container processes the EntandoApp custom resource and deploys the specified Entando App Engine Docker image." \
       description="This is a run-to-completion container. It processes new EntandoApp Custom \
                    Resources and deploys an instance of the specified Entando App Engine Docker image \
