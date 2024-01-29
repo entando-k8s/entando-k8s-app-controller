@@ -26,8 +26,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
-import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMode;
-import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
 import org.entando.kubernetes.controller.spi.common.LabelNames;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.common.SecretUtils;
@@ -55,7 +53,7 @@ import org.entando.kubernetes.model.common.JeeServer;
 public class EntandoAppDeployableContainer implements IngressingContainer, PersistentVolumeAwareContainer, DbAwareContainer,
         TrustStoreAwareContainer, SsoAwareContainer, ParameterizableContainer, ConfigurableResourceContainer {
     
-    private static final Logger LOGGER = Logger.getLogger(EntandoAppDeployableContainer.class.getName());
+    private static final Logger log = Logger.getLogger(EntandoAppDeployableContainer.class.getName());
 
     public static final String INGRESS_WEB_CONTEXT = "/entando-de-app";
     public static final int PORT = 8080;
@@ -113,7 +111,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     private JeeServer determineStandardImage() {
         entandoApp.getSpec().getStandardServerImage().ifPresent(si -> {
             if (!si.equals(JeeServer.TOMCAT)) {
-                LOGGER.severe("Containers other than tomcat are deprecated");
+                log.severe("Containers other than tomcat are deprecated");
             }
         });
         return JeeServer.TOMCAT;

@@ -58,9 +58,12 @@ import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigPro
 import org.entando.kubernetes.fluentspi.TestResource;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
+import org.entando.kubernetes.model.app.EntandoAppSpec;
+import org.entando.kubernetes.model.app.EntandoAppSpecBuilder;
 import org.entando.kubernetes.model.capability.ProvidedCapability;
 import org.entando.kubernetes.model.capability.StandardCapability;
 import org.entando.kubernetes.model.common.DbmsVendor;
+import org.entando.kubernetes.model.common.JeeServer;
 import org.entando.kubernetes.test.common.SourceLink;
 import org.entando.kubernetes.test.common.VariableReferenceAssertions;
 import org.junit.jupiter.api.Tag;
@@ -90,14 +93,14 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
     void shouldDeployEntandoEapImageWithDefaultValues() {
 
         initSecretsMock();
-
+        
+        EntandoAppSpec spec = new EntandoAppSpecBuilder().withStandardServerImage(JeeServer.WILDFLY).build();
         this.app = new EntandoAppBuilder()
                 .withNewMetadata()
                 .withName(MY_APP)
                 .withNamespace(MY_NAMESPACE)
                 .endMetadata()
-                .withNewSpec()
-                .endSpec()
+                .withSpec(spec)
                 .build();
         step("Given that the Entando Operator is running in 'Red Hat' compliance mode",
                 () -> {
@@ -511,13 +514,13 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
     @Test
     @Description("Should point ComponentManager to the globally configured Component Repository Namespaces")
     void shouldPointComponentManagerToGlobalRepositoryNamespaces() {
+        EntandoAppSpec spec = new EntandoAppSpecBuilder().withStandardServerImage(JeeServer.TOMCAT).build();
         this.app = new EntandoAppBuilder()
                 .withNewMetadata()
                 .withName(MY_APP)
                 .withNamespace(MY_NAMESPACE)
                 .endMetadata()
-                .withNewSpec()
-                .endSpec()
+                .withSpec(spec)
                 .build();
         step("Given that I have configured the Component Repository namespaces 'ecr1' and 'ecr2'",
                 () -> {
