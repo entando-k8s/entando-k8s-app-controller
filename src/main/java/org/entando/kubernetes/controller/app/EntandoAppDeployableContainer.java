@@ -25,8 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMode;
-import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
+import java.util.logging.Logger;
 import org.entando.kubernetes.controller.spi.common.LabelNames;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.common.SecretUtils;
@@ -53,6 +52,8 @@ import org.entando.kubernetes.model.common.JeeServer;
 
 public class EntandoAppDeployableContainer implements IngressingContainer, PersistentVolumeAwareContainer, DbAwareContainer,
         TrustStoreAwareContainer, SsoAwareContainer, ParameterizableContainer, ConfigurableResourceContainer {
+    
+    private static final Logger log = Logger.getLogger(EntandoAppDeployableContainer.class.getName());
 
     public static final String INGRESS_WEB_CONTEXT = "/entando-de-app";
     public static final int PORT = 8080;
@@ -106,17 +107,16 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         return this.entandoApp.getSpec().getCustomServerImage()
                 .orElse(EntandoAppHelper.appendImageVersion(this.entandoApp, determineStandardImage().getImageName()));
     }
-
+    
     private JeeServer determineStandardImage() {
-        return entandoApp.getSpec().getStandardServerImage().orElseGet(() -> {
-            if (EntandoOperatorSpiConfig.getComplianceMode() == EntandoOperatorComplianceMode.REDHAT) {
-                return JeeServer.EAP;
-            } else {
-                return JeeServer.TOMCAT;
+        entandoApp.getSpec().getStandardServerImage().ifPresent(si -> {
+            if (!si.equals(JeeServer.TOMCAT)) {
+                log.severe("Containers other than tomcat are deprecated");
             }
         });
+        return JeeServer.TOMCAT;
     }
-
+    
     @Override
     public int getMemoryLimitMebibytes() {
         return 1024 + 768;
@@ -191,7 +191,6 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     }
 
     private void addEntandoDbConnectionVars(List<EnvVar> vars, int schemaIndex, String varNamePrefix) {
-
         if (dbmsVendor == DbmsVendor.EMBEDDED) {
             vars.add(new EnvVar(varNamePrefix + "DRIVER", "derby", null));
         } else if (dbmsVendor != DbmsVendor.NONE) {
@@ -202,14 +201,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
                     SecretUtils.secretKeyRef(connectionInfo.getSchemaSecretName(), SecretUtils.USERNAME_KEY)));
             vars.add(new EnvVar(varNamePrefix + "PASSWORD", null,
                     SecretUtils.secretKeyRef(connectionInfo.getSchemaSecretName(), SecretUtils.PASSSWORD_KEY)));
-
-            JbossDatasourceValidation jbossDatasourceValidation = JbossDatasourceValidation.getValidConnectionCheckerClass(this.dbmsVendor);
-            vars.add(new EnvVar(varNamePrefix + "CONNECTION_CHECKER", jbossDatasourceValidation.getValidConnectionCheckerClassName(),
-                    null));
-            vars.add(new EnvVar(varNamePrefix + "EXCEPTION_SORTER", jbossDatasourceValidation.getExceptionSorterClassName(),
-                    null));
         }
-
     }
 
     @Override
@@ -235,6 +227,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         return entandoApp.getSpec().getEnvironmentVariables();
     }
 
+    @Override
     public List<EnvVar> getSsoVariables() {
         List<EnvVar> vars = new ArrayList<>();
         vars.add(new EnvVar("KEYCLOAK_ENABLED", "true", null));

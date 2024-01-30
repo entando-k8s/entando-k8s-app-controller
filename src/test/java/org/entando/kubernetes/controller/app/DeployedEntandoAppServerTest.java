@@ -58,9 +58,12 @@ import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigPro
 import org.entando.kubernetes.fluentspi.TestResource;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.app.EntandoAppBuilder;
+import org.entando.kubernetes.model.app.EntandoAppSpec;
+import org.entando.kubernetes.model.app.EntandoAppSpecBuilder;
 import org.entando.kubernetes.model.capability.ProvidedCapability;
 import org.entando.kubernetes.model.capability.StandardCapability;
 import org.entando.kubernetes.model.common.DbmsVendor;
+import org.entando.kubernetes.model.common.JeeServer;
 import org.entando.kubernetes.test.common.SourceLink;
 import org.entando.kubernetes.test.common.VariableReferenceAssertions;
 import org.junit.jupiter.api.Tag;
@@ -82,7 +85,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
     public static final String COMPONENT_MANAGER_IMAGE_OVERRIDE = "myregistry/myorg/johns-component-manager"
             + "@sha2561234561234";
     public static final String APP_BUILDER_IMAGE_OVERRIDE = "someregistry/someorg/apppbuild:54312";
-    public static final String ENTANDO_EAP_IMAGE_OVERRIDE = "thepiratebay.com/pirates/of-the-carribean:1234";
+    public static final String ENTANDO_TOMCAT_IMAGE_OVERRIDE = "thepiratebay.com/pirates/of-the-carribean:1234";
     private EntandoApp app;
 
     @Test
@@ -90,14 +93,14 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
     void shouldDeployEntandoEapImageWithDefaultValues() {
 
         initSecretsMock();
-
+        
+        EntandoAppSpec spec = new EntandoAppSpecBuilder().withStandardServerImage(JeeServer.WILDFLY).build();
         this.app = new EntandoAppBuilder()
                 .withNewMetadata()
                 .withName(MY_APP)
                 .withNamespace(MY_NAMESPACE)
                 .endMetadata()
-                .withNewSpec()
-                .endSpec()
+                .withSpec(spec)
                 .build();
         step("Given that the Entando Operator is running in 'Red Hat' compliance mode",
                 () -> {
@@ -167,7 +170,7 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                     attachKubernetesResource("Deployment", theEngineDeployment);
                     final Container theEngineContainer = thePrimaryContainerOn(theEngineDeployment);
                     step("using the Entando Eap Image",
-                            () -> assertThat(theEngineContainer.getImage()).contains("entando/entando-de-app-eap"));
+                            () -> assertThat(theEngineContainer.getImage()).contains("entando/entando-de-app-tomcat"));
                     step("With a volume mounted to the standard directory /entando-data",
                             () -> assertThat(theVolumeMountNamed("my-app-server-volume").on(theEngineContainer)
                                     .getMountPath()).isEqualTo("/entando-data"));
@@ -466,8 +469,8 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                             COMPONENT_MANAGER_IMAGE_OVERRIDE);
                     annotations.put(EntandoImageResolver.IMAGE_OVERRIDE_ANNOTATION_PREFIX + "app-builder-6-5",
                             APP_BUILDER_IMAGE_OVERRIDE);
-                    annotations.put(EntandoImageResolver.IMAGE_OVERRIDE_ANNOTATION_PREFIX + "entando-de-app-eap-6-5",
-                            ENTANDO_EAP_IMAGE_OVERRIDE);
+                    annotations.put(EntandoImageResolver.IMAGE_OVERRIDE_ANNOTATION_PREFIX + "entando-de-app-tomcat-6-5",
+                            ENTANDO_TOMCAT_IMAGE_OVERRIDE);
                     this.app.getMetadata().setAnnotations(annotations);
                     if (this.app.getMetadata().getResourceVersion() != null) {
                         this.app = getClient().entandoResources().reload(app);
@@ -475,13 +478,13 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                     runControllerAgainstCustomResource(app);
                 });
         final EntandoApp entandoApp = client.entandoResources().load(EntandoApp.class, MY_NAMESPACE, MY_APP);
-        step("And a Kubernetes Deployment was created reflecting the correct Entando Eap image:", () -> {
+        step("And a Kubernetes Deployment was created reflecting the correct Entando Tomcat image:", () -> {
             final Deployment theEngineDeployment = client.deployments()
                     .loadDeployment(entandoApp, NameUtils.standardDeployment(entandoApp));
             attachKubernetesResource("Deployment", theEngineDeployment);
             final Container theEngineContainer = thePrimaryContainerOn(theEngineDeployment);
-            step(format("using the Entando Eap Image '%s'", ENTANDO_EAP_IMAGE_OVERRIDE),
-                    () -> assertThat(theEngineContainer.getImage()).isEqualTo(ENTANDO_EAP_IMAGE_OVERRIDE));
+            step(format("using the Entando Tomcat Image '%s'", ENTANDO_TOMCAT_IMAGE_OVERRIDE),
+                    () -> assertThat(theEngineContainer.getImage()).isEqualTo(ENTANDO_TOMCAT_IMAGE_OVERRIDE));
         });
         step("And a Kubernetes Deployment was created reflecting the requirements of the Entando Component Manager image:",
                 () -> {
@@ -511,13 +514,13 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
     @Test
     @Description("Should point ComponentManager to the globally configured Component Repository Namespaces")
     void shouldPointComponentManagerToGlobalRepositoryNamespaces() {
+        EntandoAppSpec spec = new EntandoAppSpecBuilder().withStandardServerImage(JeeServer.TOMCAT).build();
         this.app = new EntandoAppBuilder()
                 .withNewMetadata()
                 .withName(MY_APP)
                 .withNamespace(MY_NAMESPACE)
                 .endMetadata()
-                .withNewSpec()
-                .endSpec()
+                .withSpec(spec)
                 .build();
         step("Given that I have configured the Component Repository namespaces 'ecr1' and 'ecr2'",
                 () -> {
@@ -639,12 +642,6 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                                     "jdbc:postgresql://default-postgresql-dbms-in-namespace-service." + MY_NAMESPACE
                                             + ".svc.cluster"
                                             + ".local:5432/my_db");
-                    assertThat(theVariableNamed(variablePrefix + "_EXCEPTION_SORTER").on(theEngineContainer))
-                            .isEqualTo("org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter");
-                    assertThat(theVariableNamed(variablePrefix + "_CONNECTION_CHECKER").on(theEngineContainer))
-                            .isEqualTo(
-                                    "org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker");
-
                 });
     }
 
