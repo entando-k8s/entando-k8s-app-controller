@@ -133,13 +133,6 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     }
 
     @Override
-    public List<EnvVar> getEnvironmentVariables() {
-        var vars = getBaseEnvironmentVariables();
-        vars.addAll(customConfig.getEnvironmentVariablesAppEngine());
-        return vars;
-    }
-
-    @Override
     public int getPrimaryPort() {
         return PORT;
     }
@@ -229,9 +222,26 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         return entandoApp.getSpec().getResourceRequirements();
     }
 
+    /**
+     * Provides environment variables generated from specific CR specs properties and/or contextual information.
+     */
+    @Override
+    public List<EnvVar> getEnvironmentVariables() {
+        return EntandoAppHelper.subtractEnvironmentVariables(
+                getBaseEnvironmentVariables(),
+                entandoApp.getSpec().getEnvironmentVariablesAppEngine()
+        );
+    }
+
+    /**
+     * Provides environment variables from the common and module-specific "environmentVariables" properties of the CR.
+     */
     @Override
     public List<EnvVar> getEnvironmentVariableOverrides() {
-        return entandoApp.getSpec().getEnvironmentVariables();
+        return EntandoAppHelper.combineEnvironmentVariables(
+                entandoApp.getSpec().getEnvironmentVariables(),
+                entandoApp.getSpec().getEnvironmentVariablesAppEngine()
+        );
     }
 
     @Override
@@ -273,7 +283,7 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
 
         @Override
         public List<EnvVar> getEnvironmentVariables() {
-            return entandoAppDeployableContainer.getBaseEnvironmentVariables();
+            return entandoAppDeployableContainer.getDatabaseConnectionVariables();
         }
 
     }

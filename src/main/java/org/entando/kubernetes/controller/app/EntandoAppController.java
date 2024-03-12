@@ -45,7 +45,6 @@ import org.entando.kubernetes.controller.spi.common.EntandoControllerException;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.common.ResourceUtils;
-import org.entando.kubernetes.controller.spi.container.DeployableContainer;
 import org.entando.kubernetes.controller.spi.container.ProvidedDatabaseCapability;
 import org.entando.kubernetes.controller.spi.container.ProvidedSsoCapability;
 import org.entando.kubernetes.controller.spi.deployable.IngressingDeployable;
@@ -116,7 +115,7 @@ public class EntandoAppController implements Runnable {
             final SsoConnectionInfo ssoConnectionInfo = provideSso();
 
             // SETTINGS
-            final CustomConfigFromOperator customConfig = readEntandoAppCustomConfig();
+            final CustomConfigFromOperator customConfig = readOperatorCustomConfig();
             final int timeoutForDbAware = calculateDbAwareTimeout();
             final int timeoutForNonDbAware = EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
 
@@ -124,7 +123,9 @@ public class EntandoAppController implements Runnable {
             deployAppEngine(ssoConnectionInfo, dbConnectionInfo, customConfig, timeoutForDbAware);
             deployAppBuilder(timeoutForNonDbAware);
             deployComponentManager(ssoConnectionInfo, dbConnectionInfo, customConfig, timeoutForDbAware);
-            waitCompletionAndFinalized(timeoutForDbAware, timeoutForNonDbAware);
+
+            // FINALIZE
+            waitCompletionAndFinalize(timeoutForDbAware, timeoutForNonDbAware);
         } catch (Exception e) {
             attachControllerFailure(e, EntandoAppController.class, NameUtils.MAIN_QUALIFIER);
         }
@@ -134,7 +135,7 @@ public class EntandoAppController implements Runnable {
                 });
     }
 
-    private void waitCompletionAndFinalized(int timeoutForDbAware, int timeoutForNonDbAware) throws InterruptedException, TimeoutException {
+    private void waitCompletionAndFinalize(int timeoutForDbAware, int timeoutForNonDbAware) throws InterruptedException, TimeoutException {
         executor.shutdown();
         final int totalTimeout = timeoutForDbAware * 2 + timeoutForNonDbAware;
         if (!executor.awaitTermination(totalTimeout, TimeUnit.SECONDS)) {
@@ -148,14 +149,19 @@ public class EntandoAppController implements Runnable {
         queueDeployable(new AppBuilderDeployable(entandoApp.get()), timeoutForNonDbAware);
     }
 
-    private void deployComponentManager(SsoConnectionInfo ssoConnectionInfo, DatabaseConnectionInfo dbConnectionInfo,
-            CustomConfigFromOperator customConfig, int timeoutForDbAware) {
-        EntandoK8SService k8sService = new EntandoK8SService(
-                k8sClientForControllers.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE));
-        queueDeployable(
-                new ComponentManagerDeployable(entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo,
-                        simpleK8SClient.secrets(), customConfig),
-                timeoutForDbAware);
+    private void deployComponentManager(
+            SsoConnectionInfo ssoConnectionInfo, DatabaseConnectionInfo dbConnectionInfo,
+            CustomConfigFromOperator customConfig, int timeoutForDbAware
+    ) {
+        var k8sService = new EntandoK8SService(
+                k8sClientForControllers.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE)
+        );
+        var deployable = new ComponentManagerDeployable(
+                entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo,
+                simpleK8SClient.secrets(), customConfig
+        );
+
+        queueDeployable(deployable, timeoutForDbAware);
     }
 
     private void deployAppEngine(
@@ -170,7 +176,7 @@ public class EntandoAppController implements Runnable {
         queueDeployable(deployable, timeoutForDbAware);
     }
 
-    private CustomConfigFromOperator readEntandoAppCustomConfig() {
+    private CustomConfigFromOperator readOperatorCustomConfig() {
         CustomConfigFromOperator customConfig = new CustomConfigFromOperator();
         customConfig.setEcrPostInitConfiguration(lookupProperty(KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION).orElse(""));
         customConfig.setTlsEnabled(StringUtils.isNotBlank(

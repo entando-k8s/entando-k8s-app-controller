@@ -26,6 +26,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.LimitRange;
 import io.fabric8.kubernetes.api.model.LimitRangeBuilder;
 import io.fabric8.kubernetes.api.model.OwnerReference;
@@ -42,6 +43,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Issue;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import org.entando.kubernetes.controller.spi.common.DbmsVendorConfig;
@@ -93,8 +95,13 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
     void shouldDeployEntandoEapImageWithDefaultValues() {
 
         initSecretsMock();
-        
-        EntandoAppSpec spec = new EntandoAppSpecBuilder().withStandardServerImage(JeeServer.WILDFLY).build();
+
+        EntandoAppSpec spec = new EntandoAppSpecBuilder()
+                .withStandardServerImage(JeeServer.WILDFLY)
+                .withEnvironmentVariables(mkTestEnvVars(false))
+                .withEnvironmentVariablesAppEngine(mkTestEnvVars(true))
+                .withEnvironmentVariablesComponentManager(mkTestEnvVars(true))
+                .build();
         this.app = new EntandoAppBuilder()
                 .withNewMetadata()
                 .withName(MY_APP)
@@ -161,6 +168,8 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                     mainDbPreprationJob);
             verifyEntandoDbVariables(entandoApp, portDbSecret, "PORTDB", populator);
             verifyEntandoDbVariables(entandoApp, servDbSecret, "SERVDB", populator);
+
+            verifyEntandoModulesVariables(entandoApp);
         });
 
         step("And a Kubernetes Deployment was created reflecting the requirements of the Entando Eap container:",
@@ -389,6 +398,17 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
             verify(kubernetesClient.limitRanges(), times(1)).inNamespace(MY_NAMESPACE);
             verify(kubernetesClient.limitRanges(), times(1)).createOrReplace(getLimitRange(entandoApp));
         });
+    }
+
+    private static ArrayList<EnvVar> mkTestEnvVars(boolean overwrite) {
+        var res = new ArrayList<EnvVar>();
+        if (!overwrite) {
+            res.add(new EnvVar("TEST_VAR", "TEST_VALUE", null));
+            res.add(new EnvVar("TEST_VAR2", "TEST_VALUE2", null));
+        } else {
+            res.add(new EnvVar("TEST_VAR2", "TEST_VALUE2_OV", null));
+        }
+        return res;
     }
 
     private LimitRange getLimitRange(EntandoApp entandoApp) {
@@ -655,6 +675,29 @@ class DeployedEntandoAppServerTest extends EntandoAppTestBase implements Variabl
                     .isEqualTo(String.valueOf(DbmsVendorConfig.POSTGRESQL.getDefaultPort()));
         });
         verifyDbJobAdminCredentials("default-postgresql-dbms-in-namespace-admin-secret", initContainer);
+    }
+
+    private void verifyEntandoModulesVariables(EntandoApp entandoApp) {
+        String baseName = entandoApp.getMetadata().getName();
+        var ae = client.deployments().loadDeployment(entandoApp, baseName + "-" + NameUtils.DEFAULT_DEPLOYMENT_SUFFIX);
+        var ab = client.deployments().loadDeployment(entandoApp, baseName + "-ab-" + NameUtils.DEFAULT_DEPLOYMENT_SUFFIX);
+        var cm = client.deployments().loadDeployment(entandoApp, baseName + "-cm-" + NameUtils.DEFAULT_DEPLOYMENT_SUFFIX);
+
+        step("and module specific variables were applied to AppEngine", () -> {
+            var c = ae.getSpec().getTemplate().getSpec().getContainers().get(0);
+            assertThat(theVariableNamed("TEST_VAR").on(c)).isEqualTo("TEST_VALUE");
+            assertThat(theVariableNamed("TEST_VAR2").on(c)).isEqualTo("TEST_VALUE2_OV");
+        });
+        step("and module specific variables were applied to ComponentManager", () -> {
+            var c = cm.getSpec().getTemplate().getSpec().getContainers().get(0);
+            assertThat(theVariableNamed("TEST_VAR").on(c)).isEqualTo("TEST_VALUE");
+            assertThat(theVariableNamed("TEST_VAR2").on(c)).isEqualTo("TEST_VALUE2_OV");
+        });
+        step("and module specific variables were applied to AppBuilder", () -> {
+            var c = ab.getSpec().getTemplate().getSpec().getContainers().get(0);
+            assertThat(theVariableNamed("TEST_VAR").on(c)).isEqualTo("TEST_VALUE");
+            assertThat(theVariableNamed("TEST_VAR2").on(c)).isEqualTo("TEST_VALUE2");
+        });
     }
 
 }

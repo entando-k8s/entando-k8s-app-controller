@@ -16,6 +16,11 @@
 
 package org.entando.kubernetes.controller.app;
 
+import io.fabric8.kubernetes.api.model.EnvVar;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorComplianceMode;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
@@ -66,4 +71,28 @@ public class EntandoAppHelper {
         return StringUtils.isBlank(path) ? "/" : path;
     }
 
+    public static List<EnvVar> combineEnvironmentVariables(List<EnvVar> a, List<EnvVar> b) {
+        if (a == null) {
+            a = new ArrayList<>();
+        }
+        if (b == null) {
+            b = new ArrayList<>();
+        }
+
+        return Stream.concat(a.stream(), b.stream()).distinct().collect(Collectors.toList());
+    }
+
+    public static List<EnvVar> subtractEnvironmentVariables(List<EnvVar> a, List<EnvVar> b) {
+        if (a == null) {
+            return new ArrayList<>();
+        }
+
+        if (b == null || b.isEmpty()) {
+            return new ArrayList<>(a);
+        }
+
+        return a.stream()
+                .filter(ea -> b.stream().noneMatch(eb -> eb.getName().equals(ea.getName())))
+                .collect(Collectors.toList());
+    }
 }
