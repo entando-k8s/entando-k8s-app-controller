@@ -103,8 +103,7 @@ public class ComponentManagerDeployableContainer
         return 8083;
     }
 
-    @Override
-    public List<EnvVar> getEnvironmentVariables() {
+    private List<EnvVar> getBaseEnvironmentVariables() {
         List<EnvVar> vars = new ArrayList<>();
         String entandoUrl = EntandoAppDeployableContainer.determineEntandoServiceBaseUrl(this.entandoApp);
         vars.add(new EnvVar("ENTANDO_APP_NAME", entandoApp.getMetadata().getName(), null));
@@ -197,9 +196,26 @@ public class ComponentManagerDeployableContainer
         return "/entando-data";
     }
 
+    /**
+     * Provides environment variables generated from specific CR specs properties and/or contextual information.
+     */
+    @Override
+    public List<EnvVar> getEnvironmentVariables() {
+        return EntandoAppHelper.subtractEnvironmentVariables(
+                getBaseEnvironmentVariables(),
+                entandoApp.getSpec().getEnvironmentVariablesComponentManager()
+        );
+    }
+
+    /**
+     * Provides environment variables from the common and module-specific "environmentVariables" properties of the CR.
+     */
     @Override
     public List<EnvVar> getEnvironmentVariableOverrides() {
-        return entandoApp.getSpec().getEnvironmentVariables();
+        return EntandoAppHelper.combineEnvironmentVariables(
+                entandoApp.getSpec().getEnvironmentVariables(),
+                entandoApp.getSpec().getEnvironmentVariablesComponentManager()
+        );
     }
 
 }

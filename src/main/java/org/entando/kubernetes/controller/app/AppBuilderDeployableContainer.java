@@ -74,16 +74,32 @@ public class AppBuilderDeployableContainer implements DeployableContainer, Ingre
         return Optional.of("/app-builder/favicon-entando.png");
     }
 
+    /**
+     * Provides environment variables generated from specific CR specs properties and/or contextual information.
+     */
     @Override
     public List<EnvVar> getEnvironmentVariables() {
+        return EntandoAppHelper.subtractEnvironmentVariables(
+                getBaseEnvironmentVariables(),
+                entandoApp.getSpec().getEnvironmentVariablesAppBuilder()
+        );
+    }
+
+    /**
+     * Provides environment variables from the common and module-specific "environmentVariables" properties of the CR.
+     */
+    @Override
+    public List<EnvVar> getEnvironmentVariableOverrides() {
+        return EntandoAppHelper.combineEnvironmentVariables(
+                entandoApp.getSpec().getEnvironmentVariables(),
+                entandoApp.getSpec().getEnvironmentVariablesAppBuilder()
+        );
+    }
+
+    private List<EnvVar> getBaseEnvironmentVariables() {
         List<EnvVar> vars = new ArrayList<>();
         vars.add(new EnvVar("DOMAIN", EntandoAppHelper.getNormalizedDeAppWebContextPath(entandoApp),
                 null));
         return vars;
-    }
-
-    @Override
-    public List<EnvVar> getEnvironmentVariableOverrides() {
-        return entandoApp.getSpec().getEnvironmentVariables();
     }
 }
