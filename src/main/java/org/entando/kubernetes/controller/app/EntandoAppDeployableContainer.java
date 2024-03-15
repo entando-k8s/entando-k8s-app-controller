@@ -133,26 +133,6 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
     }
 
     @Override
-    public List<EnvVar> getEnvironmentVariables() {
-        List<EnvVar> vars = new ArrayList<>();
-        vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", SecretUtils.randomAlphanumeric(10), null));
-        vars.add(new EnvVar("JGROUPS_JOIN_TIMEOUT", "3000", null));
-        String labelExpression = LabelNames.DEPLOYMENT.getName() + "=" + entandoApp.getMetadata().getName() + "-"
-                + NameUtils.DEFAULT_SERVER_QUALIFIER;
-        if (determineStandardImage() == JeeServer.EAP) {
-            vars.add(new EnvVar("JGROUPS_PING_PROTOCOL", "openshift.KUBE_PING", null));
-            vars.add(new EnvVar("OPENSHIFT_KUBE_PING_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
-            vars.add(new EnvVar("OPENSHIFT_KUBE_PING_LABELS", labelExpression, null));
-        } else {
-            vars.add(new EnvVar("KUBERNETES_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
-            vars.add(new EnvVar("KUBERNETES_LABELS", labelExpression, null));
-        }
-        vars.add(new EnvVar("ENTANDO_WEB_CONTEXT", getWebContextPath(), null));
-        vars.add(new EnvVar(ENTANDO_APP_USE_TLS, "" + customConfig.isTlsEnabled(), null));
-        return vars;
-    }
-
-    @Override
     public int getPrimaryPort() {
         return PORT;
     }
@@ -190,6 +170,26 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         return Optional.of(new EntandoAppDatabasePopulator(this));
     }
 
+    protected List<EnvVar> getBaseEnvironmentVariables() {
+        List<EnvVar> vars = new ArrayList<>();
+        vars.add(new EnvVar("JGROUPS_CLUSTER_PASSWORD", SecretUtils.randomAlphanumeric(10), null));
+        vars.add(new EnvVar("JGROUPS_JOIN_TIMEOUT", "3000", null));
+        String labelExpression = LabelNames.DEPLOYMENT.getName() + "=" + entandoApp.getMetadata().getName() + "-"
+                + NameUtils.DEFAULT_SERVER_QUALIFIER;
+        if (determineStandardImage() == JeeServer.EAP) {
+            vars.add(new EnvVar("JGROUPS_PING_PROTOCOL", "openshift.KUBE_PING", null));
+            vars.add(new EnvVar("OPENSHIFT_KUBE_PING_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
+            vars.add(new EnvVar("OPENSHIFT_KUBE_PING_LABELS", labelExpression, null));
+        } else {
+            vars.add(new EnvVar("KUBERNETES_NAMESPACE", entandoApp.getMetadata().getNamespace(), null));
+            vars.add(new EnvVar("KUBERNETES_LABELS", labelExpression, null));
+        }
+        vars.add(new EnvVar("ENTANDO_WEB_CONTEXT", getWebContextPath(), null));
+        vars.add(new EnvVar(ENTANDO_APP_USE_TLS, "" + customConfig.isTlsEnabled(), null));
+
+        return vars;
+    }
+
     private void addEntandoDbConnectionVars(List<EnvVar> vars, int schemaIndex, String varNamePrefix) {
         if (dbmsVendor == DbmsVendor.EMBEDDED) {
             vars.add(new EnvVar(varNamePrefix + "DRIVER", "derby", null));
@@ -222,9 +222,26 @@ public class EntandoAppDeployableContainer implements IngressingContainer, Persi
         return entandoApp.getSpec().getResourceRequirements();
     }
 
+    /**
+     * Provides environment variables generated from specific CR specs properties and/or contextual information.
+     */
+    @Override
+    public List<EnvVar> getEnvironmentVariables() {
+        return EntandoAppHelper.subtractEnvironmentVariables(
+                getBaseEnvironmentVariables(),
+                entandoApp.getSpec().getEnvironmentVariablesAppEngine()
+        );
+    }
+
+    /**
+     * Provides environment variables from the common and module-specific "environmentVariables" properties of the CR.
+     */
     @Override
     public List<EnvVar> getEnvironmentVariableOverrides() {
-        return entandoApp.getSpec().getEnvironmentVariables();
+        return EntandoAppHelper.combineEnvironmentVariables(
+                entandoApp.getSpec().getEnvironmentVariables(),
+                entandoApp.getSpec().getEnvironmentVariablesAppEngine()
+        );
     }
 
     @Override

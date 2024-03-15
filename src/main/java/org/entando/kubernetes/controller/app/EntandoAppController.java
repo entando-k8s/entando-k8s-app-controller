@@ -106,28 +106,26 @@ public class EntandoAppController implements Runnable {
                 (EntandoApp) k8sClientForControllers.resolveCustomResourceToProcess(Collections.singletonList(EntandoApp.class)));
         try {
             entandoApp.set(k8sClientForControllers.deploymentStarted(entandoApp.get()));
+
+            // PRE
             this.createDefaultLimitRange();
+
+            // REQUIREMENTS
             final DatabaseConnectionInfo dbConnectionInfo = provideDatabaseIfRequired();
             final SsoConnectionInfo ssoConnectionInfo = provideSso();
+
+            // SETTINGS
+            final CustomConfigFromOperator customConfig = readOperatorCustomConfig();
             final int timeoutForDbAware = calculateDbAwareTimeout();
-            final CustomConfigFromOperator customConfig = readEntandoAppCustomConfig();
-            queueDeployable(new EntandoAppServerDeployable(entandoApp.get(), ssoConnectionInfo, dbConnectionInfo,
-                    simpleK8SClient.secrets(), customConfig), timeoutForDbAware);
             final int timeoutForNonDbAware = EntandoOperatorSpiConfig.getPodReadinessTimeoutSeconds();
-            queueDeployable(new AppBuilderDeployable(entandoApp.get()), timeoutForNonDbAware);
-            EntandoK8SService k8sService = new EntandoK8SService(
-                    k8sClientForControllers.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE));
-            queueDeployable(
-                    new ComponentManagerDeployable(entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo,
-                            simpleK8SClient.secrets(), customConfig),
-                    timeoutForDbAware);
-            executor.shutdown();
-            final int totalTimeout = timeoutForDbAware * 2 + timeoutForNonDbAware;
-            if (!executor.awaitTermination(totalTimeout, TimeUnit.SECONDS)) {
-                throw new TimeoutException(
-                        format("Could not complete deployment of EntandoApp in %s seconds", totalTimeout));
-            }
-            entandoApp.updateAndGet(k8sClientForControllers::deploymentEnded);
+
+            // MODULES
+            deployAppEngine(ssoConnectionInfo, dbConnectionInfo, customConfig, timeoutForDbAware);
+            deployAppBuilder(timeoutForNonDbAware);
+            deployComponentManager(ssoConnectionInfo, dbConnectionInfo, customConfig, timeoutForDbAware);
+
+            // FINALIZE
+            waitCompletionAndFinalize(timeoutForDbAware, timeoutForNonDbAware);
         } catch (Exception e) {
             attachControllerFailure(e, EntandoAppController.class, NameUtils.MAIN_QUALIFIER);
         }
@@ -137,7 +135,48 @@ public class EntandoAppController implements Runnable {
                 });
     }
 
-    private CustomConfigFromOperator readEntandoAppCustomConfig() {
+    private void waitCompletionAndFinalize(int timeoutForDbAware, int timeoutForNonDbAware) throws InterruptedException, TimeoutException {
+        executor.shutdown();
+        final int totalTimeout = timeoutForDbAware * 2 + timeoutForNonDbAware;
+        if (!executor.awaitTermination(totalTimeout, TimeUnit.SECONDS)) {
+            throw new TimeoutException(
+                    format("Could not complete deployment of EntandoApp in %s seconds", totalTimeout));
+        }
+        entandoApp.updateAndGet(k8sClientForControllers::deploymentEnded);
+    }
+
+    private void deployAppBuilder(int timeoutForNonDbAware) {
+        queueDeployable(new AppBuilderDeployable(entandoApp.get()), timeoutForNonDbAware);
+    }
+
+    private void deployComponentManager(
+            SsoConnectionInfo ssoConnectionInfo, DatabaseConnectionInfo dbConnectionInfo,
+            CustomConfigFromOperator customConfig, int timeoutForDbAware
+    ) {
+        var k8sService = new EntandoK8SService(
+                k8sClientForControllers.loadControllerService(EntandoAppController.ENTANDO_K8S_SERVICE)
+        );
+        var deployable = new ComponentManagerDeployable(
+                entandoApp.get(), ssoConnectionInfo, k8sService, dbConnectionInfo,
+                simpleK8SClient.secrets(), customConfig
+        );
+
+        queueDeployable(deployable, timeoutForDbAware);
+    }
+
+    private void deployAppEngine(
+            SsoConnectionInfo ssoConnectionInfo, DatabaseConnectionInfo dbConnectionInfo,
+            CustomConfigFromOperator customConfig, int timeoutForDbAware
+    ) {
+        var deployable = new EntandoAppServerDeployable(
+                entandoApp.get(), ssoConnectionInfo, dbConnectionInfo,
+                simpleK8SClient.secrets(), customConfig
+        );
+
+        queueDeployable(deployable, timeoutForDbAware);
+    }
+
+    private CustomConfigFromOperator readOperatorCustomConfig() {
         CustomConfigFromOperator customConfig = new CustomConfigFromOperator();
         customConfig.setEcrPostInitConfiguration(lookupProperty(KEY_ENTANDO_ECR_POSTINIT_CONFIGURATION).orElse(""));
         customConfig.setTlsEnabled(StringUtils.isNotBlank(
