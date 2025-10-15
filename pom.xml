@@ -21,10 +21,10 @@
     <parent>
         <groupId>org.entando</groupId>
         <artifactId>entando-quarkus-parent</artifactId>
-        <version>7.4.0-ENG-5316-PR-53</version>
+        <version>7.3.0-fix.1-ESB-513-PR-61</version>
         <relativePath/>
     </parent>
-    <version>7.4.0-SNAPSHOT</version>
+    <version>7.3.0-fix.1</version>
     <artifactId>entando-k8s-app-controller</artifactId>
     <name>Entando K8S Controller for Entando App Deployments</name>
     <description>Entando's K8S Controller for Entando App Deployments</description>
@@ -64,12 +64,13 @@
     <properties>
         <github.organization>entando-k8s</github.organization>
         <sonar.projectKey>${github.organization}_${project.artifactId}</sonar.projectKey>
-        <entando-k8s-operator-common.version>7.4.0-ENG-5316-PR-150</entando-k8s-operator-common.version>
+        <entando-k8s-operator-common.version>7.3.0-fix.1-ESB-513-PR-165</entando-k8s-operator-common.version>
         <skipLicenseDownload>true</skipLicenseDownload>
         <preDeploymentTestGroups>in-process</preDeploymentTestGroups>
         <postDeploymentTestGroups>smoke</postDeploymentTestGroups>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <sonar.skip>true</sonar.skip>
     </properties>
     <issueManagement>
         <system>Github</system>
@@ -99,10 +100,10 @@
             <groupId>org.jboss.resteasy</groupId>
             <artifactId>resteasy-client</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-jaxrs</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.jboss.resteasy</groupId>-->
+<!--            <artifactId>resteasy-jaxrs</artifactId>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.jboss.resteasy</groupId>
             <artifactId>resteasy-jackson2-provider</artifactId>
