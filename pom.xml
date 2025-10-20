@@ -70,7 +70,6 @@
         <postDeploymentTestGroups>smoke</postDeploymentTestGroups>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <sonar.skip>true</sonar.skip>
     </properties>
     <issueManagement>
         <system>Github</system>
